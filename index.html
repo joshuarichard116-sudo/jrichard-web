@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Joshua Richard · Identity & Access</title>
-  <meta name="description" content="Joshua Richard: System Administrator at S1 Technology, a managed service provider, focused on identity and access management, Microsoft 365 / Entra ID and Azure.">
+  <meta name="description" content="Joshua Richard: Technical Consultant, Security Operations at S1 Technology (MSP). 4+ years at managed service providers, active Secret clearance, AZ-104, SC-300, Security+, CySA+.">
   <meta name="pizzazz-recipe" content='{"pz":1,"kit":"my-color-profile","concept":"Spec Sheet","family":"refined","dev":{"intensity":"standard","flourish":"amber dividers","structure":"slim header"},"sig":"amber rule dividers","pal":{"pri":"#27241D","sec":"#423D33","tint":"#FAF5EE","zeb":"#F7F3EC","mut":"#625B50","ftr":"#6B6358","hair":"#D9D1C4","acc":"#D9A21B","watch":"#B44D12"},"font":{"h":"system-ui","b":"system-ui"},"date":"2026-11-19"}'>
   <meta property="og:title" content="Joshua Richard · Identity & Access">
-  <meta property="og:description" content="System Administrator at an MSP. Hybrid AD / Microsoft Entra ID, Microsoft 365, Azure, and CMMC-minded lab work.">
+  <meta property="og:description" content="Security operations and systems administration at an MSP. Microsoft Entra ID, Azure, Defender XDR, Sentinel and CMMC-minded lab work.">
   <meta property="og:type" content="website">
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
@@ -119,6 +119,17 @@
     @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .card { border-left-color: var(--pz-accent); } }
     .card:hover { transform: translateY(-2px); }
     .card.job { max-width: none; }
+    .timeline { display: grid; gap: 16px; }
+    .creds { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0 0 8px; }
+    .creds li { font-size: 13.5px; font-weight: 600; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); }
+    .creds li:first-child { border-color: var(--pz-accent); }
+    .cert-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 16px; }
+    .cert-main { font-weight: 700; font-size: 18px; margin: 0; }
+    .cert-sub { color: var(--text-2); font-size: 14.5px; margin: 2px 0 0; }
+    .also { margin-top: 24px; background: var(--surface); border: 1px dashed var(--border); border-radius: 14px; padding: 18px 22px; }
+    .also h3 { font-size: 15px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-2); margin: 0 0 8px; }
+    .also ul { margin: 0; padding-left: 18px; font-size: 15.5px; }
+    .also li { margin: 6px 0; }
     .card .kicker { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--text-2); margin: 0 0 6px; }
     .card h3 { font-size: 20px; line-height: 1.3; margin: 0 0 10px; }
     .card p { margin: 0 0 12px; color: var(--text-2); font-size: 16px; }
@@ -229,8 +240,8 @@
       <nav aria-label="Main">
         <ul>
           <li><a href="#experience">Experience</a></li>
+          <li><a href="#credentials">Credentials</a></li>
           <li><a href="#projects">Projects</a></li>
-          <li><a href="#approach">Approach</a></li>
           <li><a href="#skills">Skills</a></li>
           <li><a href="#contact">Contact</a></li>
         </ul>
@@ -243,9 +254,15 @@
     <div class="wrap">
       <section class="explorer" aria-labelledby="hello">
         <div class="explorer-head">
-          <p class="eyebrow">System Administrator · Identity &amp; Access Management</p>
+          <p class="eyebrow">Security Operations · Identity &amp; Access · Azure</p>
           <h1 id="hello">Hi, I'm Joshua.</h1>
           <span class="rule" aria-hidden="true"></span>
+          <ul class="creds" aria-label="Highlights">
+            <li>Active Secret clearance</li>
+            <li>U.S. Army National Guard · Sergeant (E-5)</li>
+            <li>B.S. Cybersecurity</li>
+            <li>AZ-104 · SC-300 · Security+ · CySA+</li>
+          </ul>
         </div>
         <div class="stage-wrap">
           <div>
@@ -265,7 +282,7 @@
               <!-- Shown if JavaScript is off; replaced by the pyramid's About side. -->
               <p class="kicker">Who I am</p>
               <h2>Hi, I'm Joshua.</h2>
-              <p>I'm a System Administrator at S1 Technology, a managed service provider, where I've supported client environments for the past year. Day to day I handle user accounts and onboarding, Microsoft 365 and Entra ID, Windows servers, help desk tickets and security triage. Outside work I build labs that go deeper into identity and access, so I understand the why behind the settings I manage.</p>
+              <p>I'm a Technical Consultant in security operations and systems administration at S1 Technology, a managed service provider. Before that I worked at Global Data, another MSP, from 2022 to April 2026, growing from intern to full-time NOC and service desk technician. I also serve as a Sergeant in the Louisiana Army National Guard and hold an active Secret clearance. Outside work I build labs that go deeper into identity, access and Azure, so I understand the why behind the settings I manage.</p>
               <a class="more" href="#experience">See my experience</a>
             </div>
           </section>
@@ -276,20 +293,70 @@
 
       <section id="experience">
         <h2>Experience</h2>
-        <p class="section-sub">Where I do this work every day.</p>
-        <article class="card job reveal">
-          <p class="kicker">Current role · about 1 year</p>
-          <h3>System Administrator · S1 Technology</h3>
-          <p>A managed service provider, so I support several client environments, not just one.</p>
-          <ul>
-            <li>Manage user accounts, onboarding and offboarding in Active Directory and Microsoft Entra ID across client environments</li>
-            <li>Administer Microsoft 365 and Entra ID: licenses, MFA and user access</li>
-            <li>Maintain Windows servers and file shares, including permissions, backups and patching</li>
-            <li>Work help desk tickets and troubleshoot user and device issues</li>
-            <li>Triage security alerts and escalate what needs deeper investigation</li>
-          </ul>
-          <div class="chips"><span class="chip">Active Directory</span><span class="chip">Microsoft Entra ID</span><span class="chip">Microsoft 365</span><span class="chip">Windows Server</span><span class="chip">Help desk</span><span class="chip">Security triage</span></div>
-        </article>
+        <p class="section-sub">4+ years at managed service providers, supporting many client environments at once.</p>
+        <div class="timeline">
+          <article class="card job reveal">
+            <p class="kicker">April 2026 – present · Current role</p>
+            <h3>Technical Consultant, Security Operations · S1 Technology</h3>
+            <p>Security operations and systems administration for client environments at a managed service provider.</p>
+            <ul>
+              <li>Triage and resolve about 30 security tickets per week across client environments using SentinelOne, Microsoft Defender XDR and Microsoft Sentinel</li>
+              <li>Own tuning of the organization's SentinelOne agent to cut false positives while keeping detection coverage</li>
+              <li>Designed a Microsoft Graph-based audit to catch billed users missed during onboarding, and documented why Microsoft 365 Lighthouse and Azure Policy could not do the job</li>
+              <li>Prototyped least-privilege delegated admin access for a multi-domain client tenant, then documented the tested models, their limits and a recommended design</li>
+              <li>Wrote a PowerShell script that removes old-tenant Outlook and Microsoft 365 data after client tenant migrations</li>
+              <li>Built a web-based GUI for the internal client software and agent deployment tool, replacing a batch-script menu</li>
+              <li>Wrote the company's standard procedure for initial Cisco Small Business switch configuration over console</li>
+              <li>Day to day: user accounts and onboarding in Active Directory and Entra ID, Microsoft 365 administration, Windows servers and file shares (permissions, backups, patching), and help desk escalations</li>
+            </ul>
+            <div class="chips"><span class="chip">SentinelOne</span><span class="chip">Defender XDR</span><span class="chip">Microsoft Sentinel</span><span class="chip">Microsoft Graph</span><span class="chip">PowerShell</span><span class="chip">Entra ID</span><span class="chip">Microsoft 365</span><span class="chip">Cisco</span></div>
+          </article>
+          <article class="card job reveal">
+            <p class="kicker">2022 – April 2026</p>
+            <h3>NOC Technician / Service Desk · Global Data</h3>
+            <p>Managed service provider.</p>
+            <ul>
+              <li>Progressed from intern to full-time technician supporting multiple client networks</li>
+              <li>Monitored client network infrastructure with Auvik and responded to device and connectivity alerts</li>
+              <li>Supported and maintained Cisco Meraki MX, Sophos and UniFi firewalls and network equipment</li>
+              <li>Handled escalations, backups (Axcient), Mac device management (Addigy) and remote support (ScreenConnect) through ConnectWise</li>
+            </ul>
+            <div class="chips"><span class="chip">Auvik</span><span class="chip">Meraki MX</span><span class="chip">Sophos</span><span class="chip">UniFi</span><span class="chip">Axcient</span><span class="chip">Addigy</span><span class="chip">ConnectWise</span></div>
+          </article>
+          <article class="card job reveal">
+            <p class="kicker">2020 – present</p>
+            <h3>Wheeled Vehicle Mechanic (91B), Sergeant E-5 · Louisiana Army National Guard</h3>
+            <ul>
+              <li>Lead and train soldiers on maintenance procedures with strict documentation and accountability standards</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <img class="divider" src="assets/divider.svg" alt="">
+
+      <section id="credentials">
+        <h2>Education &amp; certifications</h2>
+        <p class="section-sub">Degree, certifications and clearance.</p>
+        <div class="cert-grid">
+          <div class="skill-group reveal">
+            <h3>Education</h3>
+            <p class="cert-main">B.S. Cybersecurity</p>
+            <p class="cert-sub">Louisiana State University of Alexandria · May 2026</p>
+          </div>
+          <div class="skill-group reveal">
+            <h3>Microsoft</h3>
+            <div class="chips"><span class="chip">Azure Administrator Associate (AZ-104)</span><span class="chip">Identity and Access Administrator Associate (SC-300)</span><span class="chip">Security, Compliance, and Identity Fundamentals (SC-900)</span></div>
+          </div>
+          <div class="skill-group reveal">
+            <h3>CompTIA &amp; Cisco</h3>
+            <div class="chips"><span class="chip">CompTIA Security+</span><span class="chip">CompTIA CySA+</span><span class="chip">CompTIA Security Pro</span><span class="chip">Cisco CCST Networking</span></div><p class="cert-sub" style="margin-top:10px">In progress: Cisco CCNA</p>
+          </div>
+          <div class="skill-group reveal">
+            <h3>Clearance &amp; service</h3>
+            <div class="chips"><span class="chip">Active U.S. Secret clearance</span><span class="chip">Army National Guard · Sergeant (E-5)</span></div>
+          </div>
+        </div>
       </section>
 
       <img class="divider" src="assets/divider.svg" alt="">
@@ -339,9 +406,9 @@
           </article>
 
           <article class="card reveal">
-            <p class="kicker">Certification path</p>
-            <h3>Azure Administrator Labs <span class="status">In progress</span></h3>
-            <p>Hands-on AZ-104 labs, each written up with the goal, what I built, how I checked it and what I learned.</p>
+            <p class="kicker">Hands-on Azure</p>
+            <h3>Azure Administrator Labs <span class="status">Ongoing</span></h3>
+            <p>Hands-on labs across the AZ-104 skill areas (I hold the certification), each written up with the goal, what I built, how I checked it and what I learned.</p>
             <ul>
               <li>Identity and governance, storage, compute</li>
               <li>Virtual networking, monitoring and backup</li>
@@ -349,6 +416,14 @@
             <div class="chips"><span class="chip">AZ-104</span><span class="chip">Azure</span></div>
             <a class="more" href="https://github.com/joshuarichard116-sudo/Azure-Administrator-Labs">Follow along</a>
           </article>
+        </div>
+        <div class="also reveal">
+          <h3>Also building</h3>
+          <ul>
+            <li><strong>Azure hub-and-spoke network lab (Meridian Steel):</strong> designing a hub-and-spoke Azure network from business requirements, with governance first: budget alerts, allowed-region and tag-inheritance policies, and role-based access to compute.</li>
+            <li><strong>File server authentication comparison lab:</strong> three file servers (domain-joined Kerberos, workgroup NTLM and standalone Samba) to compare authentication behavior side by side.</li>
+            <li><strong>SC-500 cloud security lab (Talvex Components):</strong> a new Azure and Entra tenant built from scratch to practice cloud and AI workload security, including network controls and VPN Gateway scenarios.</li>
+          </ul>
         </div>
       </section>
 
@@ -380,20 +455,28 @@
         <p class="section-sub">What I use at work and in my labs.</p>
         <div class="skills">
           <div class="skill-group reveal">
-            <h3>Identity</h3>
-            <div class="chips"><span class="chip">Active Directory</span><span class="chip">Microsoft Entra ID</span><span class="chip">Microsoft 365</span><span class="chip">Entra Connect Sync</span><span class="chip">Conditional Access</span><span class="chip">PIM</span><span class="chip">RBAC / least privilege</span></div>
+            <h3>Network &amp; firewall</h3>
+            <div class="chips"><span class="chip">Cisco switching (VLANs, ACLs)</span><span class="chip">Meraki MX</span><span class="chip">Sophos</span><span class="chip">UniFi</span><span class="chip">TCP/IP, DNS, DHCP</span><span class="chip">VPN</span><span class="chip">OSPF fundamentals</span><span class="chip">Wireshark</span><span class="chip">Nmap</span></div>
           </div>
           <div class="skill-group reveal">
-            <h3>Infrastructure</h3>
-            <div class="chips"><span class="chip">Windows Server</span><span class="chip">NTFS / SMB</span><span class="chip">Backups &amp; patching</span><span class="chip">KVM / virt-manager</span><span class="chip">Microsoft Azure</span><span class="chip">Bicep</span></div>
+            <h3>Cloud &amp; identity</h3>
+            <div class="chips"><span class="chip">Microsoft Azure</span><span class="chip">VNets, NSGs, hub-and-spoke</span><span class="chip">Azure Policy</span><span class="chip">RBAC</span><span class="chip">Microsoft Entra ID</span><span class="chip">Conditional Access</span><span class="chip">PIM</span><span class="chip">Microsoft 365</span><span class="chip">Bicep</span></div>
           </div>
           <div class="skill-group reveal">
-            <h3>Automation</h3>
-            <div class="chips"><span class="chip">PowerShell</span><span class="chip">ActiveDirectory module</span><span class="chip">CSV-driven provisioning</span><span class="chip">Azure CLI</span></div>
+            <h3>Monitoring &amp; response</h3>
+            <div class="chips"><span class="chip">Microsoft Sentinel</span><span class="chip">Defender XDR</span><span class="chip">Stellar Cyber SIEM/XDR</span><span class="chip">SentinelOne</span><span class="chip">Auvik</span><span class="chip">Avanan</span><span class="chip">SaaS Alerts</span><span class="chip">ANY.RUN</span><span class="chip">VirusTotal</span></div>
           </div>
           <div class="skill-group reveal">
-            <h3>Security &amp; compliance</h3>
-            <div class="chips"><span class="chip">Security alert triage</span><span class="chip">Zero Trust</span><span class="chip">Joiner / mover / leaver</span><span class="chip">Access reviews</span><span class="chip">Break-glass design</span><span class="chip">NIST SP 800-171</span><span class="chip">CMMC</span></div>
+            <h3>Systems</h3>
+            <div class="chips"><span class="chip">Windows Server</span><span class="chip">Active Directory</span><span class="chip">Linux (Debian, Kali)</span><span class="chip">KVM virtualization</span><span class="chip">NTFS / SMB</span><span class="chip">Backups &amp; patching</span></div>
+          </div>
+          <div class="skill-group reveal">
+            <h3>Scripting &amp; automation</h3>
+            <div class="chips"><span class="chip">PowerShell</span><span class="chip">Bash</span><span class="chip">Microsoft Graph API</span><span class="chip">Azure CLI</span></div>
+          </div>
+          <div class="skill-group reveal">
+            <h3>Compliance</h3>
+            <div class="chips"><span class="chip">NIST SP 800-171</span><span class="chip">CMMC</span><span class="chip">Zero Trust</span><span class="chip">Access reviews</span><span class="chip">Joiner / mover / leaver</span></div>
           </div>
         </div>
       </section>
@@ -405,16 +488,17 @@
           <div>
             <h2>Currently</h2>
             <ul>
-              <li>Working through <strong>AZ-104 (Azure Administrator)</strong> labs</li>
+              <li>Studying for the <strong>Cisco CCNA</strong></li>
+              <li>Building an <strong>SC-500 cloud security lab</strong> on a fresh Azure and Entra tenant</li>
               <li>Building <strong>HR-driven onboarding automation</strong>: HR system → AD → Entra → groups → SaaS</li>
             </ul>
           </div>
           <div>
             <h2>Get in touch</h2>
-            <p class="section-sub" style="margin-bottom:16px">The best way to reach me is LinkedIn. All my work is on GitHub.</p>
+            <p class="section-sub" style="margin-bottom:16px">LinkedIn or email are the best ways to reach me. All my work is on GitHub.</p>
             <div class="ctas">
-              <!-- TODO: replace with your LinkedIn profile URL -->
-              <a class="btn primary" href="https://www.linkedin.com/">LinkedIn</a>
+              <a class="btn primary" href="https://www.linkedin.com/in/joshua-richard-376140207">LinkedIn</a>
+              <a class="btn" href="mailto:joshuarichard116@gmail.com">Email me</a>
               <a class="btn" href="https://github.com/joshuarichard116-sudo">GitHub</a>
             </div>
           </div>
@@ -468,20 +552,33 @@
      ===================================================================== */
   const SIDES = [
     {
-      icon: "👋", label: "About", kicker: "Who I am",
+      icon: "👋",
+      label: "About",
+      kicker: "Who I am",
       title: "Hi, I'm Joshua.",
-      text: "I'm a System Administrator at S1 Technology, a managed service provider, where I've supported client environments for the past year. Day to day I handle user accounts and onboarding, Microsoft 365 and Entra ID, Windows servers, help desk tickets and security triage. Outside work I build labs that go deeper into identity and access, so I understand the why behind the settings I manage.",
-      bullets: ["Working through AZ-104 (Azure Administrator) labs", "Building HR-driven onboarding automation: HR system → AD → Entra → groups → SaaS"],
-      link: { text: "See all projects", href: "#projects" },
+      text: "I'm a Technical Consultant in security operations and systems administration at S1 Technology, a managed service provider. Before that I worked at Global Data, another MSP, from 2022 to April 2026, growing from intern to full-time NOC and service desk technician. I also serve as a Sergeant in the Louisiana Army National Guard and hold an active Secret clearance. Outside work I build labs that go deeper into identity, access and Azure, so I understand the why behind the settings I manage.",
+      bullets: ["Active U.S. Secret clearance", "B.S. Cybersecurity · AZ-104 · SC-300 · Security+ · CySA+", "Currently: CCNA and an SC-500 cloud security lab"],
+      link: {"text": "See my experience", "href": "#experience"},
       ctas: true
     },
     {
-      icon: "💼", label: "Experience", kicker: "S1 Technology",
-      title: "System Administrator · S1 Technology",
-      text: "About 1 year in my current role at a managed service provider, supporting several client environments.",
-      bullets: ["Manage user accounts, onboarding and offboarding in Active Directory and Microsoft Entra ID across client environments", "Administer Microsoft 365 and Entra ID: licenses, MFA and user access", "Maintain Windows servers and file shares, including permissions, backups and patching", "Work help desk tickets and troubleshoot user and device issues", "Triage security alerts and escalate what needs deeper investigation"],
-      chips: ["Active Directory", "Entra ID", "Microsoft 365", "Windows Server", "Help desk", "Security triage"],
-      link: { text: "See my experience", href: "#experience" }
+      icon: "💼",
+      label: "Experience",
+      kicker: "S1 Technology",
+      title: "Technical Consultant, Security Operations · S1 Technology",
+      text: "April 2026 – present, covering security operations and systems administration for client environments. Before that: NOC Technician / Service Desk at Global Data (2022 – April 2026).",
+      bullets: ["Triage and resolve about 30 security tickets per week across client environments using SentinelOne, Microsoft Defender XDR and Microsoft Sentinel", "Own tuning of the organization's SentinelOne agent to cut false positives while keeping detection coverage", "Designed a Microsoft Graph-based audit to catch billed users missed during onboarding, and documented why Microsoft 365 Lighthouse and Azure Policy could not do the job", "Prototyped least-privilege delegated admin access for a multi-domain client tenant, then documented the tested models, their limits and a recommended design"],
+      chips: ["SentinelOne", "Defender XDR", "Sentinel", "Microsoft Graph", "PowerShell"],
+      link: {"text": "See full experience", "href": "#experience"}
+    },
+    {
+      icon: "🎖️",
+      label: "Credentials",
+      kicker: "Certs · clearance",
+      title: "Education, certifications & clearance",
+      text: "What backs up the hands-on work.",
+      bullets: ["B.S. Cybersecurity, Louisiana State University of Alexandria (May 2026)", "Microsoft: AZ-104, SC-300, SC-900", "CompTIA: Security+, CySA+, Security Pro", "Cisco: CCST Networking · CCNA in progress", "Active U.S. Secret clearance · Army National Guard Sergeant (E-5)"],
+      link: {"text": "See credentials", "href": "#credentials"}
     },
     {
       icon: "🔐", label: "Meridian Steel", kicker: "Hybrid identity · RBAC",
@@ -508,9 +605,9 @@
       link: { text: "View the toolkit", href: "https://github.com/joshuarichard116-sudo/cmmc-gcc-high-enclave-toolkit" }
     },
     {
-      icon: "🎓", label: "AZ-104 Labs", kicker: "In progress",
+      icon: "🎓", label: "Azure Labs", kicker: "Hands-on Azure",
       title: "Azure Administrator Labs",
-      text: "Hands-on AZ-104 labs, each written up with the goal, what I built, how I checked it and what I learned.",
+      text: "Hands-on labs across the AZ-104 skill areas (I hold the certification), each written up with the goal, what I built, how I checked it and what I learned.",
       bullets: ["Identity and governance, storage, compute", "Virtual networking, monitoring and backup"],
       chips: ["AZ-104", "Azure"],
       link: { text: "Follow along", href: "https://github.com/joshuarichard116-sudo/Azure-Administrator-Labs" }
@@ -518,8 +615,8 @@
     {
       icon: "🧰", label: "Skills", kicker: "Tools I use",
       title: "Skills & tools",
-      text: "What I work with across these projects.",
-      bullets: ["Identity: Active Directory, Entra ID, Entra Connect Sync, Conditional Access, PIM", "Infrastructure: Windows Server, NTFS / SMB, KVM, Azure, Bicep", "Automation: PowerShell, CSV-driven provisioning, Azure CLI", "Security & compliance: Zero Trust, JML lifecycle, access reviews, NIST SP 800-171, CMMC"],
+      text: "What I use at work and in my labs.",
+      bullets: ["Network & firewall: Cisco switching, Meraki MX, Sophos, UniFi, Wireshark, Nmap", "Cloud & identity: Azure, Entra ID, Conditional Access, PIM, Azure Policy, Microsoft 365", "Monitoring & response: Sentinel, Defender XDR, SentinelOne, Stellar Cyber, Auvik", "Systems & scripting: Windows Server, Active Directory, Linux, KVM, PowerShell, Bash, Graph API"],
       link: { text: "Jump to skills", href: "#skills" }
     }
   ];
@@ -585,7 +682,7 @@
         (d.bullets ? `<ul>${d.bullets.map(b => `<li>${b}</li>`).join('')}</ul>` : '') +
         (d.chips ? `<div class="chips">${d.chips.map(c => `<span class="chip">${c}</span>`).join('')}</div>` : '') +
         (d.link ? `<a class="more" href="${d.link.href}">${d.link.text}</a>` : '') +
-        (d.ctas ? `<div class="ctas"><a class="btn primary" href="https://github.com/joshuarichard116-sudo">GitHub</a><a class="btn" href="https://www.linkedin.com/">LinkedIn</a></div>` : '');
+        (d.ctas ? `<div class="ctas"><a class="btn primary" href="https://github.com/joshuarichard116-sudo">GitHub</a><a class="btn" href="https://www.linkedin.com/in/joshua-richard-376140207">LinkedIn</a><a class="btn" href="mailto:joshuarichard116@gmail.com">Email</a></div>` : '');
       if (reduce || !body.dataset.ready) { body.innerHTML = html; body.dataset.ready = 1; return; }
       body.classList.add('swap'); setTimeout(() => { body.innerHTML = html; body.classList.remove('swap'); }, 180);
     }
