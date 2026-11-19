@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Joshua Richard · Identity & Access</title>
+  <meta name="description" content="Joshua Richard: IT professional focused on identity and access management, hybrid Active Directory / Microsoft Entra ID, and Azure administration.">
+  <meta name="pizzazz-recipe" content='{"pz":1,"kit":"my-color-profile","concept":"Spec Sheet","family":"refined","dev":{"intensity":"standard","flourish":"amber dividers","structure":"slim header"},"sig":"amber rule dividers","pal":{"pri":"#27241D","sec":"#423D33","tint":"#FAF5EE","zeb":"#F7F3EC","mut":"#625B50","ftr":"#6B6358","hair":"#D9D1C4","acc":"#D9A21B","watch":"#B44D12"},"font":{"h":"system-ui","b":"system-ui"},"date":"2026-11-19"}'>
+  <meta property="og:title" content="Joshua Richard · Identity & Access">
+  <meta property="og:description" content="Hybrid AD / Microsoft Entra ID, Azure administration, and CMMC-minded lab work.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      --pz-primary: #27241D;
+      --pz-secondary: #423D33;
+      --pz-tint: #FAF5EE;
+      --pz-zebra: #F7F3EC;
+      --pz-muted: #625B50;
+      --pz-hairline: #D9D1C4;
+      --pz-accent: #D9A21B;
+      --pz-watch: #B44D12;
+      --bg: #FFFFFF;
+      --surface: var(--pz-tint);
+      --text: var(--pz-primary);
+      --text-2: var(--pz-muted);
+      --border: var(--pz-hairline);
+      --link: #8A5A00;
+      --chip-bg: var(--pz-zebra);
+      --shadow: 0 1px 2px rgba(39, 36, 29, .06), 0 8px 24px rgba(39, 36, 29, .06);
+      color-scheme: light;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #16140F;
+        --surface: #211E18;
+        --text: #F3EEE6;
+        --text-2: #BDB3A3;
+        --border: #3A352C;
+        --link: #E8B84A;
+        --chip-bg: #2A261F;
+        --shadow: none;
+        color-scheme: dark;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #16140F;
+      --surface: #211E18;
+      --text: #F3EEE6;
+      --text-2: #BDB3A3;
+      --border: #3A352C;
+      --link: #E8B84A;
+      --chip-bg: #2A261F;
+      --shadow: none;
+      color-scheme: dark;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--link); text-underline-offset: 3px; }
+    a:focus-visible, button:focus-visible { outline: 3px solid var(--pz-accent); outline-offset: 3px; border-radius: 4px; }
+    .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+    .skip { position: absolute; left: -999px; top: 8px; background: var(--pz-primary); color: #fff; padding: 8px 12px; border-radius: 6px; z-index: 10; }
+    .skip:focus { left: 8px; }
+
+    /* Top bar */
+    header.top { border-bottom: 1px solid var(--border); position: sticky; top: 0; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(8px); z-index: 5; }
+    header.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 60px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--text); text-decoration: none; }
+    .brand img { width: 30px; height: 30px; }
+    nav ul { list-style: none; display: flex; gap: 20px; margin: 0; padding: 0; }
+    nav a { color: var(--text-2); text-decoration: none; font-size: 15px; font-weight: 500; }
+    nav a:hover { color: var(--text); }
+    .theme-btn { background: none; border: 1px solid var(--border); color: var(--text-2); border-radius: 8px; padding: 6px 10px; font: inherit; font-size: 14px; cursor: pointer; }
+    @media (max-width: 640px) { nav ul { display: none; } }
+
+    /* Hero */
+    .hero { padding: 72px 0 56px; }
+    .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; color: var(--text-2); margin: 0 0 12px; }
+    .hero h1 { font-size: clamp(36px, 6vw, 56px); line-height: 1.1; margin: 0; letter-spacing: -.01em; }
+    .rule { display: block; width: 150px; height: 5px; border-radius: 3px; background: var(--pz-accent); margin: 20px 0 24px; transform-origin: left; }
+    .hero p.lede { font-size: clamp(18px, 2.4vw, 21px); color: var(--text-2); max-width: 680px; margin: 0 0 28px; }
+    .ctas { display: flex; flex-wrap: wrap; gap: 12px; }
+    .btn { display: inline-block; padding: 11px 18px; border-radius: 10px; font-weight: 600; font-size: 15px; text-decoration: none; border: 1px solid var(--border); color: var(--text); background: var(--surface); }
+    .btn.primary { background: var(--pz-primary); color: #FAF5EE; border-color: var(--pz-primary); }
+    :root[data-theme="dark"] .btn.primary { background: var(--pz-accent); color: #27241D; border-color: var(--pz-accent); }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.primary { background: var(--pz-accent); color: #27241D; border-color: var(--pz-accent); } }
+    .btn:hover { transform: translateY(-1px); }
+
+    /* Sections */
+    section { padding: 40px 0; }
+    .divider { display: block; width: 100%; height: auto; margin: 8px 0; }
+    h2 { font-size: 28px; margin: 0 0 6px; letter-spacing: -.005em; }
+    .section-sub { color: var(--text-2); margin: 0 0 28px; }
+
+    /* Project cards */
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 20px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--pz-primary); border-radius: 14px; padding: 22px 22px 20px; box-shadow: var(--shadow); display: flex; flex-direction: column; transition: transform .2s ease, border-color .2s ease; }
+    :root[data-theme="dark"] .card { border-left-color: var(--pz-accent); }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .card { border-left-color: var(--pz-accent); } }
+    .card:hover { transform: translateY(-2px); }
+    .card .kicker { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--text-2); margin: 0 0 6px; }
+    .card h3 { font-size: 20px; line-height: 1.3; margin: 0 0 10px; }
+    .card p { margin: 0 0 12px; color: var(--text-2); font-size: 16px; }
+    .card ul { margin: 0 0 16px; padding-left: 18px; font-size: 15px; }
+    .card li { margin: 3px 0; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: auto 0 14px; padding-top: 4px; }
+    .chip { font-size: 12.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--chip-bg); border: 1px solid var(--border); color: var(--text); }
+    .card .more { font-weight: 600; font-size: 15px; text-decoration: none; }
+    .card .more::after { content: " →"; }
+    .status { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: var(--pz-accent); color: #27241D; margin-left: 6px; vertical-align: 2px; }
+
+    /* Principles */
+    .principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+    .principle { border-top: 3px solid var(--pz-accent); padding-top: 12px; }
+    .principle h3 { font-size: 17px; margin: 0 0 6px; }
+    .principle p { margin: 0; color: var(--text-2); font-size: 16px; }
+
+    /* Skills */
+    .skills { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+    .skill-group { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+    .skill-group h3 { font-size: 14px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-2); margin: 0 0 10px; }
+    .skill-group .chips { margin: 0; padding: 0; }
+
+    /* Now + contact */
+    .now { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+    .now ul { margin: 0; padding-left: 18px; }
+    footer { border-top: 1px solid var(--border); padding: 28px 0 40px; color: var(--text-2); font-size: 14px; }
+    footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+
+    /* Motion: one entrance + the amber rule sweep. Off for reduced motion and without JS. */
+    .js .reveal { opacity: 0; transform: translateY(12px); transition: opacity .5s ease-out, transform .5s ease-out; }
+    .js .reveal.in { opacity: 1; transform: none; }
+    .js .rule { animation: sweep .7s .15s ease-out both; }
+    @keyframes sweep { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .js .reveal { opacity: 1; transform: none; transition: none; }
+      .js .rule { animation: none; }
+      .btn:hover, .card:hover { transform: none; }
+    }
+    @media print { header.top, .theme-btn, .ctas { display: none; } .card { break-inside: avoid; } }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#projects">Skip to projects</a>
+
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href="#top"><img src="assets/favicon.svg" alt=""><span>Joshua Richard</span></a>
+      <nav aria-label="Main">
+        <ul>
+          <li><a href="#projects">Projects</a></li>
+          <li><a href="#approach">Approach</a></li>
+          <li><a href="#skills">Skills</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </nav>
+      <button class="theme-btn" type="button" id="themeBtn" aria-label="Switch color theme">Theme</button>
+    </div>
+  </header>
+
+  <main id="top">
+    <div class="wrap">
+      <section class="hero">
+        <p class="eyebrow">IT · Identity &amp; Access Management</p>
+        <h1>Hi, I'm Joshua.</h1>
+        <span class="rule" aria-hidden="true"></span>
+        <p class="lede">I work on hybrid Active Directory / Microsoft Entra ID and Azure administration. I build home labs the way I'd run a real client engagement: model the business first, then design access, security controls and automation around it.</p>
+        <div class="ctas">
+          <a class="btn primary" href="#projects">See my projects</a>
+          <a class="btn" href="https://github.com/joshuarichard116-sudo">GitHub</a>
+          <!-- TODO: replace with your LinkedIn profile URL -->
+          <a class="btn" href="https://www.linkedin.com/">LinkedIn</a>
+        </div>
+      </section>
+
+      <img class="divider" src="assets/divider.svg" alt="">
+
+      <section id="projects">
+        <h2>Projects</h2>
+        <p class="section-sub">Each one is a public repo with the full write-up, diagrams and code.</p>
+        <div class="grid">
+          <article class="card reveal">
+            <p class="kicker">Hybrid identity · RBAC</p>
+            <h3>Meridian Steel: Access Governance &amp; RBAC</h3>
+            <p>Department and tier-based access for a fictional 50-person steel fabricator, built in a hybrid AD / Entra ID lab.</p>
+            <ul>
+              <li>9 departments, each with staff and manager groups</li>
+              <li>NTFS file shares with access-based enumeration</li>
+              <li>Conditional Access (report-only first) and PIM eligible roles</li>
+              <li>PowerShell joiner / leaver automation</li>
+            </ul>
+            <div class="chips"><span class="chip">AD DS</span><span class="chip">Entra ID</span><span class="chip">Conditional Access</span><span class="chip">PIM</span><span class="chip">PowerShell</span></div>
+            <a class="more" href="https://github.com/joshuarichard116-sudo/meridian-steel-access-governance">Read the breakdown</a>
+          </article>
+
+          <article class="card reveal">
+            <p class="kicker">Cloud · Infrastructure as Code</p>
+            <h3>Azure Landing Zone + Entra Lab</h3>
+            <p>A minimal Azure landing zone in Bicep plus a step-by-step lab guide for a fictional tenant, designed to cost about $0.</p>
+            <ul>
+              <li>Azure Policy: NIST SP 800-171 Rev. 2 audit, allowed locations</li>
+              <li>Log Analytics with a daily cap, budget alerts, free Defender plans</li>
+              <li>Guide covers management groups, PIM, Sentinel, hub-and-spoke</li>
+            </ul>
+            <div class="chips"><span class="chip">Bicep</span><span class="chip">Azure Policy</span><span class="chip">PIM</span><span class="chip">Sentinel</span></div>
+            <a class="more" href="https://github.com/joshuarichard116-sudo/azure-landing-zone-entra-lab">See the lab</a>
+          </article>
+
+          <article class="card reveal">
+            <p class="kicker">Compliance · CMMC</p>
+            <h3>CMMC Level 2 Enclave Toolkit for GCC High</h3>
+            <p>A vendor-neutral way to evaluate every tool that enters a CUI enclave, and keep the evidence for the System Security Plan.</p>
+            <ul>
+              <li>Tool evaluation template with 13 criteria</li>
+              <li>Decision matrix mapping each criterion to NIST SP 800-171 control families</li>
+              <li>No vendor picks, no pricing: evidence-first</li>
+            </ul>
+            <div class="chips"><span class="chip">CMMC L2</span><span class="chip">NIST SP 800-171</span><span class="chip">GCC High</span></div>
+            <a class="more" href="https://github.com/joshuarichard116-sudo/cmmc-gcc-high-enclave-toolkit">View the toolkit</a>
+          </article>
+
+          <article class="card reveal">
+            <p class="kicker">Certification path</p>
+            <h3>Azure Administrator Labs <span class="status">In progress</span></h3>
+            <p>Hands-on AZ-104 labs, each written up with the goal, what I built, how I checked it and what I learned.</p>
+            <ul>
+              <li>Identity and governance, storage, compute</li>
+              <li>Virtual networking, monitoring and backup</li>
+            </ul>
+            <div class="chips"><span class="chip">AZ-104</span><span class="chip">Azure</span></div>
+            <a class="more" href="https://github.com/joshuarichard116-sudo/Azure-Administrator-Labs">Follow along</a>
+          </article>
+        </div>
+      </section>
+
+      <img class="divider" src="assets/divider.svg" alt="">
+
+      <section id="approach">
+        <h2>How I approach access</h2>
+        <p class="section-sub">Lessons from building these labs.</p>
+        <div class="principles">
+          <div class="principle reveal">
+            <h3>Model the business first</h3>
+            <p>I map who needs what, at what level and why. Then every group, folder and policy decision gets simpler.</p>
+          </div>
+          <div class="principle reveal">
+            <h3>Check before enforcing</h3>
+            <p>I run Conditional Access in report-only mode and read the sign-in logs before turning a policy on, so nobody gets locked out by surprise.</p>
+          </div>
+          <div class="principle reveal">
+            <h3>Automate the "remove" side</h3>
+            <p>Most access creep comes from movers and leavers who keep old groups. Offboarding deserves the same automation as onboarding.</p>
+          </div>
+        </div>
+      </section>
+
+      <img class="divider" src="assets/divider.svg" alt="">
+
+      <section id="skills">
+        <h2>Skills &amp; tools</h2>
+        <p class="section-sub">What I work with in these projects.</p>
+        <div class="skills">
+          <div class="skill-group reveal">
+            <h3>Identity</h3>
+            <div class="chips"><span class="chip">Active Directory</span><span class="chip">Microsoft Entra ID</span><span class="chip">Entra Connect Sync</span><span class="chip">Conditional Access</span><span class="chip">PIM</span><span class="chip">RBAC / least privilege</span></div>
+          </div>
+          <div class="skill-group reveal">
+            <h3>Infrastructure</h3>
+            <div class="chips"><span class="chip">Windows Server</span><span class="chip">NTFS / SMB</span><span class="chip">KVM / virt-manager</span><span class="chip">Microsoft Azure</span><span class="chip">Bicep</span></div>
+          </div>
+          <div class="skill-group reveal">
+            <h3>Automation</h3>
+            <div class="chips"><span class="chip">PowerShell</span><span class="chip">ActiveDirectory module</span><span class="chip">CSV-driven provisioning</span><span class="chip">Azure CLI</span></div>
+          </div>
+          <div class="skill-group reveal">
+            <h3>Security &amp; compliance</h3>
+            <div class="chips"><span class="chip">Zero Trust</span><span class="chip">Joiner / mover / leaver</span><span class="chip">Access reviews</span><span class="chip">Break-glass design</span><span class="chip">NIST SP 800-171</span><span class="chip">CMMC</span></div>
+          </div>
+        </div>
+      </section>
+
+      <img class="divider" src="assets/divider.svg" alt="">
+
+      <section id="contact">
+        <div class="now">
+          <div>
+            <h2>Currently</h2>
+            <ul>
+              <li>Working through <strong>AZ-104 (Azure Administrator)</strong> labs</li>
+              <li>Building <strong>HR-driven onboarding automation</strong>: HR system → AD → Entra → groups → SaaS</li>
+            </ul>
+          </div>
+          <div>
+            <h2>Get in touch</h2>
+            <p class="section-sub" style="margin-bottom:16px">The best way to reach me is LinkedIn. All my work is on GitHub.</p>
+            <div class="ctas">
+              <!-- TODO: replace with your LinkedIn profile URL -->
+              <a class="btn primary" href="https://www.linkedin.com/">LinkedIn</a>
+              <a class="btn" href="https://github.com/joshuarichard116-sudo">GitHub</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>© 2026 Joshua Richard</span>
+      <span>Hand-built and hosted on GitHub Pages</span>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var root = document.documentElement;
+      root.classList.add('js');
+
+      // Theme toggle: system by default, remembered per browser.
+      var btn = document.getElementById('themeBtn');
+      try { var saved = localStorage.getItem('theme'); if (saved) root.setAttribute('data-theme', saved); } catch (e) {}
+      function current() {
+        var t = root.getAttribute('data-theme');
+        if (t) return t;
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      function label() { btn.textContent = current() === 'dark' ? 'Light' : 'Dark'; }
+      label();
+      btn.addEventListener('click', function () {
+        var next = current() === 'dark' ? 'light' : 'dark';
+        root.setAttribute('data-theme', next);
+        try { localStorage.setItem('theme', next); } catch (e) {}
+        label();
+      });
+
+      // Gentle reveal on scroll.
+      var items = document.querySelectorAll('.reveal');
+      if (!('IntersectionObserver' in window)) { items.forEach(function (el) { el.classList.add('in'); }); return; }
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+      }, { rootMargin: '0px 0px -10% 0px' });
+      items.forEach(function (el, i) { el.style.transitionDelay = (i % 4) * 60 + 'ms'; io.observe(el); });
+    })();
+  </script>
+</body>
+</html>
