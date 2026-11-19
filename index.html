@@ -4,10 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Joshua Richard · Security Operations &amp; Identity</title>
-  <meta name="description" content="Joshua Richard: Lead Engineer, CMMC &amp; GCC High at S1 Technology (MSP). 4+ years at managed service providers, active Secret clearance, AZ-104, SC-300, Security+, CySA+.">
+  <!--
+    PUBLIC_ROLE: keep the description and og:description in sync with ROLE_TITLE
+    in the pyramid script near the bottom of this file.
+    Current public title: Technical Consultant, Security Operations
+    Announced title (do not publish until S1 Technology announces it):
+    Lead Engineer, CMMC & GCC High
+  -->
+  <meta name="description" content="Joshua Richard: Technical Consultant, Security Operations at S1 Technology (MSP). Leads the CMMC Level 2 / GCC High practice. 4+ years at managed service providers, active Secret clearance, AZ-104, SC-300, Security+, CySA+.">
   <meta name="pizzazz-recipe" content='{"pz":1,"kit":"my-color-profile","concept":"Spec Sheet \u00b7 Lattice","family":"wildcard","dev":{"intensity":"standard","backdrop":"triangle lattice + network map","motion":"subtle, cursor-reactive"},"sig":"triangle lattice backdrop","pal":{"pri":"#27241D","sec":"#423D33","tint":"#FAF5EE","zeb":"#F7F3EC","mut":"#625B50","ftr":"#6B6358","hair":"#D9D1C4","acc":"#D9A21B","watch":"#B44D12"},"font":{"h":"system-ui","b":"system-ui"},"date":"2026-11-19"}'>
   <meta property="og:title" content="Joshua Richard · Security Operations &amp; Identity">
-  <meta property="og:description" content="Lead engineer for CMMC and GCC High clients at an MSP. Microsoft Entra ID, Azure, Defender XDR, Sentinel and CMMC-focused projects.">
+  <meta property="og:description" content="Technical Consultant, Security Operations at an MSP, leading the CMMC and GCC High practice. Microsoft Entra ID, Azure, Defender XDR, Sentinel and CMMC-focused projects.">
   <meta property="og:type" content="website">
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#F2ECE2" media="(prefers-color-scheme: light)">
@@ -77,7 +84,7 @@
       -webkit-font-smoothing: antialiased;
     }
     a { color: var(--link); text-underline-offset: 3px; }
-    a:focus-visible, button:focus-visible { outline: 3px solid var(--pz-accent); outline-offset: 3px; border-radius: 4px; }
+    a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid var(--pz-accent); outline-offset: 3px; border-radius: 4px; }
     .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
     .skip { position: absolute; left: -999px; top: 8px; background: var(--pz-primary); color: #fff; padding: 8px 12px; border-radius: 6px; z-index: 10; }
     .skip:focus { left: 8px; }
@@ -96,7 +103,28 @@
     .resume-btn:hover .dl { transform: translateY(2px); }
     @media (prefers-reduced-motion: reduce) { .resume-btn .dl { transition: none; } }
     .theme-btn { background: none; border: 1px solid var(--border); color: var(--text-2); border-radius: 8px; padding: 6px 10px; font: inherit; font-size: 14px; cursor: pointer; }
-    @media (max-width: 640px) { nav ul { display: none; } }
+    .nav-mobile { display: none; position: relative; }
+    .nav-mobile summary { list-style: none; cursor: pointer; border: 1px solid var(--border); color: var(--text); background: var(--surface); border-radius: 8px; padding: 6px 10px; font-size: 14px; font-weight: 600; }
+    .nav-mobile summary::-webkit-details-marker { display: none; }
+    .nav-mobile ul { display: none; position: absolute; right: 0; top: calc(100% + 8px); z-index: 6; flex-direction: column; gap: 0; min-width: 200px; margin: 0; padding: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); }
+    .nav-mobile li a { display: block; padding: 8px 10px; border-radius: 8px; }
+    .nav-mobile li a:hover { background: var(--chip-bg); }
+    .nav-mobile[open] ul { display: flex; }
+    @media (max-width: 720px) {
+      html { overflow-x: clip; }
+      nav { display: none; }
+      .nav-mobile { display: block; }
+      header.top .wrap { height: auto; min-height: 60px; gap: 8px; }
+      .brand { min-width: 0; }
+      .brand span { white-space: nowrap; }
+      .resume-btn, .theme-btn, .nav-mobile summary { padding: 6px 8px; font-size: 13px; }
+      .eyebrow { letter-spacing: .08em; font-size: 12px; }
+      .explorer { padding: 28px 0 12px; }
+      section { padding: 36px 0 28px; }
+      .card { padding: 18px 16px 16px; }
+      .hero h1, .explorer h1 { font-size: clamp(34px, 10vw, 48px); }
+      .cert-tile { min-height: 0; }
+    }
 
     /* Hero */
     .hero { padding: 72px 0 56px; }
@@ -112,10 +140,13 @@
     .btn:hover { transform: translateY(-1px); }
 
     /* Sections */
-    section { padding: 40px 0; scroll-margin-top: 72px; }
-    .divider { display: block; width: 100%; height: auto; margin: 8px 0; }
-    h2 { font-size: 28px; margin: 0 0 6px; letter-spacing: -.005em; }
-    .section-sub { color: var(--text-2); margin: 0 0 28px; }
+    section { padding: 52px 0 44px; scroll-margin-top: 76px; }
+    .divider { display: block; width: 100%; height: auto; margin: 4px 0; }
+    h2, .card h3, .panel h2 { text-wrap: balance; }
+    h2 { font-size: clamp(26px, 3vw, 34px); line-height: 1.15; margin: 0 0 8px; letter-spacing: -.02em; }
+    main > .wrap > section > h2 { display: flex; align-items: center; gap: 12px; }
+    main > .wrap > section > h2::before { content: ""; width: 22px; height: 3px; border-radius: 2px; background: var(--pz-accent); flex: none; }
+    .section-sub { color: var(--text-2); margin: 0 0 26px; max-width: 68ch; }
 
     /* Project cards */
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 20px; }
@@ -136,9 +167,11 @@
     .cred-card { padding: 20px 22px; }
     .cred-label { font-size: 14px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-2); margin: 0 0 12px; }
     .cert-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: 14px; }
-    .cert-tile { position: relative; overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px 18px; transition: transform .2s ease, border-color .2s ease; }
-    .cert-tile::before { content: ""; position: absolute; top: 0; right: 0; width: 34px; height: 34px; background: var(--pz-accent); clip-path: polygon(0 0, 100% 0, 100% 100%); opacity: .9; }
-    .cert-tile:hover { border-color: var(--pz-accent); }
+    .cert-tile { position: relative; overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-top: 3px solid var(--border); border-radius: 12px; padding: 16px 18px 18px; min-height: 132px; transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
+    .cert-tile.cert-ms { border-top-color: var(--pz-accent); }
+    .cert-tile.cert-comptia { border-top-color: var(--text); }
+    .cert-tile.cert-cisco { border-top-color: var(--pz-watch); }
+    .cert-tile:hover { transform: translateY(-2px); border-color: var(--pz-accent); box-shadow: var(--shadow); }
     .cert-issuer { font-size: 11.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--text-2); margin: 0 0 4px; }
     .cert-code { font-size: 24px; font-weight: 800; letter-spacing: -.01em; margin: 0 0 4px; line-height: 1.15; }
     .cert-name { font-size: 14.5px; color: var(--text-2); margin: 0; line-height: 1.4; }
@@ -153,7 +186,12 @@
     .also ul { margin: 0; padding-left: 18px; font-size: 15.5px; }
     .also li { margin: 6px 0; }
     .card .kicker { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--text-2); margin: 0 0 6px; }
-    .card h3 { font-size: 20px; line-height: 1.3; margin: 0 0 10px; }
+    .card h3 { font-size: 20px; line-height: 1.3; margin: 0 0 10px; letter-spacing: -.015em; }
+    .card.job.current { border-left-color: var(--pz-accent); }
+    .card.job > p { font-size: 17px; color: var(--text); max-width: 72ch; }
+    .card.work { border-left-width: 1px; border-top: 3px solid var(--pz-accent); }
+    .card.work:hover { border-color: var(--pz-accent); }
+    .card p.take { color: var(--text); margin-top: 2px; padding-left: 12px; border-left: 2px solid var(--pz-accent); }
     .card p { margin: 0 0 12px; color: var(--text-2); font-size: 16px; }
     .card ul { margin: 0 0 16px; padding-left: 18px; font-size: 15px; }
     .card li { margin: 3px 0; }
@@ -164,10 +202,11 @@
     .status { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: var(--pz-accent); color: #27241D; margin-left: 6px; vertical-align: 2px; }
 
     /* Principles */
-    .principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
-    .principle { border-top: 3px solid var(--pz-accent); padding-top: 12px; }
-    .principle h3 { font-size: 17px; margin: 0 0 6px; }
-    .principle p { margin: 0; color: var(--text-2); font-size: 16px; }
+    .principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 22px 28px; }
+    .principle { border-top: 0; padding-top: 0; }
+    .principle .num { margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: .16em; color: var(--link); }
+    .principle h3 { font-size: 18px; margin: 0 0 6px; letter-spacing: -.01em; }
+    .principle p { margin: 0; color: var(--text-2); font-size: 16px; max-width: 40ch; }
 
     /* Skills */
     .skills { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
@@ -176,8 +215,13 @@
     .skill-group .chips { margin: 0; padding: 0; }
 
     /* Now + contact */
-    .now { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+    .now { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; align-items: start; }
     .now ul { margin: 0; padding-left: 18px; }
+    .now li { margin: 6px 0; }
+    .contact-card { background: var(--surface); border: 1px solid var(--border); border-top: 3px solid var(--pz-accent); border-radius: 14px; padding: 22px 22px 20px; box-shadow: var(--shadow); }
+    .contact-card h2::before { content: none; }
+    .contact-card .section-sub { margin-bottom: 16px; }
+    .contact-card .section-sub a { font-weight: 600; }
     footer { border-top: 1px solid var(--border); padding: 28px 0 40px; color: var(--text-2); font-size: 14px; }
     footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
 
@@ -190,7 +234,7 @@
       html { scroll-behavior: auto; }
       .js .reveal { opacity: 1; transform: none; transition: none; }
       .js .rule { animation: none; }
-      .btn:hover, .card:hover { transform: none; }
+      .btn:hover, .card:hover, .cert-tile:hover { transform: none; }
       .ring i { animation: none; }
       .aurora { transition: opacity .2s linear; }
       .face .skin, .face .icon, .face .label { transition: none; }
@@ -356,6 +400,17 @@
         </ul>
       </nav>
       <div class="top-actions">
+        <details class="nav-mobile">
+          <summary>Menu</summary>
+          <ul>
+            <li><a href="#experience">Experience</a></li>
+            <li><a href="#work">Work</a></li>
+            <li><a href="#credentials">Credentials</a></li>
+            <li><a href="#projects">Projects</a></li>
+            <li><a href="#skills">Skills</a></li>
+            <li><a href="#contact">Contact</a></li>
+          </ul>
+        </details>
         <a class="resume-btn" href="assets/Joshua-Richard-Resume.pdf" download="Joshua-Richard-Resume.pdf">Resume<span class="dl" aria-hidden="true">↓</span></a>
         <button class="theme-btn" type="button" id="themeBtn" aria-label="Switch color theme">Theme</button>
       </div>
@@ -366,7 +421,7 @@
     <div class="wrap">
       <section class="explorer" aria-labelledby="hello">
         <div class="explorer-head">
-          <p class="eyebrow">Lead Engineer · CMMC &amp; GCC High · Security Operations</p>
+          <p class="eyebrow" data-role-title="eyebrow">Technical Consultant, Security Operations · CMMC &amp; GCC High</p>
           <h1 id="hello">Hi, I'm Joshua.</h1>
           <span class="rule" aria-hidden="true"></span>
           <ul class="creds" aria-label="Highlights">
@@ -394,8 +449,8 @@
             <div class="panel-body" id="panelBody">
               <!-- Shown if JavaScript is off; replaced by the pyramid's About side. -->
               <p class="kicker">Who I am</p>
-              <h2>Hi, I'm Joshua.</h2>
-              <p>I'm the Lead Engineer for CMMC and GCC High clients at S1 Technology, a managed service provider, where I also cover security operations and systems administration. Before that I worked at Global Data, another MSP, from 2022 to April 2026, growing from intern to full-time NOC and service desk technician. I also serve as a Sergeant in the Louisiana Army National Guard and hold an active Secret clearance. When a problem at work needs a better design, I build it out on a separate tenant, document it, and publish a version here with client details removed.</p>
+              <h2>About</h2>
+              <p id="about-copy">I'm a Technical Consultant in Security Operations at S1 Technology, a managed service provider, where I lead the CMMC and GCC High practice. I also cover security operations and systems administration. Before that I worked at Global Data, another MSP, from 2022 to April 2026, starting as an intern and moving into a full-time NOC and service desk role. I serve as a Sergeant in the Louisiana Army National Guard and hold an active Secret clearance. When a problem at work needs a better design, I build it on a separate tenant, write it down, and publish a version here with the client details removed.</p>
               <a class="more" href="#experience">See my experience</a>
             </div>
           </section>
@@ -408,10 +463,10 @@
         <h2>Experience</h2>
         <p class="section-sub">4+ years at managed service providers, supporting many client environments at once.</p>
         <div class="timeline">
-          <article class="card job reveal">
+          <article class="card job current reveal">
             <p class="kicker">April 2026 – present · Current role</p>
-            <h3>Lead Engineer, CMMC &amp; GCC High · S1 Technology</h3>
-            <p>Lead engineer for client environments that must meet CMMC and run in Microsoft GCC High, plus security operations and systems administration, at a managed service provider.</p>
+            <h3 data-role-title="with-company">Technical Consultant, Security Operations · S1 Technology</h3>
+            <p>I lead the CMMC Level 2 / Azure Government / GCC High practice, plus security operations and systems administration, at a managed service provider.</p>
             <ul>
               <li>Triage and resolve about 30 security tickets per week across client environments using SentinelOne, Microsoft Defender XDR and Microsoft Sentinel</li>
               <li>Own the tuning of the organization's SentinelOne agent, cutting false positives while keeping detection coverage</li>
@@ -450,66 +505,44 @@
 
       <section id="work">
         <h2>Work projects</h2>
-        <p class="section-sub">Things I designed and built on the job at S1 Technology. Client names and data stay private.</p>
+        <p class="section-sub">Built on the job at S1 Technology. Client names and data stay off this page.</p>
         <div class="grid">
           <article class="card work reveal">
             <p class="kicker">Microsoft 365 · Microsoft Graph · S1 Technology</p>
             <h3><span class="ico"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path class="sh" d="M5 4.5a2 2 0 0 1 2-2h9.5l5 5V25a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M5 4.5a2 2 0 0 1 2-2h9.5l5 5V25a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M16.5 2.5v5h5"/><path d="M8.5 10.5h7M8.5 14h5M8.5 17.5h3.5"/><path class="dim" d="M8.5 21h3"/><circle class="fl" cx="21" cy="20.5" r="5"/><circle class="ac" cx="21" cy="20.5" r="5"/><path class="ac" d="m24.6 24.1 4 4" style="stroke-width:2.6"/><path class="ac" d="M21 17.6v5.8M19.6 18.7h2.1a1 1 0 0 1 0 2h-1.4a1 1 0 0 0 0 2h2.2"/><path class="hl" d="M17.8 18.6a3.4 3.4 0 0 1 1.6-1.6"/></svg></span>Billing audit with Microsoft Graph</h3>
-            <dl class="pbr">
-              <dt>Problem</dt><dd>Users added during onboarding could be missed in client billing, so the company risked not billing for every account it supported.</dd>
-              <dt>Built</dt><dd>Designed a Microsoft Graph-based audit that catches billed users missed during onboarding.</dd>
-              <dt>Result</dt><dd>Missed billable users get caught. I also documented why Microsoft 365 Lighthouse and Azure Policy could not do the job, so the team knows why the custom audit exists.</dd>
-            </dl>
+            <p>Users added during onboarding could be missed in client billing. Microsoft 365 Lighthouse and Azure Policy couldn't catch them, so I wrote down why those tools fall short and built a Microsoft Graph audit that flags the billed users onboarding skipped.</p>
+            <p class="take">If the tool you already have can't see the gap, write that down before you build around it.</p>
             <div class="chips"><span class="chip">Microsoft Graph</span><span class="chip">Microsoft 365</span><span class="chip">Lighthouse</span></div>
           </article>
           <article class="card work reveal">
             <p class="kicker">Identity · Least privilege · S1 Technology</p>
             <h3><span class="ico"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path class="sh" d="M16 3.5 26 7.2v7.4c0 6.2-4.2 11-10 13.1-5.8-2.1-10-6.9-10-13.1V7.2z"/><path d="M16 3.5 26 7.2v7.4c0 6.2-4.2 11-10 13.1-5.8-2.1-10-6.9-10-13.1V7.2z"/><path class="dim" d="M16 6.6 23 9.2v5.4c0 4.6-3 8.2-7 9.8"/><circle class="fl" cx="12.6" cy="15" r="3.2"/><circle class="ac" cx="12.6" cy="15" r="3.2"/><circle class="af" cx="12.6" cy="15" r="1"/><path class="ac" d="M15.8 15h6.4M19.6 15v2.6M21.8 15v1.8"/><path class="hl" d="M9.4 9.2 11.6 8.4"/></svg></span>Least-privilege delegated admin access</h3>
-            <dl class="pbr">
-              <dt>Problem</dt><dd>A client tenant with multiple domains needed admin access for our team that didn't grant more rights than necessary.</dd>
-              <dt>Built</dt><dd>Prototyped least-privilege delegated admin access for the tenant.</dd>
-              <dt>Result</dt><dd>A documented comparison of the tested models, their limits and a recommended design.</dd>
-            </dl>
+            <p>A client tenant with multiple domains needed admin access for our team, and it couldn't be more access than the work required. I prototyped delegated-admin models, then wrote down what each one could do, where it stopped, and which design I recommended.</p>
+            <p class="take">Least privilege is a comparison you can hand someone, not a setting you flip once.</p>
             <div class="chips"><span class="chip">Entra ID</span><span class="chip">Delegated admin</span><span class="chip">Least privilege</span></div>
           </article>
           <article class="card work reveal">
             <p class="kicker">Automation · PowerShell · S1 Technology</p>
             <h3><span class="ico"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect class="sh" x="2.5" y="4.5" width="11" height="11" rx="2.2"/><rect x="2.5" y="4.5" width="11" height="11" rx="2.2"/><path class="dim" d="M5.2 8h5.6M5.2 10.6h3.6"/><rect class="fl" x="18.5" y="16.5" width="11" height="11" rx="2.2"/><rect x="18.5" y="16.5" width="11" height="11" rx="2.2"/><path class="dim" d="M21.2 20h5.6M21.2 22.6h3.6"/><path class="ac" d="M13.5 10h5a4.5 4.5 0 0 1 4.5 4.5v.8"/><path class="ac" d="m20.6 13.2 2.4 2.4 2.4-2.4"/><path class="af" d="M7.8 19.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/><path class="ac" d="M4 27.5h7"/></svg></span>Tenant-migration cleanup script</h3>
-            <dl class="pbr">
-              <dt>Problem</dt><dd>After client tenant migrations, old-tenant Outlook and Microsoft 365 data was left behind.</dd>
-              <dt>Built</dt><dd>Wrote a PowerShell script that removes the old-tenant Outlook and Microsoft 365 data.</dd>
-              <dt>Result</dt><dd>A repeatable cleanup step for client tenant migrations.</dd>
-            </dl>
+            <p>After a client tenant migration, Outlook and Microsoft 365 data from the old tenant was left behind. I wrote a PowerShell script that removes it. Cleanup is the same step every migration now, not a one-off.</p>
             <div class="chips"><span class="chip">PowerShell</span><span class="chip">Outlook</span><span class="chip">Microsoft 365</span></div>
           </article>
           <article class="card work reveal">
             <p class="kicker">Internal tooling · S1 Technology</p>
             <h3><span class="ico"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect class="sh" x="3" y="5" width="26" height="20" rx="2.6"/><rect x="3" y="5" width="26" height="20" rx="2.6"/><path class="fl" d="M3 7.6A2.6 2.6 0 0 1 5.6 5h20.8A2.6 2.6 0 0 1 29 7.6V10H3z"/><path d="M3 10h26"/><circle class="af" cx="6.2" cy="7.5" r=".8"/><circle class="ac" cx="8.8" cy="7.5" r=".8"/><circle class="ac" cx="11.4" cy="7.5" r=".8"/><rect x="6" y="13" width="7.5" height="8.5" rx="1.2"/><path class="dim" d="M7.8 15.8h3.9M7.8 18.4h2.6"/><path d="M16 13.5h9M16 16.5h6"/><rect class="ac" x="16" y="19" width="5.5" height="2.6" rx="1.3"/><path class="af" d="m21.2 21.4 6.4 2.3-2.8 1.1-1.1 2.8z"/><path d="M11 28.5h10"/></svg></span>Web GUI for the deployment tool</h3>
-            <dl class="pbr">
-              <dt>Problem</dt><dd>The internal tool for deploying client software and agents ran from a batch-script menu.</dd>
-              <dt>Built</dt><dd>Built a web-based GUI for the tool, replacing the batch-script menu.</dd>
-              <dt>Result</dt><dd>The team now deploys client software and agents from a proper interface instead of a script menu.</dd>
-            </dl>
+            <p>The internal tool for deploying client software and agents ran from a batch-script menu. I built a web GUI in front of the same tool.</p>
             <div class="chips"><span class="chip">Web UI</span><span class="chip">Automation</span><span class="chip">Agent deployment</span></div>
           </article>
           <article class="card work reveal">
             <p class="kicker">Networking · Documentation · S1 Technology</p>
             <h3><span class="ico"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect class="sh" x="2.5" y="9.5" width="27" height="11" rx="2"/><rect x="2.5" y="9.5" width="27" height="11" rx="2"/><path class="dim" d="M2.5 12.4h27"/><rect x="5" y="14.6" width="2.6" height="2.6" rx=".5"/><rect x="9" y="14.6" width="2.6" height="2.6" rx=".5"/><rect x="13" y="14.6" width="2.6" height="2.6" rx=".5"/><rect x="17" y="14.6" width="2.6" height="2.6" rx=".5"/><circle class="af" cx="23.4" cy="15.9" r=".9"/><circle class="ac" cx="26.2" cy="15.9" r=".9"/><path class="ac" d="M14.3 20.5v3.5a2 2 0 0 1-2 2H8.5"/><rect class="fl" x="4.5" y="24" width="4" height="4" rx=".8"/><rect class="ac" x="4.5" y="24" width="4" height="4" rx=".8"/><path class="hl" d="M4.6 11h4"/><path class="dim" d="M6 9.5V7.8M26 9.5V7.8"/></svg></span>Cisco switch configuration standard</h3>
-            <dl class="pbr">
-              <dt>Problem</dt><dd>Initial switch setup for client deployments had no single, consistent procedure.</dd>
-              <dt>Built</dt><dd>Wrote the company's standard procedure for initial Cisco Small Business switch configuration over console.</dd>
-              <dt>Result</dt><dd>It is now the company standard used for client switch deployments.</dd>
-            </dl>
+            <p>Initial switch setup for client deployments had no single procedure. I wrote the company's standard for the first Cisco Small Business configuration over console. That write-up is what we use for those deployments now.</p>
             <div class="chips"><span class="chip">Cisco</span><span class="chip">Console setup</span><span class="chip">SOP</span></div>
           </article>
           <article class="card work reveal">
             <p class="kicker">Security operations · S1 Technology</p>
             <h3><span class="ico"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle class="sh" cx="13.5" cy="17.5" r="10.5"/><circle cx="13.5" cy="17.5" r="10.5"/><circle class="dim" cx="13.5" cy="17" r="7.2"/><circle cx="13.5" cy="17" r="4"/><circle class="af" cx="13.5" cy="17" r="1.4"/><path class="dim" d="M13.5 5v2.6M13.5 26.4V29M1.5 17h2.6M22.9 17h2.6"/><path class="ac" d="M27 3.5v11"/><rect class="fl" x="25.1" y="6" width="3.8" height="3.2" rx="1"/><rect class="ac" x="25.1" y="6" width="3.8" height="3.2" rx="1"/><path class="hl" d="M7.4 11.6a8 8 0 0 1 3.4-2.8"/></svg></span>SentinelOne agent tuning</h3>
-            <dl class="pbr">
-              <dt>Problem</dt><dd>The organization's SentinelOne agent was raising too many false positives, which wastes analyst time and buries real alerts.</dd>
-              <dt>Built</dt><dd>I took ownership of tuning the SentinelOne agent.</dd>
-              <dt>Result</dt><dd>Fewer false positives, with detection coverage kept intact.</dd>
-            </dl>
+            <p>I took ownership of tuning our SentinelOne agent. False positives were wasting analyst time and burying real alerts. Tuning brought the noise down and kept detection coverage. A quieter queue only helps if the real alerts are still in it.</p>
             <div class="chips"><span class="chip">SentinelOne</span><span class="chip">EDR</span><span class="chip">Detection tuning</span></div>
           </article>
         </div>
@@ -534,45 +567,40 @@
         </div>
         <h3 class="cred-label">Certifications</h3>
         <div class="cert-tiles">
-            <div class="cert-tile reveal">
+            <div class="cert-tile cert-ms reveal">
               <p class="cert-issuer">Microsoft</p>
               <p class="cert-code">AZ-104</p>
               <p class="cert-name">Azure Administrator Associate</p>
             </div>
-            <div class="cert-tile reveal">
+            <div class="cert-tile cert-ms reveal">
               <p class="cert-issuer">Microsoft</p>
               <p class="cert-code">SC-300</p>
               <p class="cert-name">Identity and Access Administrator Associate</p>
             </div>
-            <div class="cert-tile reveal">
+            <div class="cert-tile cert-ms reveal">
               <p class="cert-issuer">Microsoft</p>
               <p class="cert-code">SC-900</p>
               <p class="cert-name">Security, Compliance, and Identity Fundamentals</p>
             </div>
-            <div class="cert-tile reveal">
+            <div class="cert-tile cert-comptia reveal">
               <p class="cert-issuer">CompTIA</p>
               <p class="cert-code">Security+</p>
               <p class="cert-name">CompTIA Security+</p>
             </div>
-            <div class="cert-tile reveal">
+            <div class="cert-tile cert-comptia reveal">
               <p class="cert-issuer">CompTIA</p>
               <p class="cert-code">CySA+</p>
               <p class="cert-name">Cybersecurity Analyst</p>
             </div>
-            <div class="cert-tile reveal">
+            <div class="cert-tile cert-comptia reveal">
               <p class="cert-issuer">CompTIA</p>
               <p class="cert-code">Security Pro</p>
               <p class="cert-name">CompTIA Security Pro</p>
             </div>
-            <div class="cert-tile reveal">
+            <div class="cert-tile cert-cisco reveal">
               <p class="cert-issuer">Cisco</p>
               <p class="cert-code">CCST</p>
               <p class="cert-name">Certified Support Technician, Networking</p>
-            </div>
-            <div class="cert-tile reveal pending">
-              <p class="cert-issuer">Cisco</p>
-              <p class="cert-code">CCNA</p>
-              <p class="cert-name">Certified Network Associate</p><p class="cert-status">In progress</p>
             </div>
         </div>
       </section>
@@ -581,7 +609,7 @@
 
       <section id="projects">
         <h2>Built for work problems</h2>
-        <p class="section-sub">Each of these started with a problem from my MSP work. I rebuilt them outside client environments, with fictional company names, so the full design, diagrams and code can be public without exposing any client data.</p>
+        <p class="section-sub">Each one started as a problem from MSP work. I rebuilt it outside client environments, with fictional company names, so the design, diagrams, and code can be public without exposing any client data.</p>
         <div class="grid">
           <article class="card reveal">
             <p class="kicker">Hybrid identity · RBAC</p>
@@ -638,19 +666,22 @@
 
       <section id="approach">
         <h2>How I approach access</h2>
-        <p class="section-sub">Lessons from the work behind these projects.</p>
+        <p class="section-sub">Three habits from the access work.</p>
         <div class="principles">
           <div class="principle reveal">
-            <h3>Model the business first</h3>
-            <p>I map who needs what, at what level and why. Then every group, folder and policy decision gets simpler.</p>
+            <p class="num">01</p>
+            <h3>Start with who needs what</h3>
+            <p>I map who needs access, at what level, and why before I touch a group or a folder. The policy decisions get simpler after that map exists.</p>
           </div>
           <div class="principle reveal">
-            <h3>Check before enforcing</h3>
-            <p>I run Conditional Access in report-only mode and read the sign-in logs before turning a policy on, so nobody gets locked out by surprise.</p>
+            <p class="num">02</p>
+            <h3>Read the logs before you enforce</h3>
+            <p>I run Conditional Access in report-only mode and read the sign-in logs before a policy goes live. That's how I avoid locking people out.</p>
           </div>
           <div class="principle reveal">
-            <h3>Automate the "remove" side</h3>
-            <p>Most access creep comes from movers and leavers who keep old groups. Offboarding deserves the same automation as onboarding.</p>
+            <p class="num">03</p>
+            <h3>Automate the way out</h3>
+            <p>Most access creep is a mover or leaver who still has the old groups. Offboarding gets the same automation as onboarding.</p>
           </div>
         </div>
       </section>
@@ -700,9 +731,9 @@
               <li>Building <strong>HR-driven onboarding automation</strong>: HR system → AD → Entra → groups → SaaS</li>
             </ul>
           </div>
-          <div>
+          <div class="contact-card">
             <h2>Get in touch</h2>
-            <p class="section-sub" style="margin-bottom:16px">The best way to reach me is LinkedIn or email. All of my project work is on GitHub.</p>
+            <p class="section-sub">The best way to reach me is <a href="https://www.linkedin.com/in/joshua-richard-376140207" target="_blank" rel="noopener noreferrer">LinkedIn</a> or <a href="mailto:joshuarichard116@gmail.com">email</a>. All of my project work is on <a href="https://github.com/joshuarichard116-sudo" target="_blank" rel="noopener noreferrer">GitHub</a>.</p>
             <div class="ctas">
               <a class="btn primary" href="https://www.linkedin.com/in/joshua-richard-376140207" target="_blank" rel="noopener noreferrer">LinkedIn</a>
               <a class="btn" href="mailto:joshuarichard116@gmail.com">Email me</a>
@@ -758,14 +789,32 @@
   /* =====================================================================
      SIDES: one entry per pyramid face. Add an entry to add a side.
      ===================================================================== */
+  /* ROLE_TITLE
+     Public job title. This is the resume title until S1 Technology announces
+     the promotion. Change ROLE_TITLE, then keep ABOUT_TEXT and the HTML
+     fallbacks (data-role-title, #about-copy, and the meta description) in sync.
+     Announced title, do not publish until S1 announces it:
+     "Lead Engineer, CMMC & GCC High"
+  */
+  const ROLE_TITLE = "Technical Consultant, Security Operations";
+  const ABOUT_TEXT = "I'm a Technical Consultant in Security Operations at S1 Technology, a managed service provider, where I lead the CMMC and GCC High practice. I also cover security operations and systems administration. Before that I worked at Global Data, another MSP, from 2022 to April 2026, starting as an intern and moving into a full-time NOC and service desk role. I serve as a Sergeant in the Louisiana Army National Guard and hold an active Secret clearance. When a problem at work needs a better design, I build it on a separate tenant, write it down, and publish a version here with the client details removed.";
+  document.querySelectorAll("[data-role-title]").forEach(function (el) {
+    var mode = el.getAttribute("data-role-title");
+    if (mode === "with-company") el.textContent = ROLE_TITLE + " · S1 Technology";
+    else if (mode === "eyebrow") el.textContent = ROLE_TITLE + " · CMMC & GCC High";
+    else el.textContent = ROLE_TITLE;
+  });
+  var aboutCopy = document.getElementById("about-copy");
+  if (aboutCopy) aboutCopy.textContent = ABOUT_TEXT;
+
   const ICONS = {"about": "<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\" focusable=\"false\"><path class=\"ac\" d=\"M11.5 2.5 14.6 8M20.5 2.5 17.4 8\"/><rect class=\"sh\" x=\"4\" y=\"8.5\" width=\"24\" height=\"19.5\" rx=\"3\"/><path class=\"fl\" d=\"M4 13.5v-2a3 3 0 0 1 3-3h18a3 3 0 0 1 3 3v2z\"/><rect x=\"4\" y=\"8.5\" width=\"24\" height=\"19.5\" rx=\"3\"/><rect class=\"af\" x=\"13\" y=\"6.4\" width=\"6\" height=\"3.6\" rx=\"1.1\"/><path class=\"dim\" d=\"M14.6 8.2h2.8\"/><rect x=\"7.5\" y=\"15.5\" width=\"8.2\" height=\"9.5\" rx=\"1.6\"/><circle cx=\"11.6\" cy=\"19\" r=\"1.9\"/><path d=\"M8.8 24.9c.4-1.9 1.5-2.9 2.8-2.9s2.4 1 2.8 2.9\"/><path d=\"M18.6 16.6h6.4M18.6 19.6h4.6\"/><path class=\"ac\" d=\"M18.6 22.6h6\"/><path class=\"hl\" d=\"M6.6 11.2h3\"/></svg>", "experience": "<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M12 9V6.8a2.3 2.3 0 0 1 2.3-2.3h3.4A2.3 2.3 0 0 1 20 6.8V9\"/><path class=\"dim\" d=\"M13.8 9V7.1c0-.4.3-.7.7-.7h3c.4 0 .7.3.7.7V9\"/><rect class=\"sh\" x=\"3.5\" y=\"9\" width=\"25\" height=\"18\" rx=\"3\"/><rect x=\"3.5\" y=\"9\" width=\"25\" height=\"18\" rx=\"3\"/><path class=\"fl\" d=\"M3.5 12a3 3 0 0 1 3-3h19a3 3 0 0 1 3 3v4.5c-4 2-8.3 3-12.5 3s-8.5-1-12.5-3z\"/><path d=\"M3.5 16.5c4 2 8.3 3 12.5 3s8.5-1 12.5-3\"/><path class=\"dim\" d=\"M8.5 9v18M23.5 9v18\"/><rect class=\"af\" x=\"13.4\" y=\"17.2\" width=\"5.2\" height=\"4.6\" rx=\"1.1\"/><path class=\"hl\" d=\"M15 19.5h2\"/><path class=\"ac\" d=\"M5.6 23.8v.8a1 1 0 0 0 1 1h.8M26.4 23.8v.8a1 1 0 0 1-1 1h-.8\"/></svg>", "work": "<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\" focusable=\"false\"><circle class=\"sh\" cx=\"12.5\" cy=\"12.5\" r=\"6.8\"/><rect class=\"tooth\" x=\"11.20\" y=\"3.90\" width=\"2.6\" height=\"2.4\" rx=\"0.6\" transform=\"rotate(0.0 12.5 12.5)\"/><rect class=\"tooth\" x=\"11.20\" y=\"3.90\" width=\"2.6\" height=\"2.4\" rx=\"0.6\" transform=\"rotate(45.0 12.5 12.5)\"/><rect class=\"tooth\" x=\"11.20\" y=\"3.90\" width=\"2.6\" height=\"2.4\" rx=\"0.6\" transform=\"rotate(90.0 12.5 12.5)\"/><rect class=\"tooth\" x=\"11.20\" y=\"3.90\" width=\"2.6\" height=\"2.4\" rx=\"0.6\" transform=\"rotate(135.0 12.5 12.5)\"/><rect class=\"tooth\" x=\"11.20\" y=\"3.90\" width=\"2.6\" height=\"2.4\" rx=\"0.6\" transform=\"rotate(180.0 12.5 12.5)\"/><rect class=\"tooth\" x=\"11.20\" y=\"3.90\" width=\"2.6\" height=\"2.4\" rx=\"0.6\" transform=\"rotate(225.0 12.5 12.5)\"/><rect class=\"tooth\" x=\"11.20\" y=\"3.90\" width=\"2.6\" height=\"2.4\" rx=\"0.6\" transform=\"rotate(270.0 12.5 12.5)\"/><rect class=\"tooth\" x=\"11.20\" y=\"3.90\" width=\"2.6\" height=\"2.4\" rx=\"0.6\" transform=\"rotate(315.0 12.5 12.5)\"/><circle cx=\"12.5\" cy=\"12.5\" r=\"6.8\"/><circle class=\"dim\" cx=\"12.5\" cy=\"12.5\" r=\"4.3\"/><circle class=\"fl\" cx=\"12.5\" cy=\"12.5\" r=\"2.5\"/><circle class=\"ac\" cx=\"12.5\" cy=\"12.5\" r=\"2.5\"/><path class=\"ac\" d=\"m18.6 18.6 5.2 5.2\" style=\"stroke-width:2.8\"/><path class=\"ac\" d=\"M28.6 24.6A3.2 3.2 0 1 1 24.6 28.6\" style=\"stroke-width:2\"/><path class=\"hl\" d=\"M9.1 9.1a4.6 4.6 0 0 1 2.2-1.3\"/></svg>", "creds": "<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\" focusable=\"false\"><path class=\"fl\" d=\"M9 2.5h4.2l2.8 7.2-3.4 1.6zM23 2.5h-4.2L16 9.7l3.4 1.6z\"/><path class=\"ac\" d=\"M9 2.5h4.2l2.8 7.2-3.4 1.6zM23 2.5h-4.2L16 9.7l3.4 1.6z\"/><circle class=\"sh\" cx=\"16\" cy=\"19.5\" r=\"8\"/><circle cx=\"16\" cy=\"19.5\" r=\"8\"/><circle class=\"dim\" cx=\"16\" cy=\"19.5\" r=\"6\"/><path class=\"af\" d=\"m16 15.2 1.3 2.7 3 .4-2.2 2.1.5 3-2.6-1.4-2.6 1.4.5-3-2.2-2.1 3-.4z\"/><path class=\"hl\" d=\"M10.6 16.6a6 6 0 0 1 2.6-2.6\"/></svg>", "rbac": "<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\" focusable=\"false\"><rect class=\"sh\" x=\"12.5\" y=\"3\" width=\"7\" height=\"5.4\" rx=\"1.4\"/><rect x=\"12.5\" y=\"3\" width=\"7\" height=\"5.4\" rx=\"1.4\"/><circle class=\"ac\" cx=\"16\" cy=\"5.7\" r=\"1\"/><path d=\"M16 8.4v4.4M7 17v-4.2h18V16\"/><path class=\"dim\" d=\"M16 12.8v4.2\"/><rect class=\"sh\" x=\"3.5\" y=\"17\" width=\"7\" height=\"5.4\" rx=\"1.4\"/><rect x=\"3.5\" y=\"17\" width=\"7\" height=\"5.4\" rx=\"1.4\"/><rect class=\"sh\" x=\"12.5\" y=\"17\" width=\"7\" height=\"5.4\" rx=\"1.4\"/><rect x=\"12.5\" y=\"17\" width=\"7\" height=\"5.4\" rx=\"1.4\"/><path class=\"dim\" d=\"M5.4 19.7h3.2M14.4 19.7h3.2\"/><rect class=\"fl\" x=\"21\" y=\"19.6\" width=\"8.4\" height=\"7.4\" rx=\"1.6\"/><rect class=\"ac\" x=\"21\" y=\"19.6\" width=\"8.4\" height=\"7.4\" rx=\"1.6\"/><path class=\"ac\" d=\"M22.8 19.6v-1.8a2.4 2.4 0 0 1 4.8 0v1.8\"/><circle class=\"af\" cx=\"25.2\" cy=\"22.7\" r=\"1\"/><path class=\"ac\" d=\"M25.2 23.4v1.6\"/></svg>", "zone": "<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\" focusable=\"false\"><path class=\"sh\" d=\"M9 21.5a5.2 5.2 0 0 1-.8-10.35A7.2 7.2 0 0 1 22 10.6a4.6 4.6 0 0 1 .6 9.15V21.5z\"/><path d=\"M9 21.5a5.2 5.2 0 0 1-.8-10.35A7.2 7.2 0 0 1 22 10.6a4.6 4.6 0 0 1 .6 9.15\"/><path class=\"hl\" d=\"M11.4 9.2a5.4 5.4 0 0 1 3.4-2.1\"/><path class=\"fl\" d=\"m11.5 16.2 4.5-2.3 4.5 2.3-4.5 2.3z\"/><path class=\"ac\" d=\"m11.5 16.2 4.5-2.3 4.5 2.3-4.5 2.3z\"/><path class=\"ac\" d=\"m11.5 19.2 4.5 2.3 4.5-2.3\"/><path class=\"ac\" d=\"m11.5 22.2 4.5 2.3 4.5-2.3\"/><path d=\"M5 28.5h22\"/><path class=\"dim\" d=\"M8 28.5v-1.2M24 28.5v-1.2M16 28.5v-1.6\"/></svg>", "cmmc": "<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\" focusable=\"false\"><rect class=\"sh\" x=\"5.5\" y=\"5\" width=\"21\" height=\"24\" rx=\"2.6\"/><rect x=\"5.5\" y=\"5\" width=\"21\" height=\"24\" rx=\"2.6\"/><path class=\"af\" d=\"M11.5 3.2h9a1 1 0 0 1 1 1v2.6a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1V4.2a1 1 0 0 1 1-1z\"/><path class=\"dim\" d=\"M14.4 5.5h3.2\"/><path class=\"fl\" d=\"m16 10.8 5 1.9v4c0 3-2 5.2-5 6.3-3-1.1-5-3.3-5-6.3v-4z\"/><path class=\"ac\" d=\"m16 10.8 5 1.9v4c0 3-2 5.2-5 6.3-3-1.1-5-3.3-5-6.3v-4z\"/><path class=\"ac\" d=\"m13.7 16.6 1.6 1.6 3-3.2\"/><path class=\"dim\" d=\"M9 25.6h14\"/><path class=\"hl\" d=\"M13.2 13.2v2\"/></svg>", "skills": "<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M11.5 11V8.2a2 2 0 0 1 2-2h5a2 2 0 0 1 2 2V11\"/><rect class=\"sh\" x=\"3.5\" y=\"11\" width=\"25\" height=\"16\" rx=\"2.6\"/><rect x=\"3.5\" y=\"11\" width=\"25\" height=\"16\" rx=\"2.6\"/><path class=\"fl\" d=\"M3.5 13.6a2.6 2.6 0 0 1 2.6-2.6h19.8a2.6 2.6 0 0 1 2.6 2.6V18h-25z\"/><path d=\"M3.5 18h25\"/><rect class=\"af\" x=\"13.4\" y=\"16.2\" width=\"5.2\" height=\"3.8\" rx=\".9\"/><path class=\"dim\" d=\"M8 22.5v2M24 22.5v2\"/><path class=\"ac\" d=\"M7 7.5 9.4 10M24.5 6l-1.6 4.2\"/><circle class=\"ac\" cx=\"6.4\" cy=\"6.9\" r=\"1\"/><path class=\"hl\" d=\"M6 14.2h3.6\"/></svg>"};
   const SIDES = [
     {
       icon: "about",
       label: "About",
       kicker: "Who I am",
-      title: "Hi, I'm Joshua.",
-      text: "I'm the Lead Engineer for CMMC and GCC High clients at S1 Technology, a managed service provider, where I also cover security operations and systems administration. Before that I worked at Global Data, another MSP, from 2022 to April 2026, growing from intern to full-time NOC and service desk technician. I also serve as a Sergeant in the Louisiana Army National Guard and hold an active Secret clearance. When a problem at work needs a better design, I build it out on a separate tenant, document it, and publish a version here with client details removed.",
+      title: "About",
+      text: ABOUT_TEXT,
       bullets: ["Active U.S. Secret clearance", "B.S. Cybersecurity · AZ-104 · SC-300 · Security+ · CySA+", "Currently studying for the Cisco CCNA"],
       link: {"text": "See my experience", "href": "#experience"},
       ctas: true
@@ -774,8 +823,8 @@
       icon: "experience",
       label: "Experience",
       kicker: "S1 Technology",
-      title: "Lead Engineer, CMMC & GCC High · S1 Technology",
-      text: "April 2026 – present, leading engineering for CMMC and GCC High clients and covering security operations and systems administration. Before that: NOC Technician / Service Desk at Global Data (2022 – April 2026).",
+      title: ROLE_TITLE + " · S1 Technology",
+      text: "April 2026 – present. I lead the CMMC Level 2 / Azure Government / GCC High practice, plus security operations and systems administration. Before that: NOC Technician / Service Desk at Global Data (2022 – April 2026).",
       bullets: ["Triage and resolve about 30 security tickets per week across client environments using SentinelOne, Microsoft Defender XDR and Microsoft Sentinel", "Own the tuning of the organization's SentinelOne agent, cutting false positives while keeping detection coverage", "Designed a Microsoft Graph-based audit to catch billed users missed during onboarding, and documented why Microsoft 365 Lighthouse and Azure Policy could not do the job", "Prototyped least-privilege delegated admin access for a multi-domain client tenant, then documented the tested models, their limits and a recommended design"],
       chips: ["SentinelOne", "Defender XDR", "Sentinel", "Microsoft Graph", "PowerShell"],
       link: {"text": "See full experience", "href": "#experience"}
@@ -785,8 +834,8 @@
       label: "Work Projects",
       kicker: "Built on the job",
       title: "Work projects at S1 Technology",
-      text: "Things I designed and built on the job. Client names and data stay private.",
-      bullets: ["Billing audit with Microsoft Graph to catch billed users missed in onboarding", "Least-privilege delegated admin design for a multi-domain client tenant", "PowerShell cleanup script for client tenant migrations", "Web GUI replacing the deployment tool's batch-script menu", "Company standard for Cisco switch setup over console", "SentinelOne tuning: fewer false positives, same coverage"],
+      text: "Built on the job at S1 Technology. Client names and data stay off this page.",
+      bullets: ["Microsoft Graph audit for billed users missed during onboarding, and a note on why Lighthouse and Azure Policy couldn't do it", "Least-privilege delegated admin prototypes for a multi-domain client tenant, with the limits and a recommendation written down", "PowerShell script that removes old-tenant Outlook and Microsoft 365 data after a migration", "Web GUI for the internal client software and agent deployment tool", "Company standard for initial Cisco Small Business switch configuration over console", "SentinelOne tuning: fewer false positives, detection coverage kept"],
       link: {"text": "See all work projects", "href": "#work"}
     },
     {
@@ -795,7 +844,7 @@
       kicker: "Certs · clearance",
       title: "Education, certifications & clearance",
       text: "What backs up the hands-on work.",
-      bullets: ["B.S. Cybersecurity, Louisiana State University of Alexandria (May 2026)", "Microsoft: AZ-104, SC-300, SC-900", "CompTIA: Security+, CySA+, Security Pro", "Cisco: CCST Networking · CCNA in progress", "Active U.S. Secret clearance · Army National Guard Sergeant (E-5)"],
+      bullets: ["B.S. Cybersecurity, Louisiana State University of Alexandria (May 2026)", "Microsoft: AZ-104, SC-300, SC-900", "CompTIA: Security+, CySA+, Security Pro", "Cisco: CCST Networking", "Active U.S. Secret clearance · Army National Guard Sergeant (E-5)"],
       link: {"text": "See credentials", "href": "#credentials"}
     },
     {
@@ -1129,7 +1178,7 @@
       target = t; clearPeek();
       if (reduce) { angle = target; render(); } else animate();
     }
-    document.querySelectorAll('header.top nav a').forEach(a => {
+    document.querySelectorAll('header.top nav a, .nav-mobile a').forEach(a => {
       const side = SIDES.findIndex(d => d.label === PEEK[a.getAttribute('href')]);
       const on = () => {
         clearTimeout(leaveTimer);
@@ -1141,7 +1190,12 @@
       const off = () => { leaveTimer = setTimeout(() => { document.body.classList.remove('aurora-on'); unpeek(); }, 120); };
       a.addEventListener('mouseenter', on); a.addEventListener('focus', on);
       a.addEventListener('mouseleave', off); a.addEventListener('blur', off);
-      a.addEventListener('click', () => { document.body.classList.remove('aurora-on'); if (side >= 0) goTo(side, 0, true); });
+      a.addEventListener('click', () => {
+        document.body.classList.remove('aurora-on');
+        var menu = a.closest('details');
+        if (menu) menu.open = false;
+        if (side >= 0) goTo(side, 0, true);
+      });
     });
 
     let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(build, 150); });
