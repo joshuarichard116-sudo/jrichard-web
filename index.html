@@ -7,14 +7,13 @@
   <!--
     PUBLIC_ROLE: keep the description and og:description in sync with ROLE_TITLE
     in the pyramid script near the bottom of this file.
-    Current public title: Technical Consultant, Security Operations
-    Announced title (do not publish until S1 Technology announces it):
-    Lead Engineer, CMMC & GCC High
+    Current public title: Lead Engineer, CMMC & GCC High
+    Previous public title: Technical Consultant, Security Operations
   -->
-  <meta name="description" content="Joshua Richard: Technical Consultant, Security Operations at S1 Technology (MSP). Leads the CMMC Level 2 / GCC High practice. 4+ years at managed service providers, active Secret clearance, AZ-104, SC-300, Security+, CySA+.">
+  <meta name="description" content="Joshua Richard: Lead Engineer, CMMC &amp; GCC High at S1 Technology (MSP). Leads the CMMC Level 2 / GCC High practice. 4+ years at managed service providers, active Secret clearance, AZ-104, SC-300, Security+, CySA+.">
   <meta name="pizzazz-recipe" content='{"pz":1,"kit":"my-color-profile","concept":"Spec Sheet \u00b7 Lattice","family":"wildcard","dev":{"intensity":"standard","backdrop":"triangle lattice + network map","motion":"subtle, cursor-reactive"},"sig":"triangle lattice backdrop","pal":{"pri":"#27241D","sec":"#423D33","tint":"#FAF5EE","zeb":"#F7F3EC","mut":"#625B50","ftr":"#6B6358","hair":"#D9D1C4","acc":"#D9A21B","watch":"#B44D12"},"font":{"h":"system-ui","b":"system-ui"},"date":"2026-11-19"}'>
   <meta property="og:title" content="Joshua Richard · Security Operations &amp; Identity">
-  <meta property="og:description" content="Technical Consultant, Security Operations at an MSP, leading the CMMC and GCC High practice. Microsoft Entra ID, Azure, Defender XDR, Sentinel and CMMC-focused projects.">
+  <meta property="og:description" content="Lead Engineer, CMMC &amp; GCC High at an MSP, leading the CMMC and GCC High practice. Microsoft Entra ID, Azure, Defender XDR, Sentinel and CMMC-focused projects.">
   <meta property="og:type" content="website">
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#F2ECE2" media="(prefers-color-scheme: light)">
@@ -421,7 +420,7 @@
     <div class="wrap">
       <section class="explorer" aria-labelledby="hello">
         <div class="explorer-head">
-          <p class="eyebrow" data-role-title="eyebrow">Technical Consultant, Security Operations · CMMC &amp; GCC High</p>
+          <p class="eyebrow" data-role-title="eyebrow">Lead Engineer, CMMC &amp; GCC High</p>
           <h1 id="hello">Hi, I'm Joshua.</h1>
           <span class="rule" aria-hidden="true"></span>
           <ul class="creds" aria-label="Highlights">
@@ -450,7 +449,7 @@
               <!-- Shown if JavaScript is off; replaced by the pyramid's About side. -->
               <p class="kicker">Who I am</p>
               <h2>About</h2>
-              <p id="about-copy">I'm a Technical Consultant in Security Operations at S1 Technology, a managed service provider, where I lead the CMMC and GCC High practice. I also cover security operations and systems administration. Before that I worked at Global Data, another MSP, from 2022 to April 2026, starting as an intern and moving into a full-time NOC and service desk role. I serve as a Sergeant in the Louisiana Army National Guard and hold an active Secret clearance. When a problem at work needs a better design, I build it on a separate tenant, write it down, and publish a version here with the client details removed.</p>
+              <p id="about-copy">I'm a Lead Engineer, CMMC &amp; GCC High at S1 Technology, a managed service provider, where I lead the CMMC and GCC High practice. I also cover security operations and systems administration. Before that I worked at Global Data, another MSP, from 2022 to April 2026, starting as an intern and moving into a full-time NOC and service desk role. I serve as a Sergeant in the Louisiana Army National Guard and hold an active Secret clearance. When a problem at work needs a better design, I build it on a separate tenant, write it down, and publish a version here with the client details removed.</p>
               <a class="more" href="#experience">See my experience</a>
             </div>
           </section>
@@ -465,7 +464,7 @@
         <div class="timeline">
           <article class="card job current reveal">
             <p class="kicker">April 2026 – present · Current role</p>
-            <h3 data-role-title="with-company">Technical Consultant, Security Operations · S1 Technology</h3>
+            <h3 data-role-title="with-company">Lead Engineer, CMMC &amp; GCC High · S1 Technology</h3>
             <p>I lead the CMMC Level 2 / Azure Government / GCC High practice, plus security operations and systems administration, at a managed service provider.</p>
             <ul>
               <li>Triage and resolve about 30 security tickets per week across client environments using SentinelOne, Microsoft Defender XDR and Microsoft Sentinel</li>
@@ -790,18 +789,15 @@
      SIDES: one entry per pyramid face. Add an entry to add a side.
      ===================================================================== */
   /* ROLE_TITLE
-     Public job title. This is the resume title until S1 Technology announces
-     the promotion. Change ROLE_TITLE, then keep ABOUT_TEXT and the HTML
+     Public job title. Change ROLE_TITLE, then keep ABOUT_TEXT and the HTML
      fallbacks (data-role-title, #about-copy, and the meta description) in sync.
-     Announced title, do not publish until S1 announces it:
-     "Lead Engineer, CMMC & GCC High"
+     Previous public title: "Technical Consultant, Security Operations"
   */
-  const ROLE_TITLE = "Technical Consultant, Security Operations";
-  const ABOUT_TEXT = "I'm a Technical Consultant in Security Operations at S1 Technology, a managed service provider, where I lead the CMMC and GCC High practice. I also cover security operations and systems administration. Before that I worked at Global Data, another MSP, from 2022 to April 2026, starting as an intern and moving into a full-time NOC and service desk role. I serve as a Sergeant in the Louisiana Army National Guard and hold an active Secret clearance. When a problem at work needs a better design, I build it on a separate tenant, write it down, and publish a version here with the client details removed.";
+  const ROLE_TITLE = "Lead Engineer, CMMC & GCC High";
+  const ABOUT_TEXT = "I'm a Lead Engineer, CMMC & GCC High at S1 Technology, a managed service provider, where I lead the CMMC and GCC High practice. I also cover security operations and systems administration. Before that I worked at Global Data, another MSP, from 2022 to April 2026, starting as an intern and moving into a full-time NOC and service desk role. I serve as a Sergeant in the Louisiana Army National Guard and hold an active Secret clearance. When a problem at work needs a better design, I build it on a separate tenant, write it down, and publish a version here with the client details removed.";
   document.querySelectorAll("[data-role-title]").forEach(function (el) {
     var mode = el.getAttribute("data-role-title");
     if (mode === "with-company") el.textContent = ROLE_TITLE + " · S1 Technology";
-    else if (mode === "eyebrow") el.textContent = ROLE_TITLE + " · CMMC & GCC High";
     else el.textContent = ROLE_TITLE;
   });
   var aboutCopy = document.getElementById("about-copy");
