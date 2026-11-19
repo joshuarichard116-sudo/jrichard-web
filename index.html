@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Joshua Richard · Identity & Access</title>
-  <meta name="description" content="Joshua Richard: IT professional focused on identity and access management, hybrid Active Directory / Microsoft Entra ID, and Azure administration.">
+  <meta name="description" content="Joshua Richard: System Administrator at S1 Technology, a managed service provider, focused on identity and access management, Microsoft 365 / Entra ID and Azure.">
   <meta name="pizzazz-recipe" content='{"pz":1,"kit":"my-color-profile","concept":"Spec Sheet","family":"refined","dev":{"intensity":"standard","flourish":"amber dividers","structure":"slim header"},"sig":"amber rule dividers","pal":{"pri":"#27241D","sec":"#423D33","tint":"#FAF5EE","zeb":"#F7F3EC","mut":"#625B50","ftr":"#6B6358","hair":"#D9D1C4","acc":"#D9A21B","watch":"#B44D12"},"font":{"h":"system-ui","b":"system-ui"},"date":"2026-11-19"}'>
   <meta property="og:title" content="Joshua Richard · Identity & Access">
-  <meta property="og:description" content="Hybrid AD / Microsoft Entra ID, Azure administration, and CMMC-minded lab work.">
+  <meta property="og:description" content="System Administrator at an MSP. Hybrid AD / Microsoft Entra ID, Microsoft 365, Azure, and CMMC-minded lab work.">
   <meta property="og:type" content="website">
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
@@ -107,7 +107,7 @@
     .btn:hover { transform: translateY(-1px); }
 
     /* Sections */
-    section { padding: 40px 0; }
+    section { padding: 40px 0; scroll-margin-top: 72px; }
     .divider { display: block; width: 100%; height: auto; margin: 8px 0; }
     h2 { font-size: 28px; margin: 0 0 6px; letter-spacing: -.005em; }
     .section-sub { color: var(--text-2); margin: 0 0 28px; }
@@ -118,6 +118,7 @@
     :root[data-theme="dark"] .card { border-left-color: var(--pz-accent); }
     @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .card { border-left-color: var(--pz-accent); } }
     .card:hover { transform: translateY(-2px); }
+    .card.job { max-width: none; }
     .card .kicker { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--text-2); margin: 0 0 6px; }
     .card h3 { font-size: 20px; line-height: 1.3; margin: 0 0 10px; }
     .card p { margin: 0 0 12px; color: var(--text-2); font-size: 16px; }
@@ -227,6 +228,7 @@
       <a class="brand" href="#top"><img src="assets/favicon.svg" alt=""><span>Joshua Richard</span></a>
       <nav aria-label="Main">
         <ul>
+          <li><a href="#experience">Experience</a></li>
           <li><a href="#projects">Projects</a></li>
           <li><a href="#approach">Approach</a></li>
           <li><a href="#skills">Skills</a></li>
@@ -241,7 +243,7 @@
     <div class="wrap">
       <section class="explorer" aria-labelledby="hello">
         <div class="explorer-head">
-          <p class="eyebrow">IT · Identity &amp; Access Management</p>
+          <p class="eyebrow">System Administrator · Identity &amp; Access Management</p>
           <h1 id="hello">Hi, I'm Joshua.</h1>
           <span class="rule" aria-hidden="true"></span>
         </div>
@@ -263,8 +265,8 @@
               <!-- Shown if JavaScript is off; replaced by the pyramid's About side. -->
               <p class="kicker">Who I am</p>
               <h2>Hi, I'm Joshua.</h2>
-              <p>I work on hybrid Active Directory / Microsoft Entra ID and Azure administration. I build home labs the way I'd run a real client engagement: model the business first, then design access, security controls and automation around it.</p>
-              <a class="more" href="#projects">See my projects</a>
+              <p>I'm a System Administrator at S1 Technology, a managed service provider, where I've supported client environments for the past year. Day to day I handle user accounts and onboarding, Microsoft 365 and Entra ID, Windows servers, help desk tickets and security triage. Outside work I build labs that go deeper into identity and access, so I understand the why behind the settings I manage.</p>
+              <a class="more" href="#experience">See my experience</a>
             </div>
           </section>
         </div>
@@ -272,9 +274,29 @@
 
       <img class="divider" src="assets/divider.svg" alt="">
 
+      <section id="experience">
+        <h2>Experience</h2>
+        <p class="section-sub">Where I do this work every day.</p>
+        <article class="card job reveal">
+          <p class="kicker">Current role · about 1 year</p>
+          <h3>System Administrator · S1 Technology</h3>
+          <p>A managed service provider, so I support several client environments, not just one.</p>
+          <ul>
+            <li>Manage user accounts, onboarding and offboarding in Active Directory and Microsoft Entra ID across client environments</li>
+            <li>Administer Microsoft 365 and Entra ID: licenses, MFA and user access</li>
+            <li>Maintain Windows servers and file shares, including permissions, backups and patching</li>
+            <li>Work help desk tickets and troubleshoot user and device issues</li>
+            <li>Triage security alerts and escalate what needs deeper investigation</li>
+          </ul>
+          <div class="chips"><span class="chip">Active Directory</span><span class="chip">Microsoft Entra ID</span><span class="chip">Microsoft 365</span><span class="chip">Windows Server</span><span class="chip">Help desk</span><span class="chip">Security triage</span></div>
+        </article>
+      </section>
+
+      <img class="divider" src="assets/divider.svg" alt="">
+
       <section id="projects">
         <h2>Projects</h2>
-        <p class="section-sub">Each one is a public repo with the full write-up, diagrams and code.</p>
+        <p class="section-sub">Labs and toolkits I build outside work to go deeper than day-to-day tickets allow. Each one is a public repo with the full write-up, diagrams and code.</p>
         <div class="grid">
           <article class="card reveal">
             <p class="kicker">Hybrid identity · RBAC</p>
@@ -355,15 +377,15 @@
 
       <section id="skills">
         <h2>Skills &amp; tools</h2>
-        <p class="section-sub">What I work with in these projects.</p>
+        <p class="section-sub">What I use at work and in my labs.</p>
         <div class="skills">
           <div class="skill-group reveal">
             <h3>Identity</h3>
-            <div class="chips"><span class="chip">Active Directory</span><span class="chip">Microsoft Entra ID</span><span class="chip">Entra Connect Sync</span><span class="chip">Conditional Access</span><span class="chip">PIM</span><span class="chip">RBAC / least privilege</span></div>
+            <div class="chips"><span class="chip">Active Directory</span><span class="chip">Microsoft Entra ID</span><span class="chip">Microsoft 365</span><span class="chip">Entra Connect Sync</span><span class="chip">Conditional Access</span><span class="chip">PIM</span><span class="chip">RBAC / least privilege</span></div>
           </div>
           <div class="skill-group reveal">
             <h3>Infrastructure</h3>
-            <div class="chips"><span class="chip">Windows Server</span><span class="chip">NTFS / SMB</span><span class="chip">KVM / virt-manager</span><span class="chip">Microsoft Azure</span><span class="chip">Bicep</span></div>
+            <div class="chips"><span class="chip">Windows Server</span><span class="chip">NTFS / SMB</span><span class="chip">Backups &amp; patching</span><span class="chip">KVM / virt-manager</span><span class="chip">Microsoft Azure</span><span class="chip">Bicep</span></div>
           </div>
           <div class="skill-group reveal">
             <h3>Automation</h3>
@@ -371,7 +393,7 @@
           </div>
           <div class="skill-group reveal">
             <h3>Security &amp; compliance</h3>
-            <div class="chips"><span class="chip">Zero Trust</span><span class="chip">Joiner / mover / leaver</span><span class="chip">Access reviews</span><span class="chip">Break-glass design</span><span class="chip">NIST SP 800-171</span><span class="chip">CMMC</span></div>
+            <div class="chips"><span class="chip">Security alert triage</span><span class="chip">Zero Trust</span><span class="chip">Joiner / mover / leaver</span><span class="chip">Access reviews</span><span class="chip">Break-glass design</span><span class="chip">NIST SP 800-171</span><span class="chip">CMMC</span></div>
           </div>
         </div>
       </section>
@@ -448,10 +470,18 @@
     {
       icon: "👋", label: "About", kicker: "Who I am",
       title: "Hi, I'm Joshua.",
-      text: "I work on hybrid Active Directory / Microsoft Entra ID and Azure administration. I build home labs the way I'd run a real client engagement: model the business first, then design access, security controls and automation around it.",
+      text: "I'm a System Administrator at S1 Technology, a managed service provider, where I've supported client environments for the past year. Day to day I handle user accounts and onboarding, Microsoft 365 and Entra ID, Windows servers, help desk tickets and security triage. Outside work I build labs that go deeper into identity and access, so I understand the why behind the settings I manage.",
       bullets: ["Working through AZ-104 (Azure Administrator) labs", "Building HR-driven onboarding automation: HR system → AD → Entra → groups → SaaS"],
       link: { text: "See all projects", href: "#projects" },
       ctas: true
+    },
+    {
+      icon: "💼", label: "Experience", kicker: "S1 Technology",
+      title: "System Administrator · S1 Technology",
+      text: "About 1 year in my current role at a managed service provider, supporting several client environments.",
+      bullets: ["Manage user accounts, onboarding and offboarding in Active Directory and Microsoft Entra ID across client environments", "Administer Microsoft 365 and Entra ID: licenses, MFA and user access", "Maintain Windows servers and file shares, including permissions, backups and patching", "Work help desk tickets and troubleshoot user and device issues", "Triage security alerts and escalate what needs deeper investigation"],
+      chips: ["Active Directory", "Entra ID", "Microsoft 365", "Windows Server", "Help desk", "Security triage"],
+      link: { text: "See my experience", href: "#experience" }
     },
     {
       icon: "🔐", label: "Meridian Steel", kicker: "Hybrid identity · RBAC",
