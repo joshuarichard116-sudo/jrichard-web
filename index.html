@@ -134,6 +134,19 @@
     .creds { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0 0 8px; }
     .creds li { font-size: 13.5px; font-weight: 600; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); }
     .creds li:first-child { border-color: var(--pz-accent); }
+    .cred-top { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; margin-bottom: 28px; }
+    .cred-card { padding: 20px 22px; }
+    .cred-label { font-size: 14px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-2); margin: 0 0 12px; }
+    .cert-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: 14px; }
+    .cert-tile { position: relative; overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px 18px; transition: transform .2s ease, border-color .2s ease; }
+    .cert-tile::before { content: ""; position: absolute; top: 0; right: 0; width: 34px; height: 34px; background: var(--pz-accent); clip-path: polygon(0 0, 100% 0, 100% 100%); opacity: .9; }
+    .cert-tile:hover { border-color: var(--pz-accent); }
+    .cert-issuer { font-size: 11.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--text-2); margin: 0 0 4px; }
+    .cert-code { font-size: 24px; font-weight: 800; letter-spacing: -.01em; margin: 0 0 4px; line-height: 1.15; }
+    .cert-name { font-size: 14.5px; color: var(--text-2); margin: 0; line-height: 1.4; }
+    .cert-tile.pending { border-style: dashed; background: transparent; }
+    .cert-tile.pending::before { opacity: .35; }
+    .cert-status { display: inline-block; margin: 10px 0 0; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: var(--pz-accent); color: #27241D; }
     .cert-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 16px; }
     .cert-main { font-weight: 700; font-size: 18px; margin: 0; }
     .cert-sub { color: var(--text-2); font-size: 14.5px; margin: 2px 0 0; }
@@ -203,13 +216,7 @@
     :root { --bp-minor: rgba(39, 36, 29, .045); --bp-major: rgba(39, 36, 29, .085); --bp-mark: rgba(168, 116, 10, .55); }
     :root[data-theme="dark"] { --bp-minor: rgba(243, 238, 230, .035); --bp-major: rgba(243, 238, 230, .07); --bp-mark: rgba(217, 162, 27, .6); }
     @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bp-minor: rgba(243, 238, 230, .035); --bp-major: rgba(243, 238, 230, .07); --bp-mark: rgba(217, 162, 27, .6); } }
-    .bp { position: fixed; inset: 0; z-index: -3; pointer-events: none;
-      background-image:
-        linear-gradient(var(--bp-major) 1px, transparent 1px), linear-gradient(90deg, var(--bp-major) 1px, transparent 1px),
-        linear-gradient(var(--bp-minor) 1px, transparent 1px), linear-gradient(90deg, var(--bp-minor) 1px, transparent 1px);
-      background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
-      background-position: 0 var(--bp-y, 0px), 0 var(--bp-y, 0px), 0 var(--bp-y, 0px), 0 var(--bp-y, 0px);
-      -webkit-mask-image: radial-gradient(120% 90% at 50% 20%, #000 40%, rgba(0,0,0,.35) 100%); mask-image: radial-gradient(120% 90% at 50% 20%, #000 40%, rgba(0,0,0,.35) 100%); }
+    .bp { position: fixed; inset: 0; z-index: -3; pointer-events: none; }
     /* amber registration marks in the corners */
     .bp i { position: absolute; width: 26px; height: 26px; border: 0 solid var(--bp-mark); }
     .bp i:nth-child(1) { top: 76px; left: 16px; border-width: 2px 0 0 2px; }
@@ -257,7 +264,7 @@
     .card { position: relative; will-change: transform; }
     .card::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .3s ease;
       background: radial-gradient(320px circle at var(--gx, 50%) var(--gy, 50%), rgba(217, 162, 27, .12), transparent 60%); }
-    .card.tilting { transition: transform .08s linear, border-color .2s ease; }
+    .card.tilting, .cert-tile.tilting, .cred-card.tilting { transition: transform .08s linear, border-color .2s ease; }
     .card.tilting::after { opacity: 1; }
     .scene::before { content: ""; position: absolute; left: 50%; top: 0; width: calc(520px * var(--s)); height: calc(440px * var(--s)); transform: translateX(-50%); background: var(--halo); pointer-events: none; }
     .pyramid { position: absolute; left: 50%; top: calc(30px * var(--s)); width: 0; height: 0; transform-style: preserve-3d; }
@@ -496,24 +503,60 @@
       <section id="credentials">
         <h2>Education &amp; certifications</h2>
         <p class="section-sub">Degree, certifications and clearance.</p>
-        <div class="cert-grid">
-          <div class="skill-group reveal">
+        <div class="cred-top">
+          <div class="skill-group cred-card reveal">
             <h3>Education</h3>
             <p class="cert-main">B.S. Cybersecurity</p>
             <p class="cert-sub">Louisiana State University of Alexandria · May 2026</p>
           </div>
-          <div class="skill-group reveal">
-            <h3>Microsoft</h3>
-            <div class="chips"><span class="chip">Azure Administrator Associate (AZ-104)</span><span class="chip">Identity and Access Administrator Associate (SC-300)</span><span class="chip">Security, Compliance, and Identity Fundamentals (SC-900)</span></div>
-          </div>
-          <div class="skill-group reveal">
-            <h3>CompTIA &amp; Cisco</h3>
-            <div class="chips"><span class="chip">CompTIA Security+</span><span class="chip">CompTIA CySA+</span><span class="chip">CompTIA Security Pro</span><span class="chip">Cisco CCST Networking</span></div><p class="cert-sub" style="margin-top:10px">In progress: Cisco CCNA</p>
-          </div>
-          <div class="skill-group reveal">
+          <div class="skill-group cred-card reveal">
             <h3>Clearance &amp; service</h3>
-            <div class="chips"><span class="chip">Active U.S. Secret clearance</span><span class="chip">Army National Guard · Sergeant (E-5)</span></div>
+            <p class="cert-main">Active U.S. Secret clearance</p>
+            <p class="cert-sub">U.S. Army National Guard · Sergeant (E-5) · 2020 – present</p>
           </div>
+        </div>
+        <h3 class="cred-label">Certifications</h3>
+        <div class="cert-tiles">
+            <div class="cert-tile reveal">
+              <p class="cert-issuer">Microsoft</p>
+              <p class="cert-code">AZ-104</p>
+              <p class="cert-name">Azure Administrator Associate</p>
+            </div>
+            <div class="cert-tile reveal">
+              <p class="cert-issuer">Microsoft</p>
+              <p class="cert-code">SC-300</p>
+              <p class="cert-name">Identity and Access Administrator Associate</p>
+            </div>
+            <div class="cert-tile reveal">
+              <p class="cert-issuer">Microsoft</p>
+              <p class="cert-code">SC-900</p>
+              <p class="cert-name">Security, Compliance, and Identity Fundamentals</p>
+            </div>
+            <div class="cert-tile reveal">
+              <p class="cert-issuer">CompTIA</p>
+              <p class="cert-code">Security+</p>
+              <p class="cert-name">CompTIA Security+</p>
+            </div>
+            <div class="cert-tile reveal">
+              <p class="cert-issuer">CompTIA</p>
+              <p class="cert-code">CySA+</p>
+              <p class="cert-name">Cybersecurity Analyst</p>
+            </div>
+            <div class="cert-tile reveal">
+              <p class="cert-issuer">CompTIA</p>
+              <p class="cert-code">Security Pro</p>
+              <p class="cert-name">CompTIA Security Pro</p>
+            </div>
+            <div class="cert-tile reveal">
+              <p class="cert-issuer">Cisco</p>
+              <p class="cert-code">CCST</p>
+              <p class="cert-name">Certified Support Technician, Networking</p>
+            </div>
+            <div class="cert-tile reveal pending">
+              <p class="cert-issuer">Cisco</p>
+              <p class="cert-code">CCNA</p>
+              <p class="cert-name">Certified Network Associate</p><p class="cert-status">In progress</p>
+            </div>
         </div>
       </section>
 
@@ -1027,7 +1070,7 @@
 
     /* ---- project cards tilt toward the cursor ---- */
     if (fine && !reduce) {
-      document.querySelectorAll('.grid .card').forEach(card => {
+      document.querySelectorAll('.grid .card, .cert-tile, .cred-card').forEach(card => {
         card.addEventListener('pointermove', e => {
           const r = card.getBoundingClientRect();
           const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
@@ -1107,6 +1150,7 @@
         var t = (now - t0) / 1000, dt = 1 / 60, isDark = dark();
         var line = isDark ? '243, 238, 230' : '39, 36, 29', amber = isDark ? '232, 184, 74' : '168, 116, 10';
         g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+        drawLattice(isDark, line, amber);
         var D = Math.min(170, Math.max(120, W / 9)), R = 170;
         for (var i = 0; i < nodes.length; i++) {
           var a = nodes[i];
@@ -1127,9 +1171,68 @@
           if (mouse) { var mx = a.x - mouse.x, my = a.y - mouse.y; near = Math.max(0, 1 - Math.sqrt(mx * mx + my * my) / R); }
           g.fillStyle = near > 0 ? 'rgba(' + amber + ',' + (.35 + near * .6).toFixed(3) + ')' : 'rgba(' + line + ',' + ((isDark ? .28 : .22) * pulse).toFixed(3) + ')';
           var r = a.r * (near > 0 ? 1 + near * .8 : pulse);
-          if (a.sq) g.fillRect(a.x - r, a.y - r, r * 2, r * 2); else { g.beginPath(); g.arc(a.x, a.y, r, 0, 6.283); g.fill(); }
+          if (a.sq) { var q = r * 1.5; g.beginPath(); g.moveTo(a.x, a.y - q); g.lineTo(a.x + q * .87, a.y + q * .5); g.lineTo(a.x - q * .87, a.y + q * .5); g.closePath(); g.fill(); }
+          else { g.beginPath(); g.arc(a.x, a.y, r, 0, 6.283); g.fill(); }
         }
-        if (!reduce && !document.hidden) raf = requestAnimationFrame(draw);
+        if (!reduce && !document.hidden && !raf) raf = requestAnimationFrame(draw);
+      }
+      /* Triangle lattice: equilateral triangles, side S. Triangles near the cursor warm up amber
+         and cool down slowly; a click sends a ripple across them. */
+      var S = 58, TH = S * Math.sqrt(3) / 2, heat = new Map(), ripples = [], offY = 0;
+      function cellCentre(j, m) {
+        var offx = (j & 1) ? S / 2 : 0, yt = j * TH + offY, yb = yt + TH;
+        var cx = offx + (m + 1) * S / 2 - S, up = ((m & 1) === 0);
+        return { x: cx, y: up ? yb - TH / 3 : yt + TH / 3, up: up, yt: yt, yb: yb };
+      }
+      function fillCell(j, m, a) {
+        var c = cellCentre(j, m), hw = S / 2;
+        g.beginPath();
+        if (c.up) { g.moveTo(c.x - hw, c.yb); g.lineTo(c.x, c.yt); g.lineTo(c.x + hw, c.yb); }
+        else { g.moveTo(c.x - hw, c.yt); g.lineTo(c.x, c.yb); g.lineTo(c.x + hw, c.yt); }
+        g.closePath(); g.fill();
+      }
+      function drawLattice(isDark, line, amber) {
+        offY = -(((scrollY * 0.15) % (2 * TH)) + 2 * TH) % (2 * TH);
+        var rows = Math.ceil(H / TH) + 3, cols = Math.ceil(W / (S / 2)) + 6;
+        // lines: one zigzag per row plus the horizontals
+        g.strokeStyle = 'rgba(' + line + ',' + (isDark ? .05 : .06) + ')'; g.lineWidth = 1;
+        g.beginPath();
+        for (var j = -1; j < rows; j++) {
+          var yt = j * TH + offY, yb = yt + TH, offx = (j & 1) ? S / 2 : 0;
+          g.moveTo(-S, yt); g.lineTo(W + S, yt);
+          for (var m = 0; m < cols; m++) { var x = offx + m * S / 2 - S, y = (m & 1) ? yt : yb; if (m === 0) g.moveTo(x, y); else g.lineTo(x, y); }
+        }
+        g.stroke();
+        // warm the cells under the cursor
+        if (mouse) {
+          var R = 150, j0 = Math.floor((mouse.y - offY - R) / TH), j1 = Math.ceil((mouse.y - offY + R) / TH);
+          for (var j = j0; j <= j1; j++) {
+            var offx = (j & 1) ? S / 2 : 0, m0 = Math.floor((mouse.x - R + S - offx) / (S / 2)) - 2, m1 = Math.ceil((mouse.x + R + S - offx) / (S / 2));
+            for (var m = m0; m <= m1; m++) {
+              var c = cellCentre(j, m), d = Math.hypot(c.x - mouse.x, c.y - mouse.y);
+              if (d < R) { var k = j + ',' + m, v = Math.pow(1 - d / R, 1.6); if ((heat.get(k) || 0) < v) heat.set(k, v); }
+            }
+          }
+        }
+        // ripples from clicks
+        for (var r = ripples.length - 1; r >= 0; r--) {
+          var w = ripples[r]; w.rad += (reduce ? 0 : 9); if (w.rad > w.max) { ripples.splice(r, 1); continue; }
+          var band = S * 0.9, jA = Math.floor((w.y - offY - w.rad - band) / TH), jB = Math.ceil((w.y - offY + w.rad + band) / TH);
+          for (var j = jA; j <= jB; j++) {
+            var offx = (j & 1) ? S / 2 : 0, mA = Math.floor((w.x - w.rad - band + S - offx) / (S / 2)) - 2, mB = Math.ceil((w.x + w.rad + band + S - offx) / (S / 2));
+            for (var m = mA; m <= mB; m++) {
+              var c = cellCentre(j, m), dd = Math.abs(Math.hypot(c.x - w.x, c.y - w.y) - w.rad);
+              if (dd < band) { var k = j + ',' + m, v = (1 - dd / band) * (1 - w.rad / w.max) * 0.9; if ((heat.get(k) || 0) < v) heat.set(k, v); }
+            }
+          }
+        }
+        heat.forEach(function (v, k) {
+          var p = k.split(','), j = +p[0], m = +p[1];
+          g.fillStyle = 'rgba(' + amber + ',' + (v * (isDark ? .22 : .18)).toFixed(3) + ')';
+          fillCell(j, m, v);
+          var nv = v * 0.94; if (nv < 0.02) heat.delete(k); else heat.set(k, nv);
+        });
+        if (heat.size || ripples.length) kick();
       }
       function kick() { if (!raf) raf = requestAnimationFrame(draw); }
       size(); kick();
@@ -1139,9 +1242,13 @@
         addEventListener('pointermove', function (e) { mouse = { x: e.clientX, y: e.clientY }; if (reduce) kick(); }, { passive: true });
         document.addEventListener('pointerleave', function () { mouse = null; if (reduce) kick(); });
       }
+      addEventListener('click', function (e) {
+        if (e.target.closest('a, button, input, .card, .panel, .scene, .skill-group, .cert-tile, header')) return;
+        ripples.push({ x: e.clientX, y: e.clientY, rad: 0, max: Math.max(W, H) * 0.6 });
+        kick();
+      });
+      addEventListener('scroll', kick, { passive: true });
       // blueprint grid drifts slower than the page as you scroll
-      var bp = document.querySelector('.bp');
-      if (!reduce) addEventListener('scroll', function () { bp.style.setProperty('--bp-y', (-scrollY * 0.15).toFixed(1) + 'px'); }, { passive: true });
       // the theme toggle changes colours: redraw once if nothing is animating
       new MutationObserver(kick).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     })();
