@@ -9,7 +9,11 @@
   <meta property="og:title" content="Joshua Richard · Identity & Access">
   <meta property="og:description" content="Hybrid AD / Microsoft Entra ID, Azure administration, and CMMC-minded lab work.">
   <meta property="og:type" content="website">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#16140F" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <script>/* apply a saved theme before first paint, so there's no flash */try{var t=localStorage.getItem('theme');if(t){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>
   <style>
     :root {
       --pz-primary: #27241D;
@@ -29,6 +33,7 @@
       --chip-bg: var(--pz-zebra);
       --shadow: 0 1px 2px rgba(39, 36, 29, .06), 0 8px 24px rgba(39, 36, 29, .06);
       --face-a: #2F2B23; --face-b: #423D33; --face-text: #FAF5EE;
+      --face-edge: #2F2B23; --face-sel-a: #4A4233; --face-sel-b: #27241D; --halo: none;
       color-scheme: light;
     }
     @media (prefers-color-scheme: dark) {
@@ -41,7 +46,9 @@
         --link: #E8B84A;
         --chip-bg: #2A261F;
         --shadow: none;
-        --face-a: #5A5040; --face-b: #3A3429;
+        --face-a: #6A5E4A; --face-b: #463F33;
+        --face-edge: rgba(217, 162, 27, .55); --face-sel-a: #7A6A4E; --face-sel-b: #5A4F3E;
+        --halo: radial-gradient(closest-side, rgba(217, 162, 27, .14), rgba(217, 162, 27, .04) 60%, transparent);
         color-scheme: dark;
       }
     }
@@ -54,7 +61,9 @@
       --link: #E8B84A;
       --chip-bg: #2A261F;
       --shadow: none;
-      --face-a: #5A5040; --face-b: #3A3429;
+      --face-a: #6A5E4A; --face-b: #463F33;
+      --face-edge: rgba(217, 162, 27, .55); --face-sel-a: #7A6A4E; --face-sel-b: #5A4F3E;
+      --halo: radial-gradient(closest-side, rgba(217, 162, 27, .14), rgba(217, 162, 27, .04) 60%, transparent);
       color-scheme: dark;
     }
 
@@ -157,25 +166,27 @@
       touch-action: pan-y; cursor: grab; user-select: none;
     }
     .scene.dragging { cursor: grabbing; }
+    .scene::before { content: ""; position: absolute; left: 50%; top: 0; width: calc(520px * var(--s)); height: calc(440px * var(--s)); transform: translateX(-50%); background: var(--halo); pointer-events: none; }
     .pyramid { position: absolute; left: 50%; top: calc(30px * var(--s)); width: 0; height: 0; transform-style: preserve-3d; }
     .face {
       position: absolute; transform-style: preserve-3d; backface-visibility: hidden;
       clip-path: polygon(50% 0, 100% 100%, 0 100%);
-      background: linear-gradient(180deg, var(--face-a), var(--face-b));
+      background: var(--face-edge);
       color: var(--face-text);
       display: flex; flex-direction: column; justify-content: flex-end; align-items: center; text-align: center;
       padding: 0 12% 7%;
       border: 0; font: inherit; cursor: pointer;
     }
-    .face::before { /* amber base edge */
+    .face .skin { position: absolute; inset: 0; clip-path: polygon(50% 4px, calc(100% - 3px) 100%, 3px 100%); background: linear-gradient(180deg, var(--face-a), var(--face-b)); }
+    .face::before { z-index: 1; /* amber base edge */
       content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background: var(--pz-accent);
     }
     .face .shade { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; }
     .face .icon { font-size: calc(30px * var(--s)); line-height: 1; margin-bottom: 6px; position: relative; }
     .face .label { font-weight: 700; font-size: calc(15px * var(--s)); line-height: 1.2; position: relative; }
     .face .kick { font-size: calc(10.5px * var(--s)); letter-spacing: .14em; text-transform: uppercase; opacity: .8; margin-top: 4px; position: relative; }
-    .face[aria-selected="true"] { background: linear-gradient(180deg, #4A4233, #27241D); }
-    .face[aria-selected="true"]::after { content: ""; position: absolute; inset: 0; box-shadow: inset 0 0 0 2px var(--pz-accent); clip-path: inherit; }
+    .face[aria-selected="true"] { background: var(--pz-accent); }
+    .face[aria-selected="true"] .skin { background: linear-gradient(180deg, var(--face-sel-a), var(--face-sel-b)); }
     .floor { position: absolute; left: 50%; bottom: calc(18px * var(--s)); width: calc(380px * var(--s)); height: calc(60px * var(--s)); transform: translateX(-50%); background: radial-gradient(closest-side, rgba(39,36,29,.28), transparent); border-radius: 50%; filter: blur(2px); }
     :root[data-theme="dark"] .floor { background: radial-gradient(closest-side, rgba(217,162,27,.18), transparent); }
     @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .floor { background: radial-gradient(closest-side, rgba(217,162,27,.18), transparent); } }
@@ -416,6 +427,7 @@
         var next = current() === 'dark' ? 'light' : 'dark';
         root.setAttribute('data-theme', next);
         try { localStorage.setItem('theme', next); } catch (e) {}
+        document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) { m.setAttribute('content', next === 'dark' ? '#16140F' : '#FFFFFF'); });
         label();
       });
 
@@ -515,7 +527,7 @@
         f.style.transformOrigin = '50% 100%';
         // Rotate to its slot, push out to the base edge, then lean the tip in to meet the apex.
         f.style.transform = `translateY(${H - slant}px) rotateY(${i * STEP}deg) translateZ(${apothem}px) rotateX(${tilt}deg)`;
-        f.innerHTML = `<span class="shade"></span><span class="icon" aria-hidden="true">${d.icon}</span><span class="label">${d.label}</span>${d.kicker ? `<span class="kick">${d.kicker}</span>` : ''}`;
+        f.innerHTML = `<span class="skin"></span><span class="shade"></span><span class="icon" aria-hidden="true">${d.icon}</span><span class="label">${d.label}</span>${d.kicker ? `<span class="kick">${d.kicker}</span>` : ''}`;
         f.addEventListener('click', () => { if (!moved) goTo(i); });
         pyr.appendChild(f); faces.push(f);
       });
