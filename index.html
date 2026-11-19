@@ -128,7 +128,6 @@
     .pbr { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 0 0 14px; font-size: 15.5px; }
     .pbr dt { font-size: 11.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--text-2); padding-top: 3px; }
     .pbr dd { margin: 0; }
-    .card.work h3 span { margin-right: 4px; }
     .timeline { display: grid; gap: 16px; }
     .creds { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0 0 8px; }
     .creds li { font-size: 13.5px; font-weight: 600; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); }
@@ -281,6 +280,18 @@
       content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background: var(--pz-accent);
     }
     .face .shade { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; }
+    /* custom icons: line art + amber accents + soft amber fill */
+    .ico svg, .face .icon svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+    .ico svg .ac, .face .icon svg .ac { stroke: var(--pz-accent); }
+    .ico svg .fl, .face .icon svg .fl { fill: var(--pz-accent); fill-opacity: .16; stroke: none; }
+    .face .icon svg { width: calc(40px * var(--s)); height: calc(40px * var(--s)); margin: 0 auto; filter: drop-shadow(0 0 6px rgba(217, 162, 27, .35)); }
+    .face .icon svg .fl { fill-opacity: .22; }
+    .ico { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; margin-right: 10px; vertical-align: middle;
+      background: color-mix(in srgb, var(--pz-accent) 12%, transparent); border: 1px solid color-mix(in srgb, var(--pz-accent) 45%, transparent); color: var(--text); }
+    .ico svg { width: 22px; height: 22px; }
+    .card.work h3 { display: flex; align-items: center; }
+    :root:not([data-theme="dark"]) .ico svg .ac { stroke: #A8740A; }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ico svg .ac { stroke: var(--pz-accent); } }
     .face .icon { font-size: calc(30px * var(--s)); line-height: 1; margin-bottom: 6px; position: relative; }
     .face .label { font-weight: 700; font-size: calc(15px * var(--s)); line-height: 1.2; position: relative; }
     .face .kick { font-size: calc(10.5px * var(--s)); letter-spacing: .14em; text-transform: uppercase; opacity: .8; margin-top: 4px; position: relative; }
@@ -436,7 +447,7 @@
         <div class="grid">
           <article class="card work reveal">
             <p class="kicker">Microsoft 365 · Microsoft Graph · S1 Technology</p>
-            <h3><span aria-hidden="true">🔎</span> Billing audit with Microsoft Graph</h3>
+            <h3><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="4" y="3" width="11" height="15" rx="1.8"/><path d="M7 7.5h5M7 10.5h3M7 13.5h2"/><circle class="fl" cx="16" cy="15.5" r="3.6"/><circle class="ac" cx="16" cy="15.5" r="3.6"/><path class="ac" d="m18.6 18.1 2.6 2.6"/><path class="ac" d="M16 14v3M15 14.6h1.6a.7.7 0 0 1 0 1.4h-1.2a.7.7 0 0 0 0 1.4H17"/></svg></span>Billing audit with Microsoft Graph</h3>
             <dl class="pbr">
               <dt>Problem</dt><dd>Users added during onboarding could be missed in client billing, so the company risked not billing for every account it supported.</dd>
               <dt>Built</dt><dd>Designed a Microsoft Graph-based audit that catches billed users missed during onboarding.</dd>
@@ -446,7 +457,7 @@
           </article>
           <article class="card work reveal">
             <p class="kicker">Identity · Least privilege · S1 Technology</p>
-            <h3><span aria-hidden="true">🛡️</span> Least-privilege delegated admin access</h3>
+            <h3><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="fl" d="M12 3l7 2.6v5.2c0 4.3-2.9 7.7-7 9.2-4.1-1.5-7-4.9-7-9.2V5.6z"/><path d="M12 3l7 2.6v5.2c0 4.3-2.9 7.7-7 9.2-4.1-1.5-7-4.9-7-9.2V5.6z"/><circle class="ac" cx="10" cy="11" r="2"/><path class="ac" d="M12 11h4.4M15 11v1.8M16.4 11v1.2"/></svg></span>Least-privilege delegated admin access</h3>
             <dl class="pbr">
               <dt>Problem</dt><dd>A client tenant with multiple domains needed admin access for our team that didn't grant more rights than necessary.</dd>
               <dt>Built</dt><dd>Prototyped least-privilege delegated admin access for the tenant.</dd>
@@ -456,7 +467,7 @@
           </article>
           <article class="card work reveal">
             <p class="kicker">Automation · PowerShell · S1 Technology</p>
-            <h3><span aria-hidden="true">🧹</span> Tenant-migration cleanup script</h3>
+            <h3><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect class="fl" x="2.5" y="5" width="8" height="8" rx="1.6"/><rect x="2.5" y="5" width="8" height="8" rx="1.6"/><rect x="13.5" y="11" width="8" height="8" rx="1.6"/><path class="ac" d="M10.5 8.5h3.2a2.3 2.3 0 0 1 2.3 2.3v.2"/><path class="ac" d="m14.3 9.6 1.7 1.6 1.7-1.6"/><path class="ac" d="M5 16.5v4M3 18.5h4"/></svg></span>Tenant-migration cleanup script</h3>
             <dl class="pbr">
               <dt>Problem</dt><dd>After client tenant migrations, old-tenant Outlook and Microsoft 365 data was left behind.</dd>
               <dt>Built</dt><dd>Wrote a PowerShell script that removes the old-tenant Outlook and Microsoft 365 data.</dd>
@@ -466,7 +477,7 @@
           </article>
           <article class="card work reveal">
             <p class="kicker">Internal tooling · S1 Technology</p>
-            <h3><span aria-hidden="true">🖥️</span> Web GUI for the deployment tool</h3>
+            <h3><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="14.5" rx="2"/><path d="M3 8h18"/><circle class="ac" cx="5.6" cy="6" r=".5"/><circle class="ac" cx="7.4" cy="6" r=".5"/><rect class="fl" x="6" y="10.5" width="5" height="4.5" rx=".8"/><rect x="6" y="10.5" width="5" height="4.5" rx=".8"/><path d="M13.5 11h4.5M13.5 13.5h3"/><path class="ac" d="m14.8 15.3 4.6 1.6-2 .8-.8 2z"/></svg></span>Web GUI for the deployment tool</h3>
             <dl class="pbr">
               <dt>Problem</dt><dd>The internal tool for deploying client software and agents ran from a batch-script menu.</dd>
               <dt>Built</dt><dd>Built a web-based GUI for the tool, replacing the batch-script menu.</dd>
@@ -476,7 +487,7 @@
           </article>
           <article class="card work reveal">
             <p class="kicker">Networking · Documentation · S1 Technology</p>
-            <h3><span aria-hidden="true">🔌</span> Cisco switch configuration standard</h3>
+            <h3><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect class="fl" x="2.5" y="7.5" width="19" height="8.5" rx="1.6"/><rect x="2.5" y="7.5" width="19" height="8.5" rx="1.6"/><path d="M5.5 11.7h1.6M8.5 11.7h1.6M11.5 11.7h1.6M14.5 11.7h1.6"/><circle class="ac" cx="18.6" cy="11.7" r=".9"/><path class="ac" d="M12 16v3.5H7.5M7.5 18v3"/></svg></span>Cisco switch configuration standard</h3>
             <dl class="pbr">
               <dt>Problem</dt><dd>Initial switch setup for client deployments had no single, consistent procedure.</dd>
               <dt>Built</dt><dd>Wrote the company's standard procedure for initial Cisco Small Business switch configuration over console.</dd>
@@ -486,7 +497,7 @@
           </article>
           <article class="card work reveal">
             <p class="kicker">Security operations · S1 Technology</p>
-            <h3><span aria-hidden="true">🎯</span> SentinelOne agent tuning</h3>
+            <h3><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle class="fl" cx="10.5" cy="13" r="7.5"/><circle cx="10.5" cy="13" r="7.5"/><circle cx="10.5" cy="13" r="3.8"/><circle class="ac" cx="10.5" cy="13" r="1.1"/><path class="ac" d="M20 3.5v7"/><circle class="ac" cx="20" cy="6.2" r="1.5"/></svg></span>SentinelOne agent tuning</h3>
             <dl class="pbr">
               <dt>Problem</dt><dd>The organization's SentinelOne agent was raising too many false positives, which wastes analyst time and buries real alerts.</dd>
               <dt>Built</dt><dd>I took ownership of tuning the SentinelOne agent.</dd>
@@ -740,9 +751,10 @@
   /* =====================================================================
      SIDES: one entry per pyramid face. Add an entry to add a side.
      ===================================================================== */
+  const ICONS = {"about": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\"><rect class=\"fl\" x=\"3\" y=\"5\" width=\"18\" height=\"14\" rx=\"2.5\"/><rect x=\"3\" y=\"5\" width=\"18\" height=\"14\" rx=\"2.5\"/><path class=\"ac\" d=\"M10 5V3.5h4V5\"/><circle cx=\"9\" cy=\"10.8\" r=\"2.2\"/><path d=\"M5.8 16.4c.6-1.7 1.8-2.6 3.2-2.6s2.6.9 3.2 2.6\"/><path class=\"ac\" d=\"M14.5 10h4M14.5 13h3\"/></svg>", "experience": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\"><rect class=\"fl\" x=\"3\" y=\"7.5\" width=\"18\" height=\"12\" rx=\"2.5\"/><rect x=\"3\" y=\"7.5\" width=\"18\" height=\"12\" rx=\"2.5\"/><path d=\"M9 7.5V5.8A1.8 1.8 0 0 1 10.8 4h2.4A1.8 1.8 0 0 1 15 5.8v1.7\"/><path class=\"ac\" d=\"M3 12.5h7.5M13.5 12.5H21\"/><rect class=\"ac\" x=\"10.5\" y=\"11\" width=\"3\" height=\"3\" rx=\".6\"/></svg>", "work": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\"><circle class=\"fl\" cx=\"10\" cy=\"10\" r=\"5\"/><circle cx=\"10\" cy=\"10\" r=\"5\"/><circle cx=\"10\" cy=\"10\" r=\"1.9\"/><path d=\"M10 3v2M10 15v2M3 10h2M15 10h2M5 5l1.4 1.4M13.6 13.6 15 15M5 15l1.4-1.4M13.6 6.4 15 5\"/><path class=\"ac\" d=\"m14.6 14.6 5.4 5.4\"/><path class=\"ac\" d=\"M17.6 21.2a1.7 1.7 0 0 0 2.4-2.4\"/></svg>", "creds": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\"><path class=\"ac\" d=\"m8 2.8 2.6 6.4M16 2.8l-2.6 6.4\"/><circle class=\"fl\" cx=\"12\" cy=\"15\" r=\"5.6\"/><circle cx=\"12\" cy=\"15\" r=\"5.6\"/><path class=\"ac\" d=\"m12 11.9 1 2 2.1.3-1.5 1.5.4 2.1-2-1-1.9 1 .4-2.1-1.5-1.5 2.1-.3z\"/></svg>", "rbac": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\"><circle cx=\"12\" cy=\"5\" r=\"2.1\"/><circle cx=\"5.5\" cy=\"15\" r=\"2.1\"/><path d=\"M12 7.1v3.4M12 10.5H5.5v2.4M12 10.5h4.5v2\"/><rect class=\"fl\" x=\"13.8\" y=\"14\" width=\"7.4\" height=\"6.2\" rx=\"1.3\"/><rect class=\"ac\" x=\"13.8\" y=\"14\" width=\"7.4\" height=\"6.2\" rx=\"1.3\"/><path class=\"ac\" d=\"M15.4 14v-1.5a2.1 2.1 0 0 1 4.2 0V14\"/><path class=\"ac\" d=\"M17.5 16.6v1.2\"/></svg>", "zone": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\"><path class=\"fl\" d=\"M7 18a4 4 0 0 1-.6-7.96A5.5 5.5 0 0 1 17 9.5a3.5 3.5 0 0 1 .5 6.97V18z\"/><path d=\"M7 18a4 4 0 0 1-.6-7.96A5.5 5.5 0 0 1 17 9.5a3.5 3.5 0 0 1 .5 6.97\"/><path class=\"ac\" d=\"m9 13.6 3-1.5 3 1.5-3 1.5z\"/><path class=\"ac\" d=\"m9 16 3 1.5 3-1.5\"/><path class=\"ac\" d=\"M5 21h14\"/></svg>", "cmmc": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\"><rect x=\"5\" y=\"4.5\" width=\"14\" height=\"16.5\" rx=\"2\"/><path d=\"M9 4.5V3.3h6v1.2\"/><path class=\"fl\" d=\"M12 8.6l3.4 1.3v2.8c0 2.1-1.4 3.6-3.4 4.3-2-.7-3.4-2.2-3.4-4.3V9.9z\"/><path class=\"ac\" d=\"M12 8.6l3.4 1.3v2.8c0 2.1-1.4 3.6-3.4 4.3-2-.7-3.4-2.2-3.4-4.3V9.9z\"/><path class=\"ac\" d=\"m10.5 12.7 1.1 1.1 2-2.2\"/></svg>", "skills": "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\"><rect class=\"fl\" x=\"3\" y=\"9\" width=\"18\" height=\"11\" rx=\"2\"/><rect x=\"3\" y=\"9\" width=\"18\" height=\"11\" rx=\"2\"/><path d=\"M8.5 9V6.5A1.5 1.5 0 0 1 10 5h4a1.5 1.5 0 0 1 1.5 1.5V9\"/><path class=\"ac\" d=\"M3 14h7.5M13.5 14H21\"/><rect class=\"ac\" x=\"10.5\" y=\"12.6\" width=\"3\" height=\"2.8\" rx=\".6\"/></svg>"};
   const SIDES = [
     {
-      icon: "👋",
+      icon: "about",
       label: "About",
       kicker: "Who I am",
       title: "Hi, I'm Joshua.",
@@ -752,7 +764,7 @@
       ctas: true
     },
     {
-      icon: "💼",
+      icon: "experience",
       label: "Experience",
       kicker: "S1 Technology",
       title: "Technical Consultant, Security Operations · S1 Technology",
@@ -762,7 +774,7 @@
       link: {"text": "See full experience", "href": "#experience"}
     },
     {
-      icon: "⚙️",
+      icon: "work",
       label: "Work Projects",
       kicker: "Built on the job",
       title: "Work projects at S1 Technology",
@@ -771,7 +783,7 @@
       link: {"text": "See all work projects", "href": "#work"}
     },
     {
-      icon: "🎖️",
+      icon: "creds",
       label: "Credentials",
       kicker: "Certs · clearance",
       title: "Education, certifications & clearance",
@@ -780,7 +792,7 @@
       link: {"text": "See credentials", "href": "#credentials"}
     },
     {
-      icon: "🔐", label: "Meridian Steel", kicker: "Work problem · RBAC",
+      icon: "rbac", label: "Meridian Steel", kicker: "Work problem · RBAC",
       title: "Meridian Steel: Access Governance & RBAC",
       text: "Who can open which files, and why. Department- and tier-based access for a fictional 50-person steel fabricator in a hybrid Active Directory / Entra ID environment, so access follows a person's role.",
       bullets: ["9 departments, each with separate staff and manager groups", "File shares where people only see the folders they're allowed to open", "MFA rules tested in report-only mode first, and just-in-time admin rights with PIM", "PowerShell automation for new hires and departures"],
@@ -788,7 +800,7 @@
       link: { text: "Read the breakdown", href: "https://github.com/joshuarichard116-sudo/meridian-steel-access-governance" }
     },
     {
-      icon: "☁️", label: "Landing Zone", kicker: "Work problem · Azure",
+      icon: "zone", label: "Landing Zone", kicker: "Work problem · Azure",
       title: "Azure Landing Zone + Entra Lab",
       text: "A safe, low-cost starting point for an Azure environment, written as code (Bicep) with guardrails, logging and a budget alert from day one. Includes a step-by-step guide and is designed to cost about $0.",
       bullets: ["Azure Policy guardrails: NIST SP 800-171 Rev. 2 auditing and approved regions only", "Central logging with a daily cost cap, budget alerts and free Defender for Cloud plans", "The guide covers management groups, PIM, Microsoft Sentinel and a hub-and-spoke network"],
@@ -796,7 +808,7 @@
       link: { text: "See the build", href: "https://github.com/joshuarichard116-sudo/azure-landing-zone-entra-lab" }
     },
     {
-      icon: "🧾", label: "CMMC Toolkit", kicker: "Work problem · CMMC",
+      icon: "cmmc", label: "CMMC Toolkit", kicker: "Work problem · CMMC",
       title: "CMMC Level 2 Enclave Toolkit for GCC High",
       text: "Defense contractors that handle Controlled Unclassified Information (CUI) must meet CMMC Level 2. This toolkit gives a vendor-neutral way to evaluate every tool that enters that environment and keep the evidence for the System Security Plan.",
       bullets: ["Tool evaluation template with 13 criteria", "Decision matrix mapping each criterion to NIST SP 800-171 control families", "No vendor picks or pricing, just evidence"],
@@ -804,7 +816,7 @@
       link: { text: "View the toolkit", href: "https://github.com/joshuarichard116-sudo/cmmc-gcc-high-enclave-toolkit" }
     },
     {
-      icon: "🧰", label: "Skills", kicker: "Tools I use",
+      icon: "skills", label: "Skills", kicker: "Tools I use",
       title: "Skills & tools",
       text: "What I use at work and in my labs.",
       bullets: ["Network & firewall: Cisco switching, Meraki MX, Sophos, UniFi, Wireshark, Nmap", "Cloud & identity: Azure, Entra ID, Conditional Access, PIM, Azure Policy, Microsoft 365", "Monitoring & response: Sentinel, Defender XDR, SentinelOne, Stellar Cyber, Auvik", "Systems & scripting: Windows Server, Active Directory, Linux, KVM, PowerShell, Bash, Graph API"],
@@ -848,7 +860,7 @@
         f.style.transformOrigin = '50% 100%';
         // Rotate to its slot, push out to the base edge, then lean the tip in to meet the apex.
         f.style.transform = `translateY(${H - slant}px) rotateY(${i * STEP}deg) translateZ(${apothem}px) rotateX(${tilt}deg)`;
-        f.innerHTML = `<span class="skin"></span><span class="shade"></span><span class="icon" aria-hidden="true">${d.icon}</span><span class="label">${d.label}</span>${d.kicker ? `<span class="kick">${d.kicker}</span>` : ''}`;
+        f.innerHTML = `<span class="skin"></span><span class="shade"></span><span class="icon" aria-hidden="true">${ICONS[d.icon] || d.icon}</span><span class="label">${d.label}</span>${d.kicker ? `<span class="kick">${d.kicker}</span>` : ''}`;
         f.addEventListener('click', ev => {
           if (moved) return;
           goTo(i);
