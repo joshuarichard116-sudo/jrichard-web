@@ -10,7 +10,7 @@
   <meta property="og:description" content="Security operations and systems administration at an MSP. Microsoft Entra ID, Azure, Defender XDR, Sentinel and CMMC-focused projects.">
   <meta property="og:type" content="website">
   <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#F2ECE2" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#16140F" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <script>/* apply a saved theme before first paint, so there's no flash */try{var t=localStorage.getItem('theme');if(t){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>
@@ -24,14 +24,14 @@
       --pz-hairline: #D9D1C4;
       --pz-accent: #D9A21B;
       --pz-watch: #B44D12;
-      --bg: #FFFFFF;
-      --surface: var(--pz-tint);
-      --text: var(--pz-primary);
-      --text-2: var(--pz-muted);
-      --border: var(--pz-hairline);
-      --link: #8A5A00;
-      --chip-bg: var(--pz-zebra);
-      --shadow: 0 1px 2px rgba(39, 36, 29, .06), 0 8px 24px rgba(39, 36, 29, .06);
+      --bg: #F2ECE2;            /* warm off-white page, so white cards stand out */
+      --surface: #FFFFFF;
+      --text: #1E1B15;
+      --text-2: #4A4339;
+      --border: #9C8E78;        /* 3.2:1 against the cards */
+      --link: #7A4F00;
+      --chip-bg: #EDE5D7;
+      --shadow: 0 1px 2px rgba(39, 36, 29, .10), 0 10px 28px rgba(39, 36, 29, .10);
       --face-a: #2F2B23; --face-b: #423D33; --face-text: #FAF5EE;
       --face-edge: #2F2B23; --face-sel-a: #4A4233; --face-sel-b: #27241D; --halo: none;
       color-scheme: light;
@@ -212,7 +212,7 @@
     /* ---------- Background: Blueprint grid + Network map ---------- */
     .bp, .net { display: none; }
     html.bg-new .bp, html.bg-new .net { display: block; }
-    :root { --bp-minor: rgba(39, 36, 29, .045); --bp-major: rgba(39, 36, 29, .085); --bp-mark: rgba(168, 116, 10, .55); }
+    :root { --bp-minor: rgba(39, 36, 29, .045); --bp-major: rgba(39, 36, 29, .085); --bp-mark: rgba(122, 79, 0, .8); }
     :root[data-theme="dark"] { --bp-minor: rgba(243, 238, 230, .035); --bp-major: rgba(243, 238, 230, .07); --bp-mark: rgba(217, 162, 27, .6); }
     @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bp-minor: rgba(243, 238, 230, .035); --bp-major: rgba(243, 238, 230, .07); --bp-mark: rgba(217, 162, 27, .6); } }
     .bp { position: fixed; inset: 0; z-index: -3; pointer-events: none; }
@@ -286,7 +286,7 @@
     .face .kick { font-size: calc(10.5px * var(--s)); letter-spacing: .14em; text-transform: uppercase; opacity: .8; margin-top: 4px; position: relative; }
     .face[aria-selected="true"] { background: var(--pz-accent); }
     .face[aria-selected="true"] .skin { background: linear-gradient(180deg, var(--face-sel-a), var(--face-sel-b)); }
-    .floor { position: absolute; left: 50%; bottom: calc(18px * var(--s)); width: calc(380px * var(--s)); height: calc(60px * var(--s)); transform: translateX(-50%); background: radial-gradient(closest-side, rgba(39,36,29,.28), transparent); border-radius: 50%; filter: blur(2px); }
+    .floor { position: absolute; left: 50%; bottom: calc(18px * var(--s)); width: calc(380px * var(--s)); height: calc(60px * var(--s)); transform: translateX(-50%); background: radial-gradient(closest-side, rgba(39,36,29,.38), transparent); border-radius: 50%; filter: blur(2px); }
     :root[data-theme="dark"] .floor { background: radial-gradient(closest-side, rgba(217,162,27,.18), transparent); }
     @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .floor { background: radial-gradient(closest-side, rgba(217,162,27,.18), transparent); } }
 
@@ -611,7 +611,7 @@
             <li><strong><a href="https://github.com/joshuarichard116-sudo/Azure-Administrator-Labs" target="_blank" rel="noopener noreferrer">Azure administrator labs</a>:</strong> hands-on write-ups across the AZ-104 skill areas (I hold the certification).</li>
             <li><strong>Azure hub-and-spoke network lab (Meridian Steel):</strong> designing a hub-and-spoke Azure network from business requirements, with governance first: budget alerts, allowed-region and tag-inheritance policies, and role-based access to compute.</li>
             <li><strong>File server authentication comparison lab:</strong> three file servers (domain-joined Kerberos, workgroup NTLM and standalone Samba) to compare authentication behavior side by side.</li>
-            <li><strong>SC-500 cloud security lab (Talvex Components):</strong> a new Azure and Entra tenant built from scratch to practice cloud and AI workload security, including network controls and VPN Gateway scenarios.</li>
+            <li><strong>AZ-500 cloud security lab (Talvex Components):</strong> a new Azure and Entra tenant built from scratch to practice cloud and AI workload security, including network controls and VPN Gateway scenarios.</li>
           </ul>
         </div>
       </section>
@@ -678,7 +678,7 @@
             <h2>Currently</h2>
             <ul>
               <li>Studying for the <strong>Cisco CCNA</strong></li>
-              <li>Building an <strong>SC-500 cloud security lab</strong> on a fresh Azure and Entra tenant</li>
+              <li>Building an <strong>AZ-500 cloud security lab</strong> on a fresh Azure and Entra tenant</li>
               <li>Building <strong>HR-driven onboarding automation</strong>: HR system → AD → Entra → groups → SaaS</li>
             </ul>
           </div>
@@ -723,7 +723,7 @@
         var next = current() === 'dark' ? 'light' : 'dark';
         root.setAttribute('data-theme', next);
         try { localStorage.setItem('theme', next); } catch (e) {}
-        document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) { m.setAttribute('content', next === 'dark' ? '#16140F' : '#FFFFFF'); });
+        document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) { m.setAttribute('content', next === 'dark' ? '#16140F' : '#F2ECE2'); });
         label();
       });
 
@@ -1160,7 +1160,7 @@
           if (d > D) continue;
           var near = 0;
           if (mouse) { var mx = (a.x + b.x) / 2 - mouse.x, my = (a.y + b.y) / 2 - mouse.y; near = Math.max(0, 1 - Math.sqrt(mx * mx + my * my) / R); }
-          var base = (1 - d / D) * (isDark ? .14 : .12);
+          var base = (1 - d / D) * (isDark ? .14 : .22);
           g.strokeStyle = near > 0 ? 'rgba(' + amber + ',' + (base + near * .55).toFixed(3) + ')' : 'rgba(' + line + ',' + base.toFixed(3) + ')';
           g.lineWidth = near > 0 ? 1 + near * .6 : 1;
           g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke();
@@ -1168,7 +1168,7 @@
         for (var i = 0; i < nodes.length; i++) {
           var a = nodes[i], pulse = reduce ? 1 : .75 + .25 * Math.sin(t * 1.4 + a.ph), near = 0;
           if (mouse) { var mx = a.x - mouse.x, my = a.y - mouse.y; near = Math.max(0, 1 - Math.sqrt(mx * mx + my * my) / R); }
-          g.fillStyle = near > 0 ? 'rgba(' + amber + ',' + (.35 + near * .6).toFixed(3) + ')' : 'rgba(' + line + ',' + ((isDark ? .28 : .22) * pulse).toFixed(3) + ')';
+          g.fillStyle = near > 0 ? 'rgba(' + amber + ',' + (.35 + near * .6).toFixed(3) + ')' : 'rgba(' + line + ',' + ((isDark ? .28 : .40) * pulse).toFixed(3) + ')';
           var r = a.r * (near > 0 ? 1 + near * .8 : pulse);
           if (a.sq) { var q = r * 1.5; g.beginPath(); g.moveTo(a.x, a.y - q); g.lineTo(a.x + q * .87, a.y + q * .5); g.lineTo(a.x - q * .87, a.y + q * .5); g.closePath(); g.fill(); }
           else { g.beginPath(); g.arc(a.x, a.y, r, 0, 6.283); g.fill(); }
@@ -1194,7 +1194,7 @@
         offY = -(((scrollY * 0.15) % (2 * TH)) + 2 * TH) % (2 * TH);
         var rows = Math.ceil(H / TH) + 3, cols = Math.ceil(W / (S / 2)) + 6;
         // lines: one zigzag per row plus the horizontals
-        g.strokeStyle = 'rgba(' + line + ',' + (isDark ? .05 : .06) + ')'; g.lineWidth = 1;
+        g.strokeStyle = 'rgba(' + line + ',' + (isDark ? .05 : .10) + ')'; g.lineWidth = 1;
         g.beginPath();
         for (var j = -1; j < rows; j++) {
           var yt = j * TH + offY, yb = yt + TH, offx = (j & 1) ? S / 2 : 0;
@@ -1227,7 +1227,7 @@
         }
         heat.forEach(function (v, k) {
           var p = k.split(','), j = +p[0], m = +p[1];
-          g.fillStyle = 'rgba(' + amber + ',' + (v * (isDark ? .22 : .18)).toFixed(3) + ')';
+          g.fillStyle = 'rgba(' + amber + ',' + (v * (isDark ? .22 : .30)).toFixed(3) + ')';
           fillCell(j, m, v);
           var nv = v * 0.94; if (nv < 0.02) heat.delete(k); else heat.set(k, nv);
         });
