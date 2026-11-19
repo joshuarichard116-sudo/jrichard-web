@@ -13,6 +13,7 @@
   <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#16140F" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <script>/* preview: ?bg=new shows the Blueprint + Network background */try{if(/[?&]bg=new\b/.test(location.search)){document.documentElement.classList.add('bg-new');}}catch(e){}</script>
   <script>/* apply a saved theme before first paint, so there's no flash */try{var t=localStorage.getItem('theme');if(t){document.documentElement.setAttribute('data-theme',t);}}catch(e){}</script>
   <style>
     :root {
@@ -196,6 +197,31 @@
       background: radial-gradient(calc(260px * var(--s)) circle at var(--mx, 50%) var(--my, 45%), rgba(217, 162, 27, .16), transparent 70%);
     }
     .scene.hovering::after { opacity: 1; }
+    /* ---------- Background: Blueprint grid + Network map ---------- */
+    .bp, .net { display: none; }
+    html.bg-new .bp, html.bg-new .net { display: block; }
+    :root { --bp-minor: rgba(39, 36, 29, .045); --bp-major: rgba(39, 36, 29, .085); --bp-mark: rgba(168, 116, 10, .55); }
+    :root[data-theme="dark"] { --bp-minor: rgba(243, 238, 230, .035); --bp-major: rgba(243, 238, 230, .07); --bp-mark: rgba(217, 162, 27, .6); }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bp-minor: rgba(243, 238, 230, .035); --bp-major: rgba(243, 238, 230, .07); --bp-mark: rgba(217, 162, 27, .6); } }
+    .bp { position: fixed; inset: 0; z-index: -3; pointer-events: none;
+      background-image:
+        linear-gradient(var(--bp-major) 1px, transparent 1px), linear-gradient(90deg, var(--bp-major) 1px, transparent 1px),
+        linear-gradient(var(--bp-minor) 1px, transparent 1px), linear-gradient(90deg, var(--bp-minor) 1px, transparent 1px);
+      background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
+      background-position: 0 var(--bp-y, 0px), 0 var(--bp-y, 0px), 0 var(--bp-y, 0px), 0 var(--bp-y, 0px);
+      -webkit-mask-image: radial-gradient(120% 90% at 50% 20%, #000 40%, rgba(0,0,0,.35) 100%); mask-image: radial-gradient(120% 90% at 50% 20%, #000 40%, rgba(0,0,0,.35) 100%); }
+    /* amber registration marks in the corners */
+    .bp i { position: absolute; width: 26px; height: 26px; border: 0 solid var(--bp-mark); }
+    .bp i:nth-child(1) { top: 76px; left: 16px; border-width: 2px 0 0 2px; }
+    .bp i:nth-child(2) { top: 76px; right: 16px; border-width: 2px 2px 0 0; }
+    .bp i:nth-child(3) { bottom: 16px; left: 16px; border-width: 0 0 2px 2px; }
+    .bp i:nth-child(4) { bottom: 16px; right: 16px; border-width: 0 2px 2px 0; }
+    /* a dimension line across the content width, under the header */
+    .bp b { position: absolute; top: 74px; left: 50%; width: min(1008px, calc(100% - 32px)); transform: translateX(-50%); height: 10px; border-left: 1px solid var(--bp-mark); border-right: 1px solid var(--bp-mark); }
+    .bp b::before { content: ""; position: absolute; left: 0; right: 0; top: 4.5px; height: 1px; background: var(--bp-mark); opacity: .6; }
+    .bp b::after { content: "IDENTITY · ACCESS · SECURITY OPERATIONS"; position: absolute; left: 50%; top: -1px; transform: translateX(-50%); padding: 0 10px; font: 600 9.5px/12px system-ui, sans-serif; letter-spacing: .22em; color: var(--bp-mark); background: var(--bg); }
+    .net { position: fixed; inset: 0; z-index: -2; pointer-events: none; width: 100%; height: 100%; }
+    @media (max-width: 640px) { .bp i:nth-child(1), .bp i:nth-child(2) { top: 72px; } .bp b::after { content: "IDENTITY · ACCESS"; } }
     @property --ax { syntax: '<length>'; inherits: true; initial-value: 50vw; }
     .aurora { position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0; transition: opacity .45s ease, --ax .6s cubic-bezier(.2,.8,.2,1); }
     .aurora::before { content: ""; position: absolute; inset: 0;
@@ -287,6 +313,8 @@
   </style>
 </head>
 <body>
+  <div class="bp" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b></div>
+  <canvas class="net" id="net" aria-hidden="true"></canvas>
   <div class="aurora" aria-hidden="true"></div>
   <a class="skip" href="#projects">Skip to projects</a>
 
@@ -1058,6 +1086,65 @@
     let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(build, 150); });
     build(); select(0); animate();
   })();
+  </script>
+  <script>
+    /* Background network map: faint nodes and links; links near the cursor glow amber. */
+    (function () {
+      if (!document.documentElement.classList.contains('bg-new')) return;
+      var c = document.getElementById('net'), g = c.getContext('2d');
+      var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var fine = matchMedia('(hover: hover) and (pointer: fine)').matches;
+      var dpr = Math.min(1.5, devicePixelRatio || 1), W = 0, H = 0, nodes = [], mouse = null, raf = 0, t0 = performance.now();
+      function dark() { var m = (getComputedStyle(document.body).backgroundColor.match(/\d+/g) || [255]); return (+m[0] + +(m[1] || 0) + +(m[2] || 0)) / 3 < 128; }
+      function size() {
+        W = innerWidth; H = innerHeight; c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+        var n = Math.round(Math.min(70, Math.max(26, W * H / 26000)));
+        nodes = [];
+        for (var i = 0; i < n; i++) nodes.push({ x: Math.random() * W, y: Math.random() * H, vx: (Math.random() - .5) * 6, vy: (Math.random() - .5) * 6, r: 1.2 + Math.random() * 1.8, ph: Math.random() * 6.28, sq: Math.random() < .18 });
+      }
+      function draw(now) {
+        raf = 0;
+        var t = (now - t0) / 1000, dt = 1 / 60, isDark = dark();
+        var line = isDark ? '243, 238, 230' : '39, 36, 29', amber = isDark ? '232, 184, 74' : '168, 116, 10';
+        g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+        var D = Math.min(170, Math.max(120, W / 9)), R = 170;
+        for (var i = 0; i < nodes.length; i++) {
+          var a = nodes[i];
+          if (!reduce) { a.x += a.vx * dt; a.y += a.vy * dt; if (a.x < -20) a.x = W + 20; if (a.x > W + 20) a.x = -20; if (a.y < -20) a.y = H + 20; if (a.y > H + 20) a.y = -20; }
+        }
+        for (var i = 0; i < nodes.length; i++) for (var j = i + 1; j < nodes.length; j++) {
+          var a = nodes[i], b = nodes[j], dx = a.x - b.x, dy = a.y - b.y, d = Math.sqrt(dx * dx + dy * dy);
+          if (d > D) continue;
+          var near = 0;
+          if (mouse) { var mx = (a.x + b.x) / 2 - mouse.x, my = (a.y + b.y) / 2 - mouse.y; near = Math.max(0, 1 - Math.sqrt(mx * mx + my * my) / R); }
+          var base = (1 - d / D) * (isDark ? .14 : .12);
+          g.strokeStyle = near > 0 ? 'rgba(' + amber + ',' + (base + near * .55).toFixed(3) + ')' : 'rgba(' + line + ',' + base.toFixed(3) + ')';
+          g.lineWidth = near > 0 ? 1 + near * .6 : 1;
+          g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke();
+        }
+        for (var i = 0; i < nodes.length; i++) {
+          var a = nodes[i], pulse = reduce ? 1 : .75 + .25 * Math.sin(t * 1.4 + a.ph), near = 0;
+          if (mouse) { var mx = a.x - mouse.x, my = a.y - mouse.y; near = Math.max(0, 1 - Math.sqrt(mx * mx + my * my) / R); }
+          g.fillStyle = near > 0 ? 'rgba(' + amber + ',' + (.35 + near * .6).toFixed(3) + ')' : 'rgba(' + line + ',' + ((isDark ? .28 : .22) * pulse).toFixed(3) + ')';
+          var r = a.r * (near > 0 ? 1 + near * .8 : pulse);
+          if (a.sq) g.fillRect(a.x - r, a.y - r, r * 2, r * 2); else { g.beginPath(); g.arc(a.x, a.y, r, 0, 6.283); g.fill(); }
+        }
+        if (!reduce && !document.hidden) raf = requestAnimationFrame(draw);
+      }
+      function kick() { if (!raf) raf = requestAnimationFrame(draw); }
+      size(); kick();
+      addEventListener('resize', function () { size(); kick(); });
+      document.addEventListener('visibilitychange', function () { if (!document.hidden) kick(); });
+      if (fine) {
+        addEventListener('pointermove', function (e) { mouse = { x: e.clientX, y: e.clientY }; if (reduce) kick(); }, { passive: true });
+        document.addEventListener('pointerleave', function () { mouse = null; if (reduce) kick(); });
+      }
+      // blueprint grid drifts slower than the page as you scroll
+      var bp = document.querySelector('.bp');
+      if (!reduce) addEventListener('scroll', function () { bp.style.setProperty('--bp-y', (-scrollY * 0.15).toFixed(1) + 'px'); }, { passive: true });
+      // the theme toggle changes colours: redraw once if nothing is animating
+      new MutationObserver(kick).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    })();
   </script>
   <script>
     /* Links to other sites open in a new tab, so this page stays open. */
