@@ -119,6 +119,11 @@
     @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .card { border-left-color: var(--pz-accent); } }
     .card:hover { transform: translateY(-2px); }
     .card.job { max-width: none; }
+    #projects .grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+    .pbr { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 0 0 14px; font-size: 15.5px; }
+    .pbr dt { font-size: 11.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--text-2); padding-top: 3px; }
+    .pbr dd { margin: 0; }
+    .card.work h3 span { margin-right: 4px; }
     .timeline { display: grid; gap: 16px; }
     .creds { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0 0 8px; }
     .creds li { font-size: 13.5px; font-weight: 600; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); }
@@ -286,6 +291,7 @@
       <nav aria-label="Main">
         <ul>
           <li><a href="#experience">Experience</a></li>
+          <li><a href="#work">Work</a></li>
           <li><a href="#credentials">Credentials</a></li>
           <li><a href="#projects">Projects</a></li>
           <li><a href="#skills">Skills</a></li>
@@ -304,9 +310,9 @@
           <h1 id="hello">Hi, I'm Joshua.</h1>
           <span class="rule" aria-hidden="true"></span>
           <ul class="creds" aria-label="Highlights">
+            <li>4+ years at managed service providers</li>
             <li>Active Secret clearance</li>
             <li>U.S. Army National Guard · Sergeant (E-5)</li>
-            <li>B.S. Cybersecurity</li>
             <li>AZ-104 · SC-300 · Security+ · CySA+</li>
           </ul>
         </div>
@@ -329,7 +335,7 @@
               <!-- Shown if JavaScript is off; replaced by the pyramid's About side. -->
               <p class="kicker">Who I am</p>
               <h2>Hi, I'm Joshua.</h2>
-              <p>I'm a Technical Consultant in security operations and systems administration at S1 Technology, a managed service provider. Before that I worked at Global Data, another MSP, from 2022 to April 2026, growing from intern to full-time NOC and service desk technician. I also serve as a Sergeant in the Louisiana Army National Guard and hold an active Secret clearance. Outside work I build labs that go deeper into identity, access and Azure, so I understand the why behind the settings I manage.</p>
+              <p>I'm a Technical Consultant in security operations and systems administration at S1 Technology, a managed service provider. Before that I worked at Global Data, another MSP, from 2022 to April 2026, growing from intern to full-time NOC and service desk technician. I also serve as a Sergeant in the Louisiana Army National Guard and hold an active Secret clearance. When a problem at work needs a better design, I build it out on a separate tenant, document it, and publish a version here with client details removed.</p>
               <a class="more" href="#experience">See my experience</a>
             </div>
           </section>
@@ -382,6 +388,75 @@
 
       <img class="divider" src="assets/divider.svg" alt="">
 
+      <section id="work">
+        <h2>Work projects</h2>
+        <p class="section-sub">Things I designed and built on the job at S1 Technology. Client names and data stay private.</p>
+        <div class="grid">
+          <article class="card work reveal">
+            <p class="kicker">Microsoft 365 · Microsoft Graph · S1 Technology</p>
+            <h3><span aria-hidden="true">🔎</span> Billing audit with Microsoft Graph</h3>
+            <dl class="pbr">
+              <dt>Problem</dt><dd>Users added during onboarding could be missed in client billing.</dd>
+              <dt>Built</dt><dd>Designed a Microsoft Graph-based audit that catches billed users missed during onboarding.</dd>
+              <dt>Result</dt><dd>Documented why Microsoft 365 Lighthouse and Azure Policy could not do the job, so the team knows why the custom audit exists.</dd>
+            </dl>
+            <div class="chips"><span class="chip">Microsoft Graph</span><span class="chip">Microsoft 365</span><span class="chip">Lighthouse</span></div>
+          </article>
+          <article class="card work reveal">
+            <p class="kicker">Identity · Least privilege · S1 Technology</p>
+            <h3><span aria-hidden="true">🛡️</span> Least-privilege delegated admin access</h3>
+            <dl class="pbr">
+              <dt>Problem</dt><dd>A multi-domain client tenant needed admin access that didn't hand out more rights than necessary.</dd>
+              <dt>Built</dt><dd>Prototyped least-privilege delegated admin access for the tenant.</dd>
+              <dt>Result</dt><dd>Documented the tested models, their limits and a recommended design.</dd>
+            </dl>
+            <div class="chips"><span class="chip">Entra ID</span><span class="chip">Delegated admin</span><span class="chip">Least privilege</span></div>
+          </article>
+          <article class="card work reveal">
+            <p class="kicker">Automation · PowerShell · S1 Technology</p>
+            <h3><span aria-hidden="true">🧹</span> Tenant-migration cleanup script</h3>
+            <dl class="pbr">
+              <dt>Problem</dt><dd>After client tenant migrations, old-tenant Outlook and Microsoft 365 data was left behind.</dd>
+              <dt>Built</dt><dd>Wrote a PowerShell script that removes the old-tenant Outlook and Microsoft 365 data.</dd>
+              <dt>Result</dt><dd>A repeatable cleanup step for client tenant migrations.</dd>
+            </dl>
+            <div class="chips"><span class="chip">PowerShell</span><span class="chip">Outlook</span><span class="chip">Microsoft 365</span></div>
+          </article>
+          <article class="card work reveal">
+            <p class="kicker">Internal tooling · S1 Technology</p>
+            <h3><span aria-hidden="true">🖥️</span> Web GUI for the deployment tool</h3>
+            <dl class="pbr">
+              <dt>Problem</dt><dd>The internal tool for deploying client software and agents ran from a batch-script menu.</dd>
+              <dt>Built</dt><dd>Built a web-based GUI for the tool, replacing the batch-script menu.</dd>
+              <dt>Result</dt><dd>The team deploys client software and agents from a proper interface.</dd>
+            </dl>
+            <div class="chips"><span class="chip">Web UI</span><span class="chip">Automation</span><span class="chip">Agent deployment</span></div>
+          </article>
+          <article class="card work reveal">
+            <p class="kicker">Networking · Documentation · S1 Technology</p>
+            <h3><span aria-hidden="true">🔌</span> Cisco switch configuration standard</h3>
+            <dl class="pbr">
+              <dt>Problem</dt><dd>Initial switch setup for client deployments needed one consistent way of doing it.</dd>
+              <dt>Built</dt><dd>Wrote the company's standard procedure for initial Cisco Small Business switch configuration over console.</dd>
+              <dt>Result</dt><dd>Used for client switch deployments.</dd>
+            </dl>
+            <div class="chips"><span class="chip">Cisco</span><span class="chip">Console setup</span><span class="chip">SOP</span></div>
+          </article>
+          <article class="card work reveal">
+            <p class="kicker">Security operations · S1 Technology</p>
+            <h3><span aria-hidden="true">🎯</span> SentinelOne agent tuning</h3>
+            <dl class="pbr">
+              <dt>Problem</dt><dd>Too many false positives in the organization's SentinelOne agent.</dd>
+              <dt>Built</dt><dd>Own the tuning of the SentinelOne agent.</dd>
+              <dt>Result</dt><dd>Fewer false positives while keeping detection coverage.</dd>
+            </dl>
+            <div class="chips"><span class="chip">SentinelOne</span><span class="chip">EDR</span><span class="chip">Detection tuning</span></div>
+          </article>
+        </div>
+      </section>
+
+      <img class="divider" src="assets/divider.svg" alt="">
+
       <section id="credentials">
         <h2>Education &amp; certifications</h2>
         <p class="section-sub">Degree, certifications and clearance.</p>
@@ -409,13 +484,13 @@
       <img class="divider" src="assets/divider.svg" alt="">
 
       <section id="projects">
-        <h2>Projects</h2>
-        <p class="section-sub">Labs and toolkits I build outside work to go deeper than day-to-day tickets allow. Each one is a public repo with the full write-up, diagrams and code.</p>
+        <h2>Built for work problems</h2>
+        <p class="section-sub">Each of these started with a problem from my MSP work. I rebuilt them outside client environments, with fictional company names, so the full design, diagrams and code can be public without exposing any client data.</p>
         <div class="grid">
           <article class="card reveal">
             <p class="kicker">Hybrid identity · RBAC</p>
             <h3>Meridian Steel: Access Governance &amp; RBAC</h3>
-            <p>Department and tier-based access for a fictional 50-person steel fabricator, built in a hybrid AD / Entra ID lab.</p>
+            <p>Department and tier-based access for a fictional 50-person steel fabricator, built in a hybrid AD / Entra ID environment.</p>
             <ul>
               <li>9 departments, each with staff and manager groups</li>
               <li>NTFS file shares with access-based enumeration</li>
@@ -436,7 +511,7 @@
               <li>Guide covers management groups, PIM, Sentinel, hub-and-spoke</li>
             </ul>
             <div class="chips"><span class="chip">Bicep</span><span class="chip">Azure Policy</span><span class="chip">PIM</span><span class="chip">Sentinel</span></div>
-            <a class="more" href="https://github.com/joshuarichard116-sudo/azure-landing-zone-entra-lab">See the lab</a>
+            <a class="more" href="https://github.com/joshuarichard116-sudo/azure-landing-zone-entra-lab">See the build</a>
           </article>
 
           <article class="card reveal">
@@ -451,22 +526,11 @@
             <div class="chips"><span class="chip">CMMC L2</span><span class="chip">NIST SP 800-171</span><span class="chip">GCC High</span></div>
             <a class="more" href="https://github.com/joshuarichard116-sudo/cmmc-gcc-high-enclave-toolkit">View the toolkit</a>
           </article>
-
-          <article class="card reveal">
-            <p class="kicker">Hands-on Azure</p>
-            <h3>Azure Administrator Labs <span class="status">Ongoing</span></h3>
-            <p>Hands-on labs across the AZ-104 skill areas (I hold the certification), each written up with the goal, what I built, how I checked it and what I learned.</p>
-            <ul>
-              <li>Identity and governance, storage, compute</li>
-              <li>Virtual networking, monitoring and backup</li>
-            </ul>
-            <div class="chips"><span class="chip">AZ-104</span><span class="chip">Azure</span></div>
-            <a class="more" href="https://github.com/joshuarichard116-sudo/Azure-Administrator-Labs">Follow along</a>
-          </article>
         </div>
         <div class="also reveal">
-          <h3>Also building</h3>
+          <h3>In the lab right now</h3>
           <ul>
+            <li><strong><a href="https://github.com/joshuarichard116-sudo/Azure-Administrator-Labs">Azure administrator labs</a>:</strong> hands-on write-ups across the AZ-104 skill areas (I hold the certification).</li>
             <li><strong>Azure hub-and-spoke network lab (Meridian Steel):</strong> designing a hub-and-spoke Azure network from business requirements, with governance first: budget alerts, allowed-region and tag-inheritance policies, and role-based access to compute.</li>
             <li><strong>File server authentication comparison lab:</strong> three file servers (domain-joined Kerberos, workgroup NTLM and standalone Samba) to compare authentication behavior side by side.</li>
             <li><strong>SC-500 cloud security lab (Talvex Components):</strong> a new Azure and Entra tenant built from scratch to practice cloud and AI workload security, including network controls and VPN Gateway scenarios.</li>
@@ -478,7 +542,7 @@
 
       <section id="approach">
         <h2>How I approach access</h2>
-        <p class="section-sub">Lessons from building these labs.</p>
+        <p class="section-sub">Lessons from the work behind these projects.</p>
         <div class="principles">
           <div class="principle reveal">
             <h3>Model the business first</h3>
@@ -603,8 +667,8 @@
       label: "About",
       kicker: "Who I am",
       title: "Hi, I'm Joshua.",
-      text: "I'm a Technical Consultant in security operations and systems administration at S1 Technology, a managed service provider. Before that I worked at Global Data, another MSP, from 2022 to April 2026, growing from intern to full-time NOC and service desk technician. I also serve as a Sergeant in the Louisiana Army National Guard and hold an active Secret clearance. Outside work I build labs that go deeper into identity, access and Azure, so I understand the why behind the settings I manage.",
-      bullets: ["Active U.S. Secret clearance", "B.S. Cybersecurity · AZ-104 · SC-300 · Security+ · CySA+", "Currently: CCNA and an SC-500 cloud security lab"],
+      text: "I'm a Technical Consultant in security operations and systems administration at S1 Technology, a managed service provider. Before that I worked at Global Data, another MSP, from 2022 to April 2026, growing from intern to full-time NOC and service desk technician. I also serve as a Sergeant in the Louisiana Army National Guard and hold an active Secret clearance. When a problem at work needs a better design, I build it out on a separate tenant, document it, and publish a version here with client details removed.",
+      bullets: ["Active U.S. Secret clearance", "B.S. Cybersecurity · AZ-104 · SC-300 · Security+ · CySA+", "Currently studying for the Cisco CCNA"],
       link: {"text": "See my experience", "href": "#experience"},
       ctas: true
     },
@@ -619,6 +683,15 @@
       link: {"text": "See full experience", "href": "#experience"}
     },
     {
+      icon: "⚙️",
+      label: "Work Projects",
+      kicker: "Built on the job",
+      title: "Work projects at S1 Technology",
+      text: "Things I designed and built on the job. Client names and data stay private.",
+      bullets: ["Billing audit with Microsoft Graph to catch billed users missed in onboarding", "Least-privilege delegated admin design for a multi-domain client tenant", "PowerShell cleanup script for client tenant migrations", "Web GUI replacing the deployment tool's batch-script menu", "Company standard for Cisco switch setup over console", "SentinelOne tuning: fewer false positives, same coverage"],
+      link: {"text": "See all work projects", "href": "#work"}
+    },
+    {
       icon: "🎖️",
       label: "Credentials",
       kicker: "Certs · clearance",
@@ -628,7 +701,7 @@
       link: {"text": "See credentials", "href": "#credentials"}
     },
     {
-      icon: "🔐", label: "Meridian Steel", kicker: "Hybrid identity · RBAC",
+      icon: "🔐", label: "Meridian Steel", kicker: "Work problem · RBAC",
       title: "Meridian Steel: Access Governance & RBAC",
       text: "Department and tier-based access for a fictional 50-person steel fabricator, built in a hybrid AD / Entra ID lab.",
       bullets: ["9 departments, each with staff and manager groups", "NTFS file shares with access-based enumeration", "Conditional Access (report-only first) and PIM eligible roles", "PowerShell joiner / leaver automation"],
@@ -636,7 +709,7 @@
       link: { text: "Read the breakdown", href: "https://github.com/joshuarichard116-sudo/meridian-steel-access-governance" }
     },
     {
-      icon: "☁️", label: "Landing Zone", kicker: "Cloud · IaC",
+      icon: "☁️", label: "Landing Zone", kicker: "Work problem · Azure",
       title: "Azure Landing Zone + Entra Lab",
       text: "A minimal Azure landing zone in Bicep plus a step-by-step lab guide for a fictional tenant, designed to cost about $0.",
       bullets: ["Azure Policy: NIST SP 800-171 Rev. 2 audit, allowed locations", "Log Analytics with a daily cap, budget alerts, free Defender plans", "Guide covers management groups, PIM, Sentinel, hub-and-spoke"],
@@ -644,20 +717,12 @@
       link: { text: "See the lab", href: "https://github.com/joshuarichard116-sudo/azure-landing-zone-entra-lab" }
     },
     {
-      icon: "🧾", label: "CMMC Toolkit", kicker: "Compliance",
+      icon: "🧾", label: "CMMC Toolkit", kicker: "Work problem · CMMC",
       title: "CMMC Level 2 Enclave Toolkit for GCC High",
       text: "A vendor-neutral way to evaluate every tool that enters a CUI enclave, and keep the evidence for the System Security Plan.",
       bullets: ["Tool evaluation template with 13 criteria", "Decision matrix mapping each criterion to NIST SP 800-171 control families", "No vendor picks, no pricing: evidence-first"],
       chips: ["CMMC L2", "NIST SP 800-171", "GCC High"],
       link: { text: "View the toolkit", href: "https://github.com/joshuarichard116-sudo/cmmc-gcc-high-enclave-toolkit" }
-    },
-    {
-      icon: "🎓", label: "Azure Labs", kicker: "Hands-on Azure",
-      title: "Azure Administrator Labs",
-      text: "Hands-on labs across the AZ-104 skill areas (I hold the certification), each written up with the goal, what I built, how I checked it and what I learned.",
-      bullets: ["Identity and governance, storage, compute", "Virtual networking, monitoring and backup"],
-      chips: ["AZ-104", "Azure"],
-      link: { text: "Follow along", href: "https://github.com/joshuarichard116-sudo/Azure-Administrator-Labs" }
     },
     {
       icon: "🧰", label: "Skills", kicker: "Tools I use",
@@ -947,7 +1012,7 @@
       if (e.key === 'ArrowLeft')  { e.preventDefault(); goTo(index - 1, -1); faces[index].focus(); }
     });
 
-    const PEEK = { '#experience': 'Experience', '#credentials': 'Credentials', '#projects': 'Meridian Steel', '#skills': 'Skills', '#contact': 'About' };
+    const PEEK = { '#work': 'Work Projects', '#experience': 'Experience', '#credentials': 'Credentials', '#projects': 'Meridian Steel', '#skills': 'Skills', '#contact': 'About' };
     let peeking = -1, leaveTimer = 0;
     function clearPeek() { faces.forEach(f => f.classList.remove('peek')); peeking = -1; }
     function peek(i) {
