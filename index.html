@@ -498,7 +498,7 @@
               <li>PowerShell joiner / leaver automation</li>
             </ul>
             <div class="chips"><span class="chip">AD DS</span><span class="chip">Entra ID</span><span class="chip">Conditional Access</span><span class="chip">PIM</span><span class="chip">PowerShell</span></div>
-            <a class="more" href="https://github.com/joshuarichard116-sudo/meridian-steel-access-governance">Read the breakdown</a>
+            <a class="more" href="https://github.com/joshuarichard116-sudo/meridian-steel-access-governance" target="_blank" rel="noopener noreferrer">Read the breakdown</a>
           </article>
 
           <article class="card reveal">
@@ -511,7 +511,7 @@
               <li>Guide covers management groups, PIM, Sentinel, hub-and-spoke</li>
             </ul>
             <div class="chips"><span class="chip">Bicep</span><span class="chip">Azure Policy</span><span class="chip">PIM</span><span class="chip">Sentinel</span></div>
-            <a class="more" href="https://github.com/joshuarichard116-sudo/azure-landing-zone-entra-lab">See the build</a>
+            <a class="more" href="https://github.com/joshuarichard116-sudo/azure-landing-zone-entra-lab" target="_blank" rel="noopener noreferrer">See the build</a>
           </article>
 
           <article class="card reveal">
@@ -524,13 +524,13 @@
               <li>No vendor picks, no pricing: evidence-first</li>
             </ul>
             <div class="chips"><span class="chip">CMMC L2</span><span class="chip">NIST SP 800-171</span><span class="chip">GCC High</span></div>
-            <a class="more" href="https://github.com/joshuarichard116-sudo/cmmc-gcc-high-enclave-toolkit">View the toolkit</a>
+            <a class="more" href="https://github.com/joshuarichard116-sudo/cmmc-gcc-high-enclave-toolkit" target="_blank" rel="noopener noreferrer">View the toolkit</a>
           </article>
         </div>
         <div class="also reveal">
           <h3>In the lab right now</h3>
           <ul>
-            <li><strong><a href="https://github.com/joshuarichard116-sudo/Azure-Administrator-Labs">Azure administrator labs</a>:</strong> hands-on write-ups across the AZ-104 skill areas (I hold the certification).</li>
+            <li><strong><a href="https://github.com/joshuarichard116-sudo/Azure-Administrator-Labs" target="_blank" rel="noopener noreferrer">Azure administrator labs</a>:</strong> hands-on write-ups across the AZ-104 skill areas (I hold the certification).</li>
             <li><strong>Azure hub-and-spoke network lab (Meridian Steel):</strong> designing a hub-and-spoke Azure network from business requirements, with governance first: budget alerts, allowed-region and tag-inheritance policies, and role-based access to compute.</li>
             <li><strong>File server authentication comparison lab:</strong> three file servers (domain-joined Kerberos, workgroup NTLM and standalone Samba) to compare authentication behavior side by side.</li>
             <li><strong>SC-500 cloud security lab (Talvex Components):</strong> a new Azure and Entra tenant built from scratch to practice cloud and AI workload security, including network controls and VPN Gateway scenarios.</li>
@@ -608,9 +608,9 @@
             <h2>Get in touch</h2>
             <p class="section-sub" style="margin-bottom:16px">LinkedIn or email are the best ways to reach me. All my work is on GitHub.</p>
             <div class="ctas">
-              <a class="btn primary" href="https://www.linkedin.com/in/joshua-richard-376140207">LinkedIn</a>
+              <a class="btn primary" href="https://www.linkedin.com/in/joshua-richard-376140207" target="_blank" rel="noopener noreferrer">LinkedIn</a>
               <a class="btn" href="mailto:joshuarichard116@gmail.com">Email me</a>
-              <a class="btn" href="https://github.com/joshuarichard116-sudo">GitHub</a>
+              <a class="btn" href="https://github.com/joshuarichard116-sudo" target="_blank" rel="noopener noreferrer">GitHub</a>
             </div>
           </div>
         </div>
@@ -808,8 +808,8 @@
       const html = `<p class="kicker">${d.kicker || ''}</p><h2>${d.title}</h2><p>${d.text}</p>` +
         (d.bullets ? `<ul>${d.bullets.map(b => `<li>${b}</li>`).join('')}</ul>` : '') +
         (d.chips ? `<div class="chips">${d.chips.map(c => `<span class="chip">${c}</span>`).join('')}</div>` : '') +
-        (d.link ? `<a class="more" href="${d.link.href}">${d.link.text}</a>` : '') +
-        (d.ctas ? `<div class="ctas"><a class="btn primary" href="https://github.com/joshuarichard116-sudo">GitHub</a><a class="btn" href="https://www.linkedin.com/in/joshua-richard-376140207">LinkedIn</a><a class="btn" href="mailto:joshuarichard116@gmail.com">Email</a></div>` : '');
+        (d.link ? `<a class="more" href="${d.link.href}"${/^https?:/.test(d.link.href) ? ' target="_blank" rel="noopener noreferrer"' : ''}>${d.link.text}</a>` : '') +
+        (d.ctas ? `<div class="ctas"><a class="btn primary" href="https://github.com/joshuarichard116-sudo" target="_blank" rel="noopener noreferrer">GitHub</a><a class="btn" href="https://www.linkedin.com/in/joshua-richard-376140207" target="_blank" rel="noopener noreferrer">LinkedIn</a><a class="btn" href="mailto:joshuarichard116@gmail.com">Email</a></div>` : '');
       if (reduce || !body.dataset.ready) { body.innerHTML = html; body.dataset.ready = 1; return; }
       body.classList.add('swap'); setTimeout(() => { body.innerHTML = html; body.classList.remove('swap'); }, 180);
     }
@@ -1049,6 +1049,14 @@
     let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(build, 150); });
     build(); select(0); animate();
   })();
+  </script>
+  <script>
+    /* Links to other sites open in a new tab, so this page stays open. */
+    document.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('a[href]');
+      if (!a || a.target) return;
+      if (/^https?:/i.test(a.getAttribute('href')) && a.host !== location.host) { a.target = '_blank'; a.rel = 'noopener noreferrer'; }
+    }, true);
   </script>
 </body>
 </html>
