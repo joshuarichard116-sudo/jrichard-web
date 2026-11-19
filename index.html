@@ -90,6 +90,11 @@
     nav ul { list-style: none; display: flex; gap: 20px; margin: 0; padding: 0; }
     nav a { color: var(--text-2); text-decoration: none; font-size: 15px; font-weight: 500; }
     nav a:hover { color: var(--text); }
+    .top-actions { display: flex; align-items: center; gap: 8px; }
+    .resume-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; text-decoration: none; color: #27241D; background: var(--pz-accent); border: 1px solid var(--pz-accent); }
+    .resume-btn .dl { font-size: 13px; transition: transform .2s ease; }
+    .resume-btn:hover .dl { transform: translateY(2px); }
+    @media (prefers-reduced-motion: reduce) { .resume-btn .dl { transition: none; } }
     .theme-btn { background: none; border: 1px solid var(--border); color: var(--text-2); border-radius: 8px; padding: 6px 10px; font: inherit; font-size: 14px; cursor: pointer; }
     @media (max-width: 640px) { nav ul { display: none; } }
 
@@ -298,7 +303,10 @@
           <li><a href="#contact">Contact</a></li>
         </ul>
       </nav>
-      <button class="theme-btn" type="button" id="themeBtn" aria-label="Switch color theme">Theme</button>
+      <div class="top-actions">
+        <a class="resume-btn" href="assets/Joshua-Richard-Resume.pdf" download="Joshua-Richard-Resume.pdf">Resume<span class="dl" aria-hidden="true">↓</span></a>
+        <button class="theme-btn" type="button" id="themeBtn" aria-label="Switch color theme">Theme</button>
+      </div>
     </div>
   </header>
 
@@ -610,6 +618,7 @@
             <div class="ctas">
               <a class="btn primary" href="https://www.linkedin.com/in/joshua-richard-376140207" target="_blank" rel="noopener noreferrer">LinkedIn</a>
               <a class="btn" href="mailto:joshuarichard116@gmail.com">Email me</a>
+              <a class="btn" href="assets/Joshua-Richard-Resume.pdf" download="Joshua-Richard-Resume.pdf">Download resume (PDF)</a>
               <a class="btn" href="https://github.com/joshuarichard116-sudo" target="_blank" rel="noopener noreferrer">GitHub</a>
             </div>
           </div>
@@ -809,7 +818,7 @@
         (d.bullets ? `<ul>${d.bullets.map(b => `<li>${b}</li>`).join('')}</ul>` : '') +
         (d.chips ? `<div class="chips">${d.chips.map(c => `<span class="chip">${c}</span>`).join('')}</div>` : '') +
         (d.link ? `<a class="more" href="${d.link.href}"${/^https?:/.test(d.link.href) ? ' target="_blank" rel="noopener noreferrer"' : ''}>${d.link.text}</a>` : '') +
-        (d.ctas ? `<div class="ctas"><a class="btn primary" href="https://github.com/joshuarichard116-sudo" target="_blank" rel="noopener noreferrer">GitHub</a><a class="btn" href="https://www.linkedin.com/in/joshua-richard-376140207" target="_blank" rel="noopener noreferrer">LinkedIn</a><a class="btn" href="mailto:joshuarichard116@gmail.com">Email</a></div>` : '');
+        (d.ctas ? `<div class="ctas"><a class="btn primary" href="https://github.com/joshuarichard116-sudo" target="_blank" rel="noopener noreferrer">GitHub</a><a class="btn" href="https://www.linkedin.com/in/joshua-richard-376140207" target="_blank" rel="noopener noreferrer">LinkedIn</a><a class="btn" href="mailto:joshuarichard116@gmail.com">Email</a><a class="btn" href="assets/Joshua-Richard-Resume.pdf" download="Joshua-Richard-Resume.pdf">Resume (PDF)</a></div>` : '');
       if (reduce || !body.dataset.ready) { body.innerHTML = html; body.dataset.ready = 1; return; }
       body.classList.add('swap'); setTimeout(() => { body.innerHTML = html; body.classList.remove('swap'); }, 180);
     }
