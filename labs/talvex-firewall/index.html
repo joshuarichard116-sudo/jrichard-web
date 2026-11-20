@@ -11,10 +11,21 @@
 <link rel="canonical" href="https://joshuarichard116-sudo.github.io/jrichard-web/labs/talvex-firewall/">
 <title>Talvex Firewall Lab</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>/* IBM Plex, self-hosted (SIL OFL 1.1, see fonts/OFL-LICENSE.txt): no third-party requests */
+@font-face{font-family:'IBM Plex Sans';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/ibm-plex-sans-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Sans';font-style:normal;font-weight:500;font-display:swap;src:url(fonts/ibm-plex-sans-latin-500-normal.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Sans';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/ibm-plex-sans-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Sans Condensed';font-style:normal;font-weight:500;font-display:swap;src:url(fonts/ibm-plex-sans-condensed-latin-500-normal.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Sans Condensed';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/ibm-plex-sans-condensed-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Sans Condensed';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/ibm-plex-sans-condensed-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/ibm-plex-mono-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;font-display:swap;src:url(fonts/ibm-plex-mono-latin-500-normal.woff2) format('woff2')}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/ibm-plex-mono-latin-600-normal.woff2) format('woff2')}
+</style>
 <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#1E1B15">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <meta name="pizzazz-recipe" content='{"pz":1,"kit":"my-color-profile","concept":"Spec Sheet \u00b7 Lab","family":"refined","dev":{"intensity":"standard","accent":"amber (Azure view keeps Azure blue)","structure":"palette swap + title rule"},"sig":"amber title rule + triangle mark","pal":{"pri":"#1E1B15","sec":"#4A4339","tint":"#F7F3EC","zeb":"#F2ECE2","mut":"#4A4339","ftr":"#A3988A","hair":"#CFC4B2","acc":"#E0A82E","watch":"#A84A0F"},"font":{"h":"IBM Plex Sans Condensed","b":"IBM Plex Sans"},"date":"2026-11-20"}'>
 </head><body>
 <style>
@@ -1520,6 +1531,7 @@ CLI.Shell.prototype.execCtx = function (t, st) {
       const ex = list.find(o => String(o[T.key]) === String(key)) || (!c.parent && T.extra ? T.extra(st).find(o => String(o[T.key]) === String(key)) : null);
       if (ex) { c.obj = SIM.clone(ex); c.key = key; return ''; }
       if (c.path === 'system interface' && !/^[A-Za-z0-9_.-]{1,15}$/.test(key)) throw ERR('Invalid interface name (max 15 chars, no spaces)');
+      if (!T.numeric && !/^[A-Za-z0-9_.-]{1,35}$/.test(String(key))) throw ERR('Invalid name: use letters, numbers, _ . and - (max 35, no spaces)');
       if (c.path === 'firewall service custom' && SIM.svcGrp(st, key)) throw ERR('A service group with that name already exists');
       if (c.path === 'firewall address' && (SIM.grpObj(st, key) || SIM.vipObj(st, key))) throw ERR('An object with that name already exists');
       c.obj = T.create(key, st); c.key = key; c.isNew = true;
@@ -2508,7 +2520,18 @@ if (typeof module !== 'undefined') module.exports = LIVE;
   const isDone = m => !!(S.missions[m.id] && S.missions[m.id].done);
   const doneCount = () => MISSIONS.filter(isDone).length;
 
+  /* security: no string in the config may carry markup. Every change (forms, CLI, backup restore) goes through commit(),
+     so angle brackets are swapped for look-alike characters before anything is rendered. */
+  function scrub(o, depth) {
+    if (!o || typeof o !== 'object' || (depth || 0) > 12) return;
+    for (const k of Object.keys(o)) {
+      const v = o[k];
+      if (typeof v === 'string') { if (/[<>]/.test(v)) o[k] = v.replace(/</g, '\u2039').replace(/>/g, '\u203A'); }
+      else if (v && typeof v === 'object') scrub(v, (depth || 0) + 1);
+    }
+  }
   function commit(msg, via) {
+    scrub(S);
     if (msg) SIM.event(S, 'system', 'notice', `Configuration changed by admin via ${via || 'GUI'}(10.10.10.20): ${msg}`);
     evaluate(); scheduleSave(); renderAll();
   }
