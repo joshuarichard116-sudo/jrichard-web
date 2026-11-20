@@ -345,6 +345,7 @@ textarea.inp { height: auto; min-height: 70px; padding: 8px 10px; resize: vertic
     <span class="save-dot" id="saveDot"><i></i><span class="txt">Saved</span></span>
     <button class="tbtn" id="lookupBtn" title="Policy Lookup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><span class="lbl">Policy Lookup</span></button>
     <button class="tbtn" id="cliBtn" title="CLI Console"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l6-5-6-5M12 19h8"/></svg><span class="lbl">CLI</span></button>
+    <button class="tbtn" id="nmBtn" title="Nightmare mode: random production incidents" aria-label="Nightmare mode"><svg class="nm-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c-4.4 0-8 3.2-8 7.4 0 2.4 1.2 4.4 3 5.7V19a1 1 0 0 0 1 1h1.5v-2h1v2h3v-2h1v2H16a1 1 0 0 0 1-1v-2.9c1.8-1.3 3-3.3 3-5.7C20 6.2 16.4 3 12 3z"/><circle cx="9" cy="11" r="1.6"/><circle cx="15" cy="11" r="1.6"/></svg><span>Nightmare</span></button>
     <button class="tbtn" id="misBtn" title="Missions"><span class="prog"><span class="lbl">Missions</span><span class="bar"><i id="progBar" style="width:0%"></i></span><span id="progTxt" class="num">0/20</span></span></button>
   </header>
   <nav class="rail" id="rail"></nav>
@@ -848,7 +849,7 @@ SIM.farEnd = (st, tunName, src, dst) => {
   if (!P.live) return { ok: null, msg: `Across the tunnel: handed to the Azure team's temporary gateway at ${P.remoteGw}. Build your own gateway and connection in the Azure view to follow the packet all the way` };
   const fmt = p => p.ip + '/' + p.bits;
   if (!P.vnet.addressSpace.some(p => SIM.inNet(dst, p.ip, p.bits))) return { ok: false, msg: `Azure: ${dst} is outside ${P.vnet.name} (${P.vnet.addressSpace.map(fmt).join(', ')}), so ${P.gw.name} drops it` };
-  const bgpBack = (SIM.bgpStatus(st) || []).some(n => n.up) && SIM.AZ.onPremNets(st).some(n => SIM.inNet(src, n.ip, n.bits) && ((st.bgp || {}).networks || []).some(x => SIM.inNet(src, x.ip, x.bits)));
+  const bgpBack = (SIM.bgpStatus(st) || []).some(n => n.up) && SIM.AZ.onPremNets(st).some(n => SIM.inNet(src, n.ip, n.bits) && ((st.bgp || {}).networks || []).some(x => SIM.inNet(src, x.prefix || x.ip, x.bits)));
   const lngBack = P.lng && (P.lng.addressSpace || []).some(p => SIM.inNet(src, p.ip, p.bits));
   if (!bgpBack && !lngBack) return { ok: false, msg: `Azure: the packet arrives, but Azure has no route back to ${src}. Add that network to local network gateway ${P.lng.name}'s address space, or advertise it over BGP` };
   const vm = (st.azure.vms || []).find(m => m.privateIp === dst);
@@ -2684,6 +2685,391 @@ const LIVE = (() => {
 if (typeof module !== 'undefined') module.exports = LIVE;
 
 </script>
+<style id="nm-css">
+/* ---------- Nightmare mode ---------- */
+.tbtn.nm-on { background: #B43A2C; border-color: #B43A2C; color: #FFFFFF; }
+.tbtn .nm-ic { width: 15px; height: 15px; }
+.nm { display: grid; gap: 12px; padding: 4px 0 18px; }
+.nm-hero { border: 1px solid var(--line); border-left: 4px solid #B43A2C; border-radius: 10px; padding: 12px 14px; background: var(--panel); }
+.nm-hero h3 { margin: 0 0 4px; font-family: var(--f-head); font-size: 16px; }
+.nm-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.nm-lvl { font-family: var(--f-mono); font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: #B43A2C; color: #FFFFFF; }
+.nm-ticket { border: 1px dashed var(--line); border-radius: 10px; padding: 10px 12px; background: var(--panel-2); }
+.nm-ticket .from { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.nm-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.nm-stats div { border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; background: var(--panel); text-align: center; }
+.nm-stats b { display: block; font-family: var(--f-mono); font-size: 16px; }
+.nm-stats span { font-size: 11px; color: var(--muted); }
+.nm-card { border-radius: 10px; padding: 12px 14px; border: 1px solid var(--line); background: var(--panel); }
+.nm-card.win { border-left: 4px solid var(--ok); }
+.nm-card.lose { border-left: 4px solid var(--bad); }
+.nm-card ol { margin: 6px 0 0; padding-left: 20px; }
+.nm-card li { margin: 4px 0; }
+.nm-warn { color: var(--bad); font-size: 13px; }
+.nm .checklist { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 4px; }
+.nm .checklist li { display: flex; gap: 8px; align-items: baseline; }
+.nm .checklist .y { color: var(--ok); font-weight: 700; } .nm .checklist .n { color: var(--bad); font-weight: 700; }
+</style>
+<script>
+/* ================= NIGHTMARE MODE: random production incidents on a live FortiGate + Azure environment =================
+ * A known-good "production" baseline gets one or more random faults planted (on either side of the tunnel).
+ * The user only sees a ticket and customer-impact monitoring. Fix it and the next incident is harder.
+ * Every generated incident is proven solvable first: the planted faults are fixed on a copy and the
+ * environment must come back healthy, or the incident is re-rolled. No DOM here. */
+const NIGHTMARE = (() => {
+  const NM = {};
+  const AZ = SIM.AZ;
+  const PSK = 'Talvex-S2S-Lab!2026';
+  const rnd = n => Math.floor(Math.random() * n);
+  const pick = a => a[rnd(a.length)];
+  const lc = s => String(s || '').toLowerCase();
+  /* one plausible-looking character change: the kind of typo that survives a quick glance */
+  const typo = s => {
+    const look = { S: '5', s: '5', l: '1', L: '1', o: '0', O: '0', a: '@', e: '3', i: '1', I: 'l', '2': 'Z', '6': '9', '0': 'O', '1': 'l', '-': '_', '!': '1', 'T': '7' };
+    for (let tries = 0; tries < 20; tries++) {
+      const i = 1 + rnd(Math.max(1, s.length - 2)), ch = s[i], rep = look[ch];
+      if (rep && rep !== ch) return s.slice(0, i) + rep + s.slice(i + 1);
+    }
+    return s.slice(0, -1) + (s.slice(-1) === '6' ? '7' : '6');
+  };
+  const BASE_CLI = `config system global
+set hostname TLX-HQ-FW01
+end
+config firewall policy
+delete 3
+end
+config firewall address
+edit LAN-Net
+set subnet 10.10.10.0 255.255.255.0
+next
+edit Azure-Hub
+set subnet 10.100.0.0 255.255.0.0
+next
+edit FS01
+set subnet 10.10.10.50 255.255.255.255
+next
+end
+config vpn ipsec phase1-interface
+edit To-Azure
+set interface "port1"
+set ike-version 2
+set peertype any
+set net-device disable
+set proposal aes256-sha256
+set dhgrp 14
+set remote-gw 198.51.100.25
+set psksecret ${PSK}
+set keylife 28800
+set dpd on-idle
+set nattraversal enable
+next
+end
+config vpn ipsec phase2-interface
+edit To-Azure-P2
+set phase1name "To-Azure"
+set proposal aes256-sha256
+set pfs disable
+next
+end
+config system interface
+edit To-Azure
+set ip 169.254.21.2 255.255.255.255
+set remote-ip 169.254.21.1 255.255.255.255
+next
+end
+config router static
+edit 0
+set dst 10.100.0.254 255.255.255.255
+set device "To-Azure"
+next
+end
+config router bgp
+set as 65010
+set router-id 203.0.113.10
+config neighbor
+edit 10.100.0.254
+set remote-as 65515
+next
+end
+config network
+edit 1
+set prefix 10.10.10.0 255.255.255.0
+next
+end
+end
+config firewall policy
+edit 0
+set name "LAN-to-Azure"
+set srcintf "port2"
+set dstintf "To-Azure"
+set srcaddr "LAN-Net"
+set dstaddr "Azure-Hub"
+set service "HTTPS" "RDP" "SMB"
+set schedule "always"
+set action accept
+set logtraffic all
+next
+edit 0
+set name "Azure-to-FS01"
+set srcintf "To-Azure"
+set dstintf "port2"
+set srcaddr "Azure-Hub"
+set dstaddr "FS01"
+set service "SMB"
+set schedule "always"
+set action accept
+set logtraffic all
+next
+end`;
+
+  /* the Talvex "production" network: clean office firewall, tunnel + BGP up, Azure hub with its own gateway */
+  NM.baseline = () => {
+    const st = SIM.seed(), sh = new CLI.Shell(() => st, () => { });
+    for (const line of BASE_CLI.split('\n')) sh.exec(line);
+    AZ.deleteRg(st, 'rg-rick-test');
+    const steps = [
+      () => AZ.createRg(st, { name: 'rg-talvex-hub-scus', location: 'southcentralus' }),
+      () => AZ.createVnet(st, { rg: 'rg-talvex-hub-scus', name: 'vnet-talvex-hub', location: 'southcentralus', prefixes: '10.100.0.0/16' }),
+      () => AZ.createSubnet(st, 'rg-talvex-hub-scus', 'vnet-talvex-hub', { name: 'GatewaySubnet', prefix: '10.100.0.224/27' }),
+      () => AZ.createSubnet(st, 'rg-talvex-hub-scus', 'vnet-talvex-hub', { name: 'snet-app', prefix: '10.100.1.0/24' }),
+      () => AZ.createVm(st, { rg: 'rg-talvex-hub-scus', name: 'AZ-VM-APP01', location: 'southcentralus', image: 'win2022', size: 'Standard_B2s', vnetRg: 'rg-talvex-hub-scus', vnet: 'vnet-talvex-hub', subnet: 'snet-app', ipAlloc: 'Static', privateIp: '10.100.1.4' }),
+      () => AZ.createGateway(st, { name: 'vgw-talvex-hub', vnetRg: 'rg-talvex-hub-scus', vnet: 'vnet-talvex-hub', sku: 'VpnGw1', bgp: true, asn: 65515 }),
+      () => AZ.saveLng(st, { name: 'lng-talvex-office', rg: 'rg-talvex-hub-scus', ip: '203.0.113.10', space: '10.10.10.0/24', bgp: true, asn: 65010, bgpPeerIp: '169.254.21.2' }),
+      () => AZ.saveConnection(st, { name: 'cn-talvex-office', gateway: 'vgw-talvex-hub', lng: 'lng-talvex-office', sharedKey: PSK, ike: 'IKEv2', enableBgp: true, policy: 'default' })
+    ];
+    for (const f of steps) { const e = f(); if (e) throw new Error('Nightmare baseline: ' + e); }
+    st.azure.gateways[0].readyAt = 0;
+    st.azure.activity = st.azure.activity.filter(a => !/rick/.test(a.rg));
+    return st;
+  };
+
+  /* customer impact: what monitoring (and the users) see */
+  NM.health = st => {
+    const L = (srcintf, srcip, dstip, port) => { try { return SIM.lookup(st, { srcintf, srcip, dstip, proto: 'tcp', port }); } catch (e) { return {}; } };
+    const a = L('port2', '10.10.10.20', '10.100.1.4', 443), b = L('To-Azure', '10.100.1.4', '10.10.10.50', 445), r = L('port2', '10.10.10.20', '10.100.1.4', 3389);
+    const cs = SIM.azConn(st), bg = SIM.bgpStatus(st);
+    return [
+      { id: 'tun', label: 'Azure connection cn-talvex-office is Connected', ok: !!cs && cs.status === 'Connected' },
+      { id: 'bgp', label: 'BGP session with the Azure gateway is up', ok: bg.some(n => n.up) },
+      { id: 'app', label: 'Front office → AZ-VM-APP01 web app (HTTPS) answers', ok: a.verdict === 'accept' && a.egress === 'To-Azure' && !a.natIp && !!(a.far && a.far.ok) },
+      { id: 'rdp', label: 'Front office → AZ-VM-APP01 remote desktop (RDP) answers', ok: r.verdict === 'accept' && r.egress === 'To-Azure' && !!(r.far && r.far.ok) },
+      { id: 'smb', label: 'AZ-VM-APP01 → file server FS01 (SMB) allowed', ok: b.verdict === 'accept' && b.egress === 'port2' }
+    ];
+  };
+  /* fixes that "work" but are not acceptable in production */
+  NM.workarounds = st => {
+    const live = st.policies.filter(p => p.status !== 'disable' && p.action === 'accept'), w = [];
+    if (live.some(p => p.srcintf.includes('any') && p.dstintf.includes('any'))) w.push('An any-to-any allow rule is in place. It hides the real problem and opens the whole firewall.');
+    if (live.some(p => (p.srcintf.includes('To-Azure') || p.dstintf.includes('To-Azure')) && p.srcaddr.includes('all') && p.dstaddr.includes('all') && p.service.includes('ALL'))) w.push('A wide-open rule to or from Azure (all addresses, all services) is in place. Scope it back down.');
+    if (live.some(p => p.nat && p.dstintf.includes('To-Azure'))) w.push('NAT is on for traffic into the tunnel. Azure must see the real office addresses.');
+    return w;
+  };
+
+  const p1 = st => st.vpn.phase1.find(p => p.name === 'To-Azure');
+  const p2 = st => st.vpn.phase2.find(q => q.phase1 === 'To-Azure');
+  const pol = (st, n) => st.policies.find(p => p.name === n);
+  const cn = st => AZ.connection(st, 'cn-talvex-office');
+  const lng = st => AZ.lng(st, 'lng-talvex-office');
+  const vm = st => AZ.vmByName(st, 'AZ-VM-APP01');
+  const who = () => pick(['admin via CLI(10.10.10.77)', 'admin via GUI(10.10.10.41)', 'contractor via SSH(10.10.10.99)']);
+  const azWho = () => pick(['rick@talvex.example', 'azure-ops@talvex.example', 'svc-automation@talvex.example']);
+  const fgLog = (st, lvl, what) => { if (lvl < 5) SIM.event(st, 'system', 'notice', `Configuration changed by ${who()}: ${what}`); };
+  const azLog = (st, lvl, op, res) => { if (lvl < 5) AZ.log(st, op, res, 'rg-talvex-hub-scus', 'Succeeded', azWho()); };
+
+  /* ---------- the fault catalog ---------- */
+  NM.FAULTS = [
+    { id: 'az-psk', level: 1, side: 'Azure', slot: 'psk', title: 'Shared key changed on the Azure connection',
+      inject: (st, lvl) => { const c = cn(st), bad = typo(PSK); c.sharedKey = bad; azLog(st, lvl, 'Create or update connection', c.name); return { bad }; },
+      ticket: () => 'The Azure team rotated some secrets this morning. Since then nobody can reach the app server in Azure.',
+      hints: () => ['Start with the tunnel. On the FortiGate, VPN → IPsec Tunnels shows the status and the exact reason.', 'AUTHENTICATION_FAILED means the two pre-shared keys differ. Which side changed today?', 'Compare the shared key on Azure connection cn-talvex-office with the FortiGate tunnel key, character by character.'],
+      steps: p => ['FortiGate: VPN → IPsec Tunnels. To-Azure is down with IKE_AUTH: AUTHENTICATION_FAILED.', 'Azure view: Networking → Site-to-site VPN → Connection → Configuration.', `The shared key reads "${p.bad}". The FortiGate uses "${PSK}".`, 'Set the Azure shared key back to the FortiGate value and save. The tunnel comes up within a second.'],
+      fix: st => { cn(st).sharedKey = PSK; },
+      why: 'Rotating a pre-shared key on one end only is a classic outage. Rotate both ends in the same change window.' },
+    { id: 'fg-psk', level: 1, side: 'FortiGate', slot: 'psk', title: 'Pre-shared key changed on the FortiGate tunnel',
+      inject: (st, lvl) => { const bad = typo(PSK); p1(st).psk = bad; fgLog(st, lvl, 'vpn.ipsec.phase1-interface To-Azure'); return { bad }; },
+      ticket: () => 'A contractor tidied up the firewall last night. This morning the Azure app server is unreachable.',
+      hints: () => ['Is the tunnel up? VPN → IPsec Tunnels on the FortiGate.', 'AUTHENTICATION_FAILED: the keys differ. Check the System Events log for who changed what.', 'The Azure connection still has the original key. The FortiGate tunnel key was edited.'],
+      steps: p => ['FortiGate: VPN → IPsec Tunnels. To-Azure is down with AUTHENTICATION_FAILED.', 'Log & Report → Logs → System Events shows a change to the To-Azure tunnel.', `The tunnel key is now "${p.bad}". Azure still expects "${PSK}".`, `CLI: config vpn ipsec phase1-interface → edit To-Azure → set psksecret ${PSK} → next → end.`],
+      fix: st => { p1(st).psk = PSK; },
+      why: 'Unreviewed "cleanup" changes are one of the top causes of outages. Change control and a config diff would have caught this.' },
+    { id: 'vm-off', level: 1, side: 'Azure', slot: 'vm', title: 'AZ-VM-APP01 was stopped (deallocated)',
+      inject: (st, lvl) => { vm(st).power = 'deallocated'; azLog(st, lvl, 'Deallocate virtual machine', 'AZ-VM-APP01'); return {}; },
+      ticket: () => 'The app server in Azure is not answering. The firewall team swears the tunnel is fine.',
+      hints: () => ['The tunnel and BGP look healthy, so follow a packet: Policy Lookup from 10.10.10.20 to 10.100.1.4 on HTTPS.', 'Read the Azure step at the bottom of the lookup trace.', 'Azure view → Compute → Virtual machines. Check the status column.'],
+      steps: () => ['Policy Lookup 10.10.10.20 → 10.100.1.4 TCP/443: the firewall accepts it, but the Azure step says the VM is deallocated.', 'Azure view → Compute → Virtual machines → AZ-VM-APP01 → Start.'],
+      fix: st => { vm(st).power = 'running'; },
+      why: 'Not every outage is the network. Prove the path end to end before changing firewall rules.' },
+    { id: 'pol-off', level: 1, side: 'FortiGate', slot: 'pol-lan', title: 'LAN-to-Azure policy disabled',
+      inject: (st, lvl) => { pol(st, 'LAN-to-Azure').status = 'disable'; fgLog(st, lvl, 'firewall.policy LAN-to-Azure'); return {}; },
+      ticket: () => 'Front office users cannot open the Azure app or remote into the server. The server team says Azure looks healthy.',
+      hints: () => ['Policy Lookup 10.10.10.20 → 10.100.1.4 HTTPS shows which rule handles it.', 'A rule that is disabled is skipped. Look at the policy list status column.', 'Policy & Objects → Firewall Policy → LAN-to-Azure.'],
+      steps: () => ['Policy Lookup shows the traffic falling to the implicit deny: LAN-to-Azure is skipped because it is disabled.', 'Firewall Policy → edit LAN-to-Azure → Status: Enable (CLI: config firewall policy → edit <id> → set status enable).'],
+      fix: st => { pol(st, 'LAN-to-Azure').status = 'enable'; },
+      why: 'Disabled rules are invisible in traffic but easy to miss in a long list. Policy Lookup finds them in seconds.' },
+    { id: 'p1-off', level: 1, side: 'FortiGate', slot: 'p1state', title: 'IPsec tunnel administratively disabled',
+      inject: (st, lvl) => { p1(st).status = 'disable'; fgLog(st, lvl, 'vpn.ipsec.phase1-interface To-Azure status'); return {}; },
+      ticket: () => 'The Azure tunnel is down. Nobody changed anything, they say.',
+      hints: () => ['VPN → IPsec Tunnels: read the reason column.', 'Administratively disabled means someone turned it off on purpose.', 'Edit To-Azure and set its status to enabled.'],
+      steps: () => ['VPN → IPsec Tunnels: To-Azure says "Tunnel is administratively disabled".', 'Edit To-Azure → Status: enable (CLI: config vpn ipsec phase1-interface → edit To-Azure → set status enable).'],
+      fix: st => { p1(st).status = 'enable'; },
+      why: '"Nobody changed anything" is rarely true. The event log is your friend.' },
+    { id: 'lng-ip', level: 2, side: 'Azure', slot: 'lng-ip', title: 'Local network gateway points at the wrong office IP',
+      inject: (st, lvl) => { const l = lng(st), bad = pick(['203.0.113.11', '203.0.113.12', '203.0.113.14', '198.51.100.10']); l.ip = bad; azLog(st, lvl, 'Create or update local network gateway', l.name); return { bad }; },
+      ticket: () => 'Someone on the Azure team "updated the office details" and now the tunnel will not come back.',
+      hints: () => ['The FortiGate reports no response from Azure at all. Azure is ignoring the firewall.', 'Azure only accepts IKE from the address on the local network gateway.', 'Compare lng-talvex-office\'s IP address with the FortiGate WAN IP (port1).'],
+      steps: p => ['FortiGate: To-Azure says Azure only accepts IKE from the local network gateway address.', `Azure: Site-to-site VPN → Local network gateway shows ${p.bad}. The office WAN IP is 203.0.113.10.`, 'Edit lng-talvex-office → IP address 203.0.113.10 → Save.'],
+      fix: st => { lng(st).ip = '203.0.113.10'; },
+      why: 'Azure silently drops IKE from unknown peers, so the firewall just sees timeouts. Always check the local network gateway first.' },
+    { id: 'ike-ver', level: 2, side: 'Azure', slot: 'ike', title: 'Azure connection switched to IKEv1',
+      inject: (st, lvl) => { cn(st).ike = 'IKEv1'; azLog(st, lvl, 'Create or update connection', 'cn-talvex-office'); return {}; },
+      ticket: () => 'The tunnel dropped right after an Azure change ticket titled "compatibility settings".',
+      hints: () => ['Read the To-Azure reason on the FortiGate.', 'Both sides must speak the same IKE version.', 'Azure connection cn-talvex-office → Configuration → IKE protocol.'],
+      steps: () => ['FortiGate: To-Azure says the Azure connection is set to IKEv1 but the tunnel speaks IKEv2.', 'Azure: Connection → Configuration → IKE protocol: IKEv2 → Save.'],
+      fix: st => { cn(st).ike = 'IKEv2'; },
+      why: 'IKEv2 is the modern standard and what Azure route-based gateways expect. Downgrading to IKEv1 breaks the tunnel and weakens it.' },
+    { id: 'pfs', level: 2, side: 'FortiGate', slot: 'p2', title: 'PFS turned on in phase 2 (Azure default policy uses none)',
+      inject: (st, lvl) => { const q = p2(st), g = pick([14, 19, 20]); q.pfs = 'enable'; q.dhgrp = [g]; fgLog(st, lvl, 'vpn.ipsec.phase2-interface To-Azure-P2'); return { g }; },
+      ticket: () => 'An overnight "hardening" script ran against the firewall. Azure has been down since.',
+      hints: () => ['Phase 1 is up, so the keys and IKE are fine. Look at phase 2.', 'The Azure default IPsec policy uses PFS None.', 'VPN → IPsec Tunnels → edit To-Azure → phase 2 → PFS.'],
+      steps: p => ['FortiGate: To-Azure phase 2 fails: the peer rejected the PFS Diffie-Hellman group.', `Phase 2 To-Azure-P2 now has PFS on with group ${p.g}. Azure's default policy has no PFS.`, 'CLI: config vpn ipsec phase2-interface → edit To-Azure-P2 → set pfs disable → next → end. (Or apply a matching custom IPsec policy on Azure.)'],
+      fix: st => { const q = p2(st); q.pfs = 'disable'; q.dhgrp = []; },
+      why: 'Hardening one side of a tunnel without the other side breaks it. Crypto changes are always a two-team change.' },
+    { id: 'dh', level: 2, side: 'FortiGate', slot: 'p1crypto', title: 'Phase 1 DH group changed to one Azure does not accept',
+      inject: (st, lvl) => { const g = pick([5, 15, 19, 20, 21]); p1(st).dhgrp = [g]; fgLog(st, lvl, 'vpn.ipsec.phase1-interface To-Azure dhgrp'); return { g }; },
+      ticket: () => 'After last night\'s "crypto upgrade" on the firewall, the Azure tunnel never came back.',
+      hints: () => ['The FortiGate reason mentions INVALID_KE_PAYLOAD.', 'That is a Diffie-Hellman group mismatch in phase 1.', 'Azure\'s default policy accepts DH groups 2, 14 and 24.'],
+      steps: p => [`FortiGate: To-Azure fails with INVALID_KE_PAYLOAD: phase 1 offers DH group ${p.g}.`, 'Set phase 1 back to DH group 14: config vpn ipsec phase1-interface → edit To-Azure → set dhgrp 14.'],
+      fix: st => { p1(st).dhgrp = [14]; },
+      why: 'A "stronger" setting is useless if the peer does not support it. Check the peer\'s supported list before changing crypto.' },
+    { id: 'nat-t', level: 2, side: 'FortiGate', slot: 'p1nat', title: 'NAT traversal disabled on the tunnel',
+      inject: (st, lvl) => { p1(st).nattraversal = 'disable'; fgLog(st, lvl, 'vpn.ipsec.phase1-interface To-Azure nattraversal'); return {}; },
+      ticket: () => 'The tunnel negotiates but nothing gets through. Someone was "optimizing" the VPN settings.',
+      hints: () => ['IKE_AUTH completes, so the keys are fine. Read the rest of the reason.', 'The Azure gateway sits behind NAT and expects NAT-T on UDP 4500.', 'Phase 1 → NAT traversal.'],
+      steps: () => ['FortiGate: To-Azure says ESP is being dropped and Azure expects NAT-T.', 'config vpn ipsec phase1-interface → edit To-Azure → set nattraversal enable.'],
+      fix: st => { p1(st).nattraversal = 'enable'; },
+      why: 'Most cloud gateways are behind NAT. Without NAT-T the tunnel looks up but carries nothing.' },
+    { id: 'shadow', level: 2, side: 'FortiGate', slot: 'pol-lan', title: 'A deny rule above LAN-to-Azure shadows it',
+      inject: (st, lvl) => {
+        const name = pick(['Block-Old-Subnet', 'Temp-Deny-Azure', 'Quarantine-Rule']), id = st.nextPolicyId++;
+        st.policies.unshift(Object.assign(SIM.clone(pol(st, 'LAN-to-Azure')), { id, name, service: ['ALL'], action: 'deny', nat: false, hits: 0, lastHit: 0, comments: pick(['temporary', 'incident 4471', '']) }));
+        fgLog(st, lvl, 'firewall.policy ' + name); return { name, id };
+      },
+      ticket: () => 'Since yesterday\'s security change, nobody can reach the Azure app server, even though the tunnel is up.',
+      hints: () => ['Policy Lookup 10.10.10.20 → 10.100.1.4 HTTPS shows exactly which rule matches.', 'Rules are checked top down. The first match wins.', 'A new deny rule sits above LAN-to-Azure.'],
+      steps: p => [`Policy Lookup shows policy ${p.id} "${p.name}" matching first with action DENY.`, `Firewall Policy: delete or disable "${p.name}" (or move it below LAN-to-Azure if it is still needed).`],
+      fix: st => { st.policies = st.policies.filter(x => x.name !== 'Block-Old-Subnet' && x.name !== 'Temp-Deny-Azure' && x.name !== 'Quarantine-Rule'); },
+      why: 'Rule order is everything. A broad deny placed at the top silently overrides every specific allow below it.' },
+    { id: 'nat-on', level: 2, side: 'FortiGate', slot: 'pol-lan-nat', title: 'NAT enabled on the LAN-to-Azure policy',
+      inject: (st, lvl) => { pol(st, 'LAN-to-Azure').nat = true; fgLog(st, lvl, 'firewall.policy LAN-to-Azure nat'); return {}; },
+      ticket: () => 'The Azure app works for some people, but its logs show every request coming from one address and the auditors are asking why.',
+      hints: () => ['Run Policy Lookup 10.10.10.20 → 10.100.1.4 and read the source NAT step.', 'NAT on a site-to-site policy hides the real office addresses from Azure.', 'LAN-to-Azure → NAT.'],
+      steps: () => ['Policy Lookup: the Source NAT step says NAT is ON for a VPN tunnel.', 'Firewall Policy → LAN-to-Azure → NAT off (CLI: set nat disable).'],
+      fix: st => { pol(st, 'LAN-to-Azure').nat = false; },
+      why: 'Site-to-site traffic should keep its real source addresses, both for return routing and for audit trails (a CMMC requirement).' },
+    { id: 'svc', level: 2, side: 'FortiGate', slot: 'pol-lan-svc', title: 'HTTPS removed from the LAN-to-Azure services',
+      inject: (st, lvl) => { const p = pol(st, 'LAN-to-Azure'); p.service = p.service.filter(s => s !== 'HTTPS'); fgLog(st, lvl, 'firewall.policy LAN-to-Azure service'); return {}; },
+      ticket: () => 'Remote desktop to the Azure server works fine, but the web app will not load.',
+      hints: () => ['Only one service is broken, so the tunnel and routing are fine.', 'Policy Lookup on TCP/443 versus TCP/3389.', 'Check the service list on LAN-to-Azure.'],
+      steps: () => ['Policy Lookup on TCP/443 says HTTPS is not in the LAN-to-Azure service list.', 'Firewall Policy → LAN-to-Azure → Services: add HTTPS (CLI: set service "HTTPS" "RDP" "SMB").'],
+      fix: st => { const p = pol(st, 'LAN-to-Azure'); if (!p.service.includes('HTTPS')) p.service.unshift('HTTPS'); },
+      why: 'Partial outages point at policy, not the tunnel. Comparing a working service with a broken one narrows it down fast.' },
+    { id: 'smb-in', level: 2, side: 'FortiGate', slot: 'pol-in', title: 'Azure-to-FS01 inbound policy disabled',
+      inject: (st, lvl) => { pol(st, 'Azure-to-FS01').status = 'disable'; fgLog(st, lvl, 'firewall.policy Azure-to-FS01'); return {}; },
+      ticket: () => 'The app in Azure suddenly cannot save files to the office file server (FS01).',
+      hints: () => ['This is traffic coming in from Azure, so look at the inbound direction.', 'Policy Lookup with incoming interface To-Azure, 10.100.1.4 → 10.10.10.50, TCP/445.', 'Check the status of Azure-to-FS01.'],
+      steps: () => ['Policy Lookup To-Azure → 10.10.10.50 TCP/445 falls to the implicit deny: Azure-to-FS01 is disabled.', 'Firewall Policy → Azure-to-FS01 → Status: Enable.'],
+      fix: st => { pol(st, 'Azure-to-FS01').status = 'enable'; },
+      why: 'Every tunnel needs a rule in each direction. Replies are automatic, but new connections from Azure need their own allow rule.' },
+    { id: 'addr', level: 3, side: 'FortiGate', slot: 'addr', title: 'Azure-Hub address object was "corrected" to the wrong range',
+      inject: (st, lvl) => { const a = SIM.addrObj(st, 'Azure-Hub'), v = pick([['10.110.0.0', 16], ['10.100.0.0', 24], ['10.10.0.0', 16]]); a.ip = v[0]; a.bits = v[1]; fgLog(st, lvl, 'firewall.address Azure-Hub'); return { bad: v[0] + '/' + v[1] }; },
+      ticket: () => 'Ever since someone tidied the address objects, the Azure app server is unreachable. The tunnel is up.',
+      hints: () => ['Policy Lookup: why does LAN-to-Azure no longer match?', 'The destination is checked against the policy\'s address objects.', 'Look at what Azure-Hub actually contains.'],
+      steps: p => [`Policy Lookup: destination 10.100.1.4 is not in Azure-Hub, which is now ${p.bad}.`, 'Policy & Objects → Addresses → Azure-Hub → subnet 10.100.0.0/16 (CLI: set subnet 10.100.0.0 255.255.0.0).'],
+      fix: st => { const a = SIM.addrObj(st, 'Azure-Hub'); a.ip = '10.100.0.0'; a.bits = 16; },
+      why: 'Address objects are shared by many rules. One typo can break every rule that uses it, so name and document them carefully.' },
+    { id: 'bgp-as', level: 3, side: 'FortiGate', slot: 'bgp-fg', title: 'Wrong remote AS on the FortiGate BGP neighbor',
+      inject: (st, lvl) => { const n = st.bgp.neighbors[0], bad = pick([65516, 65155, 65551, 65015]); n.remoteAs = bad; fgLog(st, lvl, 'router.bgp neighbor 10.100.0.254'); return { bad }; },
+      ticket: () => 'The tunnel is up, but after a routing change the firewall no longer has a route to Azure.',
+      hints: () => ['Tunnel up, no route: think BGP. Check Network → BGP.', 'OPEN rejected means the AS numbers do not match.', 'The Azure gateway is AS 65515.'],
+      steps: p => [`BGP to 10.100.0.254 is down: OPEN rejected, peer AS is 65515 but ${p.bad} is configured.`, 'config router bgp → config neighbor → edit 10.100.0.254 → set remote-as 65515.'],
+      fix: st => { st.bgp.neighbors[0].remoteAs = 65515; },
+      why: 'With BGP, routes depend on the session. A down session means the routes vanish, even though the tunnel is fine.' },
+    { id: 'lng-asn', level: 3, side: 'Azure', slot: 'bgp-az', title: 'Local network gateway ASN does not match the office firewall',
+      inject: (st, lvl) => { const l = lng(st), bad = pick([65011, 65100, 65001, 65020]); l.asn = bad; azLog(st, lvl, 'Create or update local network gateway', l.name); return { bad }; },
+      ticket: () => 'BGP to Azure went down right after the Azure team updated the office settings in the portal.',
+      hints: () => ['Check the BGP reason on the FortiGate side.', 'Azure checks the office AS against the local network gateway.', 'The firewall is AS 65010.'],
+      steps: p => [`FortiGate BGP: OPEN rejected by Azure, local network gateway says AS ${p.bad} but the firewall is AS 65010.`, 'Azure: Site-to-site VPN → Local network gateway → Configuration → ASN 65010 → Save.'],
+      fix: st => { lng(st).asn = 65010; },
+      why: 'BGP identity is configured twice in Azure (gateway and local network gateway). Both must match the real routers.' },
+    { id: 'cn-bgp', level: 3, side: 'Azure', slot: 'bgp-az', title: 'BGP disabled on the Azure connection',
+      inject: (st, lvl) => { cn(st).enableBgp = false; azLog(st, lvl, 'Create or update connection', 'cn-talvex-office'); return {}; },
+      ticket: () => 'After an Azure maintenance window, the office lost its route to Azure. The tunnel itself is up.',
+      hints: () => ['Tunnel up, no routes: BGP.', 'Read the BGP reason on the FortiGate.', 'BGP must be on for both the gateway and the connection.'],
+      steps: () => ['FortiGate BGP: BGP is off on the Azure side (connection cn-talvex-office: off).', 'Azure: Connection → Configuration → Enable BGP → Save.'],
+      fix: st => { cn(st).enableBgp = true; },
+      why: 'A setting changed on the cloud side can take down routing on-prem. That is why both teams need to see both sides.' },
+    { id: 'return', level: 4, side: 'Both', slot: 'return', title: 'Azure lost its route back to the office',
+      inject: (st, lvl) => { st.bgp.networks = []; const l = lng(st), bad = pick(['10.10.1.0/24', '10.1.10.0/24', '10.10.100.0/24']); const pp = AZ.parsePrefix(bad); l.addressSpace = [pp]; fgLog(st, lvl, 'router.bgp network'); azLog(st, lvl, 'Create or update local network gateway', l.name); return { bad }; },
+      ticket: () => 'Requests to the Azure app time out. The tunnel is up and BGP is established. Nobody can explain it.',
+      hints: () => ['Policy Lookup reaches Azure. Read what happens after that.', 'Azure needs a route back to 10.10.10.0/24: either from BGP or from the local network gateway.', 'Neither the BGP network list nor the local network gateway address space covers the LAN any more.'],
+      steps: p => ['Policy Lookup: Azure has no route back to 10.10.10.20.', `The FortiGate no longer advertises 10.10.10.0/24 over BGP, and lng-talvex-office lists ${p.bad} instead of 10.10.10.0/24.`, 'Fix either one (best: both): config router bgp → config network → edit 1 → set prefix 10.10.10.0 255.255.255.0, and set the local network gateway address space to 10.10.10.0/24.'],
+      fix: st => { st.bgp.networks = [{ id: 1, prefix: '10.10.10.0', bits: 24 }]; lng(st).addressSpace = [{ ip: '10.10.10.0', bits: 24 }]; },
+      why: 'Routing is two-way. A tunnel can be perfectly up while the far side has no idea how to send the reply.' },
+    { id: 'az-custom', level: 4, side: 'Both', slot: 'p2', title: 'Azure applied a custom IPsec policy the FortiGate does not match',
+      inject: (st, lvl) => { st.azure.policy = 'custom'; azLog(st, lvl, 'Create or update connection', 'cn-talvex-office'); return {}; },
+      ticket: () => 'The Azure team "tightened the crypto policy for compliance". The tunnel has been down ever since.',
+      hints: () => ['Phase 1 comes up. Phase 2 does not. Read the phase 2 reason.', 'The custom Azure policy wants AES256-GCM with PFS group 14 in phase 2.', 'Either match it on the FortiGate phase 2, or (if the change was not approved) set the connection back to the default policy.'],
+      steps: () => ['FortiGate: phase 2 NO_PROPOSAL_CHOSEN: the custom Azure policy requires AES256GCM with PFS group 14.', 'Option A (keep the stronger policy): config vpn ipsec phase2-interface → edit To-Azure-P2 → set proposal aes256gcm → set pfs enable → set dhgrp 14.', 'Option B (roll back the unapproved change): Azure → Connection → Configuration → IPsec / IKE policy: Default.'],
+      fix: st => { st.azure.policy = 'default'; },
+      why: 'Compliance-driven crypto changes are good, but they must be coordinated: one side changing alone is an outage.' }
+  ];
+
+  /* ---------- incidents ---------- */
+  NM.faultsFor = level => {
+    const cap = Math.min(level, 4), count = level <= 3 ? 1 : level <= 6 ? 2 : 3;
+    const pool = NM.FAULTS.filter(f => f.level <= cap), chosen = [];
+    const free = () => pool.filter(f => !chosen.some(c => c.slot === f.slot || c.id === f.id));
+    const top = pool.filter(f => f.level === cap);
+    chosen.push(top.length && Math.random() < 0.5 ? pick(top) : pick(pool));   // the lead fault leans toward the current tier
+    while (chosen.length < count) {
+      const cand = free(); if (!cand.length) break;
+      const sides = new Set(chosen.map(c => c.side)), other = cand.filter(f => f.side !== 'Both' && !sides.has(f.side));
+      chosen.push(other.length && Math.random() < 0.7 ? pick(other) : pick(cand)); // real incidents often span both teams
+    }
+    return chosen;
+  };
+  const healthy = st => NM.health(st).every(h => h.ok) && !NM.workarounds(st).length;
+  /* returns { state, incident } where the state carries the planted faults; proven solvable before returning */
+  NM.generate = (level, base) => {
+    for (let attempt = 0; attempt < 25; attempt++) {
+      const st = SIM.clone(base || NM.baseline()), faults = NM.faultsFor(level), planted = [];
+      try { for (const f of faults) planted.push({ id: f.id, p: f.inject(st, level) || {} }); } catch (e) { continue; }
+      if (healthy(st)) continue;                         // the faults must actually hurt something
+      const proof = SIM.clone(st);
+      for (const x of planted) NM.FAULTS.find(f => f.id === x.id).fix(proof, x.p);
+      if (!healthy(proof)) continue;                     // and the known fixes must fully restore service
+      const lead = NM.FAULTS.find(f => f.id === planted[0].id);
+      return { state: st, incident: { level, planted, ticket: lead.ticket(planted[0].p), startedAt: Date.now(), hints: 0, status: 'open' } };
+    }
+    throw new Error('Nightmare: could not generate a solvable incident');
+  };
+  NM.fault = id => NM.FAULTS.find(f => f.id === id);
+  /* three hints per incident, drawn across all planted faults */
+  NM.hints = inc => {
+    const lists = inc.planted.map(x => NM.fault(x.id).hints(x.p)), out = [];
+    for (let i = 0; out.length < 3 && i < 3; i++) for (const l of lists) if (out.length < 3 && l[i]) out.push(l[i]);
+    if (inc.planted.length > 1) out[0] = `There are ${inc.planted.length} separate problems in this incident. ` + out[0];
+    return out;
+  };
+  NM.walkthrough = inc => inc.planted.map(x => { const f = NM.fault(x.id); return { title: f.title, side: f.side, steps: f.steps(x.p), why: f.why }; });
+  NM.applyFix = (st, inc) => { for (const x of inc.planted) NM.fault(x.id).fix(st, x.p); };
+  NM.resolved = st => healthy(st);
+  NM.points = inc => Math.max(10, 100 * inc.level - 15 * inc.hints - 5 * Math.floor((Date.now() - inc.startedAt) / 60000));
+  return NM;
+})();
+if (typeof module !== 'undefined') module.exports = NIGHTMARE;
+
+</script>
 <script>
 /* ================= UI ================= */
 (function () {
@@ -2716,6 +3102,7 @@ if (typeof module !== 'undefined') module.exports = LIVE;
   };
   let S = SIM.seed();
   const UI = { started: false, page: 'dashboard', tab: {}, drawer: false, open: null, termOpen: false, lookup: null, lookupForm: { srcintf: 'port2', srcip: '10.10.10.20', dstip: '8.8.8.8', proto: 'tcp', port: '443', category: '', record: true }, filter: '', status: {}, view: 'fg', last: { fg: 'dashboard', azure: 'az-home' }, azVnet: '', azRg: '' };
+  const NMS = { on: false, level: 1, count: 0, inc: null, from: '', stats: { resolved: 0, failed: 0, streak: 0, best: 0, points: 0 } };
   function setSave() { }
   function scheduleSave() { }
   function fmtElapsed(ms) { const t = Math.floor(ms / 1000); return `${pad(Math.floor(t / 60))}:${pad(t % 60)}`; }
@@ -2723,6 +3110,7 @@ if (typeof module !== 'undefined') module.exports = LIVE;
   /* ---------- missions ---------- */
   function evaluate(silent) {
     try { watchLink(silent); } catch (e) { }
+    if (NMS.on) { nmCheck(silent); return; }
     for (const m of MISSIONS) {
       let r; try { r = m.check(S); } catch (e) { r = [{ label: 'Check error: ' + e.message, ok: false }]; }
       UI.status[m.id] = r;
@@ -3701,13 +4089,19 @@ if (typeof module !== 'undefined') module.exports = LIVE;
     'adm-del': d => del('system admin', d.id, () => { const a = S.admins.find(x => x.name === d.id); if (a.profile === 'super_admin' && S.admins.filter(x => x.profile === 'super_admin').length <= 1) return 'Cannot delete the last super_admin account.'; S.admins = S.admins.filter(x => x.name !== d.id); }),
     'bk-copy': () => copyText(JSON.stringify(S), 'Configuration copied'),
     'bk-copycli': () => copyText($('#fullCfg').textContent, 'CLI configuration copied'),
-    'bk-restore': () => { let o; try { o = JSON.parse($('#bkIn').value); } catch (e) { toast('Restore failed', 'That is not valid backup JSON.', 'bad'); return; } SIM.AZ.migrate(o); if (!valid(o)) { toast('Restore failed', 'That backup is not from this lab.', 'bad'); return; } S = o; S.sessions = []; S.threats = S.threats || {}; LIVE.setState(S); evaluate(true); commit('configuration restored from backup'); toast('Restored', 'Backup loaded.', 'ok'); },
-    'bk-reset': () => confirmBox('Reset the lab?', 'This puts the firewall back to its starting state and clears all mission progress. It cannot be undone unless you copied a backup.', 'Reset lab', () => { S = SIM.seed(); LIVE.setState(S); UI.lookup = null; evaluate(true); setTimeout(() => toast('Lab reset', 'Back to how the old IT guy left it.'), 50); }),
+    'bk-restore': () => { NMS.on = false; NMS.inc = null; let o; try { o = JSON.parse($('#bkIn').value); } catch (e) { toast('Restore failed', 'That is not valid backup JSON.', 'bad'); return; } SIM.AZ.migrate(o); if (!valid(o)) { toast('Restore failed', 'That backup is not from this lab.', 'bad'); return; } S = o; S.sessions = []; S.threats = S.threats || {}; LIVE.setState(S); evaluate(true); commit('configuration restored from backup'); toast('Restored', 'Backup loaded.', 'ok'); },
+    'bk-reset': () => confirmBox('Reset the lab?', 'This puts the firewall back to its starting state and clears all mission progress. It cannot be undone unless you copied a backup.', 'Reset lab', () => { NMS.on = false; NMS.inc = null; S = SIM.seed(); LIVE.setState(S); UI.lookup = null; evaluate(true); setTimeout(() => toast('Lab reset', 'Back to how the old IT guy left it.'), 50); }),
     'mis-open': d => { UI.open = UI.open === d.id ? null : d.id; renderDrawer(); },
     'mis-hint': d => { const r = S.missions[d.id] || (S.missions[d.id] = { hints: 0 }); r.hints = (r.hints || 0) + 1; scheduleSave(); renderDrawer(); },
     'mis-cli': d => { const r = S.missions[d.id] || (S.missions[d.id] = { hints: 0 }); r.showCli = true; scheduleSave(); renderDrawer(); },
     'mis-ans': d => { const inp = document.getElementById('ans_' + d.id); S.answers[d.id] = inp.value; const ok = MISSIONS.find(m => m.id === d.id).check(S).every(x => x.ok); if (!ok) toast('Not quite', 'Check again and resubmit.', 'bad'); commit(); },
     'drawer-close': () => { UI.drawer = false; renderAll(); },
+    'nm-start': () => { NMS.on = true; NMS.level = 1; NMS.count = 0; NMS.stats = { resolved: 0, failed: 0, streak: 0, best: 0, points: 0 }; nmNew(); },
+    'nm-hint': () => { const inc = NMS.inc; if (!inc || inc.status !== 'open') return; if (inc.hints >= 3) nmFail(); else { inc.hints++; renderDrawer(); } },
+    'nm-giveup': () => nmFail(),
+    'nm-fix': () => { if (!NMS.inc) return; NIGHTMARE.applyFix(S, NMS.inc); commit('Nightmare walkthrough: fix applied'); },
+    'nm-next': () => { const inc = NMS.inc; NMS.level = inc && inc.status === 'resolved' ? inc.level + 1 : (inc ? inc.level : 1); nmNew(); },
+    'nm-exit': () => { NMS.on = false; NMS.inc = null; UI.drawerMode = 'missions'; evaluate(true); renderAll(); toast('Nightmare mode off', 'Missions are back. The lab keeps the current configuration.'); },
     'lk-run': () => runLookup(),
     'li-new': () => ED.localin(), 'li-edit': d => ED.localin(d.id), 'li-del': d => del('firewall local-in-policy', 'local-in policy ' + d.id, () => void S.localin.splice(S.localin.findIndex(l => l.id === +d.id), 1)),
     'ap-new': () => ED.accprofile(), 'ap-edit': d => ED.accprofile(d.id), 'ap-del': d => del('system accprofile', d.id, () => refErr('accprofile', d.id) || void S.accprofiles.splice(S.accprofiles.findIndex(a => a.name === d.id), 1)),
@@ -3782,7 +4176,72 @@ if (typeof module !== 'undefined') module.exports = LIVE;
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && F) closeForm(); });
 
   /* ================= DRAWER ================= */
-  function renderDrawer() {
+  /* ================= NIGHTMARE MODE (UI) ================= */
+  const mmss = ms => { const t = Math.max(0, Math.floor(ms / 1000)); return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); };
+  const nmPick = a => a[Math.floor(Math.random() * a.length)];
+  function nmNew() {
+    let g; try { g = NIGHTMARE.generate(NMS.level); } catch (e) { toast('Nightmare mode', e.message, 'bad'); return; }
+    S = g.state; S.sessions = []; LIVE.setState(S); UI.lookup = null; UI.link = {};
+    NMS.inc = g.incident; NMS.count++; NMS.from = nmPick(['Dana in the front office', 'Marcus in engineering', 'the Azure team', 'the service desk', 'the CFO\'s assistant', 'a very loud sales manager']);
+    UI.drawer = true; UI.drawerMode = 'nm'; evaluate(true); renderAll();
+    toast(`Incident #${NMS.count}`, `Level ${NMS.level}: a new ticket just came in.`, 'bad');
+  }
+  function nmFail() {
+    const inc = NMS.inc; if (!inc || inc.status !== 'open') return;
+    inc.status = 'failed'; inc.endedAt = Date.now(); NMS.stats.failed++; NMS.stats.streak = 0;
+    toast('Incident failed', 'The walkthrough shows every step of the fix.', 'bad'); renderDrawer();
+  }
+  function nmCheck(silent) {
+    const inc = NMS.inc; if (!inc || !NIGHTMARE.resolved(S)) return;
+    if (inc.status === 'open') {
+      inc.status = 'resolved'; inc.endedAt = Date.now(); inc.points = NIGHTMARE.points(inc);
+      const t = NMS.stats; t.resolved++; t.streak++; t.best = Math.max(t.best, inc.level); t.points += inc.points;
+      if (!silent) toast('Incident resolved', `Level ${inc.level} cleared. The next one will be harder.`, 'ok');
+      UI.drawer = true; UI.drawerMode = 'nm';
+    } else if (inc.status === 'failed') inc.status = 'failed-fixed';
+  }
+  setInterval(() => { const t = document.getElementById('nmTimer'); if (t && NMS.inc && NMS.inc.status === 'open') t.textContent = mmss(Date.now() - NMS.inc.startedAt); }, 1000);
+  function renderNmDrawer() {
+    const d = $('#drawer'); d.hidden = !UI.drawer; if (!UI.drawer) return;
+    const sc = d.querySelector('.scroll') ? d.querySelector('.scroll').scrollTop : 0;
+    const N = NIGHTMARE, inc = NMS.inc, t = NMS.stats;
+    let body = '';
+    if (!NMS.on || !inc) {
+      body = `<div class="nm-hero"><h3>Production is on fire. Fix it.</h3><p class="muted" style="margin:0">Random incidents on a live FortiGate + Azure network, and every fix makes the next one harder.</p></div>
+        <ul style="margin:0;padding-left:18px">
+          <li>You take over Talvex's <b>working</b> production network: the office FortiGate, an IPsec tunnel with BGP, and the Azure hub with its own VPN gateway and app server.</li>
+          <li>Each incident plants one or more random faults on either side. You get a ticket and live monitoring. Nothing else.</li>
+          <li>Use any tool: Policy Lookup, logs, the CLI, the Azure portal. Fix it and the next incident is harder. From level 4 problems stack and span both teams; from level 5 the audit trail goes quiet.</li>
+          <li>Three hints per incident. Ask for a fourth, or give up, and the incident fails: you get a step-by-step walkthrough of the fix.</li>
+          <li>Workarounds (allow-all rules, NAT into the tunnel) do not count as fixes.</li>
+        </ul>
+        <p class="nm-warn" style="margin:0">Starting replaces the current lab configuration. Copy a backup first if you want to keep your work.</p>
+        <div class="nm-row"><button class="btn primary" data-act="nm-start">Start Nightmare mode</button><button class="btn" data-act="nav" data-id="backup">Back up first</button></div>`;
+    } else {
+      const hs = N.health(S), wk = N.workarounds(S), hints = N.hints(inc), fail = inc.status === 'failed' || inc.status === 'failed-fixed';
+      body = `<div class="nm-row"><span class="nm-lvl">LEVEL ${inc.level}</span><span class="muted">Incident #${NMS.count} · ${inc.planted.length > 1 ? 'multiple problems' : 'one problem'}</span><span style="flex:1"></span><span class="mono" id="nmTimer">${mmss((inc.endedAt || Date.now()) - inc.startedAt)}</span></div>
+        <div class="nm-ticket"><div class="from">Ticket from ${esc(NMS.from)} · Priority ${inc.level >= 4 ? 'P1' : 'P2'}</div>${esc(inc.ticket)}</div>
+        <div><div class="sub-h">Monitoring</div><ul class="checklist">${hs.map(x => `<li><span class="${x.ok ? 'y' : 'n'}">${x.ok ? '✓' : '✗'}</span><span>${esc(x.label)}</span></li>`).join('')}</ul></div>
+        ${wk.map(w => `<div class="nm-warn">⚠ ${esc(w)}</div>`).join('')}`;
+      if (inc.status === 'open') {
+        for (let i = 0; i < inc.hints; i++) body += `<div class="hint"><b>Hint ${i + 1} of 3.</b> ${esc(hints[i] || '')}</div>`;
+        body += `<div class="nm-row">${inc.hints < 3 ? `<button class="btn" data-act="nm-hint">Show hint ${inc.hints + 1} of 3</button>` : `<button class="btn danger" data-act="nm-hint">A 4th hint fails the incident</button>`}<button class="btn" data-act="nm-giveup">Give up and show me</button></div>`;
+      } else if (inc.status === 'resolved') {
+        body += `<div class="nm-card win"><b>Resolved in ${mmss(inc.endedAt - inc.startedAt)} with ${inc.hints} hint${inc.hints === 1 ? '' : 's'}. +${inc.points} points.</b>
+          <div class="sub-h">What was wrong</div><ul style="margin:0;padding-left:18px">${N.walkthrough(inc).map(w => `<li><b>${esc(w.side)}:</b> ${esc(w.title)}. <span class="muted">${esc(w.why)}</span></li>`).join('')}</ul></div>
+          <div class="nm-row"><button class="btn primary" data-act="nm-next">Next incident: level ${inc.level + 1}</button></div>`;
+      } else if (fail) {
+        body += `<div class="nm-card lose"><b>${inc.status === 'failed-fixed' ? 'Fixed with the walkthrough.' : 'Incident failed. Here is how to fix it.'}</b>${N.walkthrough(inc).map(w => `<div class="sub-h">${esc(w.side)}: ${esc(w.title)}</div><ol>${w.steps.map(x => `<li>${esc(x)}</li>`).join('')}</ol><div class="muted">${esc(w.why)}</div>`).join('')}</div>
+          <div class="nm-row">${inc.status === 'failed' ? '<button class="btn" data-act="nm-fix">Apply the fix for me</button>' : ''}<button class="btn primary" data-act="nm-next">Next incident: level ${inc.level}</button></div>`;
+      }
+      body += `<div class="nm-stats"><div><b>${t.resolved}</b><span>Resolved</span></div><div><b>${t.failed}</b><span>Failed</span></div><div><b>${t.streak}</b><span>Streak</span></div><div><b>${t.points}</b><span>Points</span></div></div>
+        <div class="nm-row"><span class="muted" style="flex:1">Best level: ${t.best || '-'}</span><button class="btn" data-act="nm-exit">Leave Nightmare mode</button></div>`;
+    }
+    d.innerHTML = `<header><div style="display:flex;align-items:center;gap:8px"><h2 style="flex:1">Nightmare mode</h2><button class="ibtn" data-act="drawer-close" aria-label="Close Nightmare mode">✕</button></div><p>Random production incidents. Nothing is uniform.</p></header><div class="scroll"><div class="nm">${body}</div></div>`;
+    const s2 = d.querySelector('.scroll'); if (s2) s2.scrollTop = sc;
+  }
+  function renderDrawer() { if (UI.drawerMode === 'nm') return renderNmDrawer(); return renderMissionDrawer(); }
+  function renderMissionDrawer() {
     const d = $('#drawer'); d.hidden = !UI.drawer; if (!UI.drawer) return;
     const sc = d.querySelector('.scroll') ? d.querySelector('.scroll').scrollTop : 0;
     const done = doneCount();
@@ -3857,7 +4316,7 @@ if (typeof module !== 'undefined') module.exports = LIVE;
     $('#lookupBtn').hidden = az;
     $('#saveDot').innerHTML = `<i></i><span class="txt">Not saved · </span><span class="num">${fmtElapsed(LIVE.elapsed())}</span>`;
     const d = doneCount(); $('#progTxt').textContent = `${d}/${MISSIONS.length}`; $('#progBar').style.width = Math.round(d / MISSIONS.length * 100) + '%';
-    $('#misBtn').classList.toggle('on', UI.drawer); $('#lookupBtn').classList.toggle('on', UI.page === 'policy');
+    $('#misBtn').classList.toggle('on', UI.drawer && UI.drawerMode !== 'nm'); $('#nmBtn').classList.toggle('nm-on', NMS.on || (UI.drawer && UI.drawerMode === 'nm')); $('#lookupBtn').classList.toggle('on', UI.page === 'policy');
   }
   function renderMain() { const m = $('#main'); const sc = m.scrollTop; m.innerHTML = (P[UI.page] || P.dashboard)(); m.scrollTop = sc; }
   function renderAll() { renderHeader(); renderRail(); renderMain(); renderDrawer(); termPrompt(); }
@@ -3874,7 +4333,8 @@ if (typeof module !== 'undefined') module.exports = LIVE;
   $('#rail').addEventListener('click', e => { const a = e.target.closest('a[data-page]'); if (!a) return; e.preventDefault(); go(a.dataset.page); });
   window.addEventListener('hashchange', () => { const p = location.hash.slice(1); if (p && p !== UI.page) go(p); });
   $('#menuBtn').addEventListener('click', () => $('#rail').classList.toggle('open'));
-  $('#misBtn').addEventListener('click', () => { UI.drawer = !UI.drawer; renderAll(); });
+  $('#misBtn').addEventListener('click', () => { const open = UI.drawer && UI.drawerMode !== 'nm'; UI.drawerMode = 'missions'; UI.drawer = !open; renderAll(); });
+  $('#nmBtn').addEventListener('click', () => { const open = UI.drawer && UI.drawerMode === 'nm'; UI.drawerMode = 'nm'; UI.drawer = !open; renderAll(); });
   $('#lookupBtn').addEventListener('click', () => { go('policy'); setTimeout(() => { const c = $('#lookupCard'); if (c) { c.scrollIntoView({ block: 'start' }); const i = $('#lk_srcip'); if (i) i.focus(); } }, 30); });
 
   // boot
@@ -3916,7 +4376,7 @@ if (typeof module !== 'undefined') module.exports = LIVE;
   /* Node test hook: inert in the browser (nothing defines __labTestHook). tests/ui-render.test.js uses it
      to render every page from hostile state and run actions without a real DOM. */
   if (typeof window !== 'undefined' && typeof window.__labTestHook === 'function') {
-    window.__labTestHook({ P, A, ED, UI, go, valid, renderMain, renderAll, renderDrawer, saveForm, form: () => F, get S() { return S; }, set S(x) { S = x; } });
+    window.__labTestHook({ P, A, ED, UI, NMS, go, valid, renderMain, renderAll, renderDrawer, saveForm, form: () => F, get S() { return S; }, set S(x) { S = x; } });
   }
 })();
 
