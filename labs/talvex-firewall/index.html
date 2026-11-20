@@ -1,7 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>body{margin:0}[hidden]{display:none!important}</style>
-</head><body>
 <meta name="description" content="Talvex Firewall Lab: an interactive firewall and Azure training simulation with 43 missions, by Joshua Richard.">
 <meta property="og:title" content="Talvex Firewall Lab · Joshua Richard">
 <meta property="og:description" content="An interactive firewall and Azure training simulation with 43 missions. Runs in your browser.">
@@ -14,6 +13,10 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#1E1B15">
+<meta name="pizzazz-recipe" content='{"pz":1,"kit":"my-color-profile","concept":"Spec Sheet \u00b7 Lab","family":"refined","dev":{"intensity":"standard","accent":"amber (Azure view keeps Azure blue)","structure":"palette swap + title rule"},"sig":"amber title rule + triangle mark","pal":{"pri":"#1E1B15","sec":"#4A4339","tint":"#F7F3EC","zeb":"#F2ECE2","mut":"#4A4339","ftr":"#A3988A","hair":"#CFC4B2","acc":"#E0A82E","watch":"#A84A0F"},"font":{"h":"IBM Plex Sans Condensed","b":"IBM Plex Sans"},"date":"2026-11-20"}'>
+</head><body>
 <style>
 /* Layout: appliance console. Dark rail nav + top status bar, working pane in the middle, mission drawer on the right, terminal dock at the bottom. */
 :root {
@@ -277,6 +280,49 @@ textarea.inp { height: auto; min-height: 70px; padding: 8px 10px; resize: vertic
   .main { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+<style id="pz-lab">
+/* ---------- pizzazz: Spec Sheet palette (charcoal + amber) to match the portfolio. The Azure view keeps its Azure blue. ---------- */
+:root {
+  --bg: #F2ECE2; --panel: #FFFFFF; --panel-2: #F7F3EC; --ink: #1E1B15; --muted: #4A4339; --line: #CFC4B2; --line-2: #E6DED0;
+  --accent: #8A5A00; --accent-ink: #FFFFFF; --accent-soft: #F6E9CF;
+  --ok: #14683F; --ok-soft: #DCF2E6; --warn: #A84A0F; --warn-soft: #FBE7D7;
+  --rail: #1E1B15; --rail-ink: #D9D1C4; --rail-dim: #A3988A; --rail-hi: #2D2920; --rail-active: #E0A82E; --rail-active-ink: #1E1B15;
+  --term-bg: #12100C; --term-ink: #E6DCCB; --term-dim: #9A8F7C;
+  --pz-lattice: rgba(39, 36, 29, .055);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #16140F; --panel: #211E18; --panel-2: #2A261F; --ink: #F3EEE6; --muted: #BDB3A3; --line: #3A352C; --line-2: #2D2922;
+  --accent: #E8B84A; --accent-ink: #1E1B15; --accent-soft: #3A3018;
+  --warn: #F0955A; --warn-soft: #3A2416;
+  --rail: #0F0D0A; --rail-ink: #D9D1C4; --rail-dim: #968B79; --rail-hi: #221F19; --rail-active: #E0A82E;
+  --pz-lattice: rgba(243, 238, 230, .035);
+} }
+:root[data-theme="dark"] {
+  --bg: #16140F; --panel: #211E18; --panel-2: #2A261F; --ink: #F3EEE6; --muted: #BDB3A3; --line: #3A352C; --line-2: #2D2922;
+  --accent: #E8B84A; --accent-ink: #1E1B15; --accent-soft: #3A3018;
+  --warn: #F0955A; --warn-soft: #3A2416;
+  --rail: #0F0D0A; --rail-ink: #D9D1C4; --rail-dim: #968B79; --rail-hi: #221F19; --rail-active: #E0A82E;
+  --pz-lattice: rgba(243, 238, 230, .035);
+}
+/* amber highlight takes dark text (white on amber is unreadable); Azure view keeps white on blue */
+:root:not([data-view="azure"]) .tbtn.on,
+:root:not([data-view="azure"]) .viewsw button[aria-pressed="true"],
+:root:not([data-view="azure"]) .rail a.active { color: var(--rail-active-ink); }
+/* warm the hard-coded top-bar colours */
+.tbtn { border-color: #3A352C; background: #2A261F; color: #EDE5D7; }
+.tbtn:not(.on):hover { background: #353027; }
+.prog .bar { background: #3A352C; }
+.viewsw { border-color: #3A352C; background: #0F0D0A; }
+/* signature: a small triangle mark on the brand, and an amber rule under every page title */
+.brand b::before { content: ""; display: inline-block; width: 13px; height: 11px; margin-right: 8px; background: var(--rail-active); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.main h1::after { content: ""; display: block; width: 56px; height: 3px; border-radius: 2px; background: var(--accent); margin: 8px 0 6px; }
+/* a faint triangle lattice behind the working pane */
+.main { background-image:
+    linear-gradient(60deg, transparent 49.3%, var(--pz-lattice) 49.6%, var(--pz-lattice) 50.4%, transparent 50.7%),
+    linear-gradient(-60deg, transparent 49.3%, var(--pz-lattice) 49.6%, var(--pz-lattice) 50.4%, transparent 50.7%),
+    linear-gradient(0deg, transparent 49.2%, var(--pz-lattice) 49.6%, var(--pz-lattice) 50.4%, transparent 50.8%);
+  background-size: 64px 110.85px; background-attachment: local; }
 </style>
 
 <div class="app" id="app">
@@ -3518,7 +3564,7 @@ if (typeof module !== 'undefined') module.exports = LIVE;
   $('#startRoot').innerHTML = `<div class="modal-back"><div class="modal start" role="dialog" aria-modal="true" aria-label="Start the lab"><header><h2>Talvex Firewall Lab</h2></header><div class="body">
     <p style="margin:0">You are taking over the Talvex Components firewall as the old IT guy left it. The ${MISSIONS.length} missions walk you from reading the logs to a hardened box with a site-to-site tunnel into Azure, and then into building the Azure side itself, while live traffic and a few live attackers keep the logs moving.</p>
     <div class="notice"><b>Nothing is saved.</b> Closing or reloading this page resets the firewall, the missions and the traffic. Plan on one sitting of about 60 to 75 minutes. If you must step away, System → Backup &amp; Reset can copy your config to paste back later.</div>
-    <ul style="margin:0;padding-left:18px"><li>Missions open on the right. Checks run live as you work.</li><li>Policy Lookup shows which rule handles any packet.</li><li>The CLI button opens a console that shares the same config.</li><li>The FortiGate | Azure switch at the top flips between the firewall and a simulated Azure subscription.</li><li>New threats unlock as you progress. Watch the logs.</li></ul><p style="margin:12px 0 0;font-size:12px;opacity:.75">Independent training simulation by Joshua Richard. Not affiliated with or endorsed by Fortinet; FortiGate, FortiOS and FortiGuard are trademarks of Fortinet, Inc. Talvex is a fictional company and all data here is made up.</p>
+    <ul style="margin:0;padding-left:18px"><li>Missions open on the right. Checks run live as you work.</li><li>Policy Lookup shows which rule handles any packet.</li><li>The CLI button opens a console that shares the same config.</li><li>The FortiGate | Azure switch at the top flips between the firewall and a simulated Azure subscription.</li><li>New threats unlock as you progress. Watch the logs.</li></ul><p style="margin:12px 0 0;font-size:12px;opacity:.75">Independent training simulation by Joshua Richard. Not affiliated with or endorsed by Fortinet; FortiGate, FortiOS and FortiGuard are trademarks of Fortinet, Inc. Talvex is a fictional company and all data here is made up. <a href="../../">Back to the portfolio</a></p>
   </div><footer><button class="btn primary" id="startBtn" type="button">Start the lab</button></footer></div></div>`;
   $('#startBtn').addEventListener('click', startLab);
   $('#startBtn').focus();
