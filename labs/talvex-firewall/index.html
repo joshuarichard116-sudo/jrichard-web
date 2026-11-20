@@ -648,15 +648,18 @@ SIM.tunnel = (st, name) => {
     const any = (ip, b) => ip === '0.0.0.0' && b === 0;
     if (!any(q.srcIp, q.srcBits) || !any(q.dstIp, q.dstBits)) return { up: false, p1: true, reason: `Phase 2 "${q.name}": TS_UNACCEPTABLE. A route-based Azure gateway expects any-to-any selectors (0.0.0.0/0 to 0.0.0.0/0); control traffic with routes and policies instead` };
   }
-  return { up: true, p1: true, reason: 'Phase 1 and Phase 2 established with ' + P.remoteGw + (p1.dpd === 'disable' ? ' (DPD off: a dead peer will not be detected)' : '') };
+  if (P.live && P.gw.staleSa && p1.dpd === 'disable') return { up: false, p1: false, reason: `Stale IPsec SA: Azure gateway ${P.gw.name} was rebuilt during planned maintenance and dropped the old SAs, but Dead Peer Detection is disabled, so this firewall never notices and keeps encrypting into a dead SA` };
+  return { up: true, p1: true, reason: 'Phase 1 and Phase 2 established with ' + P.remoteGw + (p1.dpd === 'disable' ? ' (DPD off: a dead peer will not be detected)' : (P.live && P.gw.staleSa ? ' (DPD caught the dead SA left by Azure maintenance and renegotiated)' : '')) };
 };
 
 /* ---------- BGP over the tunnel ---------- */
+SIM.AZ_RESERVED_ASN = [8074, 8075, 12076, 65515, 65517, 65518, 65519, 65520]; // Microsoft VPN Gateway FAQ
 SIM.bgpStatus = st => {
   const B = st.bgp || { as: 0, neighbors: [] }, P = SIM.peer(st), A = P.live ? { peerIp: P.bgp.peerIp, asn: P.bgp.asn, ourTunnelIp: P.bgp.ourTunnelIp, theirTunnelIp: P.bgp.theirTunnelIp } : SIM.AZURE_BGP;
   return (B.neighbors || []).map(n => {
     const r = { ip: n.ip, remoteAs: n.remoteAs, up: false, reason: '', learned: [] };
     if (!B.as) { r.reason = 'Local AS is not set'; return r; }
+    if (SIM.AZ_RESERVED_ASN.includes(+B.as) && +B.as !== A.asn) { r.reason = `Local AS ${B.as} is reserved by Azure (8074, 8075, 12076, 65515, 65517-65520). Azure will not peer with it, and it no longer matches the local network gateway`; return r; }
     if (P.live && !P.bgp.enabled) { r.reason = `BGP is off on the Azure side (gateway ${P.gw.name}: ${P.gw.bgp ? 'on' : 'off'}, connection ${P.cn.name}: ${P.cn.enableBgp ? 'on' : 'off'}). Both must be on`; return r; }
     if (P.live && P.bgp.lngAsn && +B.as !== P.bgp.lngAsn) { r.reason = `OPEN rejected by Azure: local network gateway ${P.lng.name} says the office is AS ${P.bgp.lngAsn}, but this firewall is AS ${B.as}`; return r; }
     if (n.ip !== A.peerIp) { r.reason = `No BGP speaker at ${n.ip} (Azure gateway BGP peer IP is ${A.peerIp})`; return r; }
@@ -670,6 +673,7 @@ SIM.bgpStatus = st => {
     const p1 = st.vpn.phase1.find(p => p.name === tun.name);
     if (!p1.tunIp) { r.reason = `Tunnel interface ${tun.name} has no IP. Azure peers with ${A.ourTunnelIp}; set it on the interface`; return r; }
     if (p1.tunIp !== A.ourTunnelIp) { r.reason = `BGP OPEN from ${p1.tunIp} ignored: Azure was configured to peer with ${A.ourTunnelIp}`; return r; }
+    if (n.passive === 'enable' && /^169\.254\./.test(A.ourTunnelIp)) { r.reason = `Active: neighbor is passive, and Azure does not initiate BGP to an APIPA peer (${A.ourTunnelIp}). Both sides wait and the session never opens. Set passive disable`; return r; }
     r.up = true; r.reason = 'Established'; r.learned = P.azureNets.map(([ip, bits]) => ({ dst: ip, bits, device: tun.name }));
     return r;
   });
@@ -849,6 +853,8 @@ SIM.farEnd = (st, tunName, src, dst) => {
   if (!P.live) return { ok: null, msg: `Across the tunnel: handed to the Azure team's temporary gateway at ${P.remoteGw}. Build your own gateway and connection in the Azure view to follow the packet all the way` };
   const fmt = p => p.ip + '/' + p.bits;
   if (!P.vnet.addressSpace.some(p => SIM.inNet(dst, p.ip, p.bits))) return { ok: false, msg: `Azure: ${dst} is outside ${P.vnet.name} (${P.vnet.addressSpace.map(fmt).join(', ')}), so ${P.gw.name} drops it` };
+  const ov = P.vnet.addressSpace.find(p => SIM.inNet(src, p.ip, p.bits));
+  if (ov) return { ok: false, msg: `Azure: the packet arrives, but ${src} is inside ${P.vnet.name}'s own address space ${fmt(ov)}. Azure treats it as local, so the reply never goes back through the tunnel (overlapping address space)` };
   const bgpBack = (SIM.bgpStatus(st) || []).some(n => n.up) && SIM.AZ.onPremNets(st).some(n => SIM.inNet(src, n.ip, n.bits) && ((st.bgp || {}).networks || []).some(x => SIM.inNet(src, x.prefix || x.ip, x.bits)));
   const lngBack = P.lng && (P.lng.addressSpace || []).some(p => SIM.inNet(src, p.ip, p.bits));
   if (!bgpBack && !lngBack) return { ok: false, msg: `Azure: the packet arrives, but Azure has no route back to ${src}. Add that network to local network gateway ${P.lng.name}'s address space, or advertise it over BGP` };
@@ -1559,7 +1565,8 @@ CLI.T = {
       'neighbor': {
         key: 'ip', list: o => (o.neighbors = o.neighbors || []), create: ip => ({ ip, remoteAs: 0 }),
         validate: o => { if (!SIM.isIp(o.ip)) throw ERR('neighbor must be an IP address'); if (!o.remoteAs) throw ERR("Attribute 'remote-as' MUST be set."); },
-        f: { 'remote-as': { get: o => o.remoteAs ? String(o.remoteAs) : null, set: (o, v) => { const n = +need1(v); if (!(n >= 1)) throw ERR('invalid AS number'); o.remoteAs = n; } } }
+        f: { 'remote-as': { get: o => o.remoteAs ? String(o.remoteAs) : null, set: (o, v) => { const n = +need1(v); if (!(n >= 1)) throw ERR('invalid AS number'); o.remoteAs = n; } },
+          passive: { get: o => o.passive === 'enable' ? 'enable' : null, set: (o, v) => { const m = need1(v); if (!['enable', 'disable'].includes(m)) throw ERR(`value parse error before '${m}'`); o.passive = m; } } }
       },
       'network': {
         key: 'id', numeric: true, list: o => (o.networks = o.networks || []), create: id => ({ id, prefix: '', bits: 0 }),
@@ -1807,8 +1814,10 @@ CLI.Shell.prototype.diagnose = function (a, st) {
     if (!st.vpn.phase1.length) return '(no IKE gateways)';
     return st.vpn.phase1.map(p => { const tu = SIM.tunnel(st, p.name); return `vd: root/0\nname: ${p.name}\nversion: ${p.ike}\ninterface: ${p.interface}\naddr: ${(SIM.iface(st, p.interface) || {}).ip || '?'}:500 -> ${p.remoteGw}:500\ncreated: ${tu.p1 ? '312s ago' : '-'}\nIKE SA: created ${tu.p1 ? '1/1  established 1/1' : '0/1  established 0/1'}\nIPsec SA: created ${tu.up ? '1/1  established 1/1' : '0/1  established 0/1'}\nstatus: ${tu.up ? 'UP' : 'DOWN'}  ${tu.reason}`; }).join('\n\n');
   }
+  if (s.startsWith('vpn ike log-filter')) return 'command parse error before \'log-filter\'\nCommand fail. Return code -61\n(diagnose vpn ike log-filter was replaced in FortiOS 7.4.1. This firewall runs 7.4.5: use "diagnose vpn ike log filter rem-addr4 <peer-ip>")';
+  if (s.startsWith('vpn ike log filter')) { const m = a.slice(4); if (m[0] === 'rem-addr4' && SIM.isIp(m[1] || '')) return `IKE log filter set: rem-addr4 ${m[1]}. In this lab the negotiation result is summarized by "diagnose vpn ike gateway list".`; if (m[0] === 'clear') return 'IKE log filter cleared.'; return 'Usage (FortiOS 7.4.1 and later): diagnose vpn ike log filter rem-addr4 <peer-ip> | diagnose vpn ike log filter clear'; }
   if (s.startsWith('debug')) return 'Debug output is summarized in this lab: use "diagnose vpn ike gateway list" for tunnel negotiation results and "diagnose firewall iprope lookup" for policy matching.';
-  return 'Supported: diagnose firewall iprope lookup ... | diagnose vpn ike gateway list';
+  return 'Supported: diagnose firewall iprope lookup ... | diagnose vpn ike gateway list | diagnose vpn ike log filter rem-addr4 <ip>';
 };
 CLI.Shell.prototype.help = function () {
   const c = this.top();
@@ -1821,7 +1830,7 @@ CLI.Shell.prototype.help = function () {
 CLI.complete = function (shell, line) {
   const words = ['config', 'show', 'get', 'execute', 'diagnose', 'edit', 'set', 'unset', 'append', 'next', 'end', 'delete', 'move', 'abort', ...CLI.PATHS.flatMap(p => p.split(' ')), 'system', 'firewall', 'router', 'vpn', 'ipsec', 'status', 'info', 'routing-table', 'all', 'ping', 'iprope', 'lookup', 'enable', 'disable', 'accept', 'deny', 'before', 'after'];
   const c = shell.top(); if (c) { words.push(...Object.keys(c.T.f || {})); if (c.T.sub) words.push(...Object.keys(c.T.sub)); }
-  words.push('ftgd-wf', 'filters', 'entries', 'neighbor', 'network', 'web', 'category', 'block', 'exempt', 'remote-as', 'local-in-policy', 'syslogd', 'setting', 'accprofile', 'bgp', 'urlfilter', 'summary', 'categories', 'webfilter');
+  words.push('ftgd-wf', 'filters', 'entries', 'neighbor', 'network', 'web', 'category', 'block', 'exempt', 'remote-as', 'passive', 'local-in-policy', 'syslogd', 'setting', 'accprofile', 'bgp', 'urlfilter', 'summary', 'categories', 'webfilter');
   const parts = line.split(' '); const last = parts.pop();
   if (!last) return line;
   const m = [...new Set(words)].filter(w => w.startsWith(last));
@@ -2704,8 +2713,11 @@ if (typeof module !== 'undefined') module.exports = LIVE;
 .nm-card.win { border-left: 4px solid var(--ok); }
 .nm-card.lose { border-left: 4px solid var(--bad); }
 .nm-card ol { margin: 6px 0 0; padding-left: 20px; }
+.nm-card li, .nm-src { overflow-wrap: anywhere; }
 .nm-card li { margin: 4px 0; }
 .nm-warn { color: var(--bad); font-size: 13px; }
+.nm-src { font-size: 12px; margin-top: 6px; line-height: 1.45; }
+.nm-src a { color: var(--accent); }
 .topo-card { grid-column: 1 / -1; }
 .topo-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 2px; }
 .topo-hint { font-size: 12px; margin-left: auto; }
@@ -2896,14 +2908,14 @@ end`;
 
   /* ---------- the fault catalog ---------- */
   NM.FAULTS = [
-    { id: 'az-psk', level: 1, side: 'Azure', slot: 'psk', title: 'Shared key changed on the Azure connection',
+    { id: 'az-psk', ref: 'FGAZ-001', level: 1, side: 'Azure', slot: 'psk', title: 'Shared key changed on the Azure connection',
       inject: (st, lvl) => { const c = cn(st), bad = typo(PSK); c.sharedKey = bad; azLog(st, lvl, 'Create or update connection', c.name); return { bad }; },
       ticket: () => 'The Azure team rotated some secrets this morning. Since then nobody can reach the app server in Azure.',
       hints: () => ['Start with the tunnel. On the FortiGate, VPN → IPsec Tunnels shows the status and the exact reason.', 'AUTHENTICATION_FAILED means the two pre-shared keys differ. Which side changed today?', 'Compare the shared key on Azure connection cn-talvex-office with the FortiGate tunnel key, character by character.'],
       steps: p => ['FortiGate: VPN → IPsec Tunnels. To-Azure is down with IKE_AUTH: AUTHENTICATION_FAILED.', 'Azure view: Networking → Site-to-site VPN → Connection → Configuration.', `The shared key reads "${p.bad}". The FortiGate uses "${PSK}".`, 'Set the Azure shared key back to the FortiGate value and save. The tunnel comes up within a second.'],
       fix: st => { cn(st).sharedKey = PSK; },
       why: 'Rotating a pre-shared key on one end only is a classic outage. Rotate both ends in the same change window.' },
-    { id: 'fg-psk', level: 1, side: 'FortiGate', slot: 'psk', title: 'Pre-shared key changed on the FortiGate tunnel',
+    { id: 'fg-psk', ref: 'FGAZ-001', level: 1, side: 'FortiGate', slot: 'psk', title: 'Pre-shared key changed on the FortiGate tunnel',
       inject: (st, lvl) => { const bad = typo(PSK); p1(st).psk = bad; fgLog(st, lvl, 'vpn.ipsec.phase1-interface To-Azure'); return { bad }; },
       ticket: () => 'A contractor tidied up the firewall last night. This morning the Azure app server is unreachable.',
       hints: () => ['Is the tunnel up? VPN → IPsec Tunnels on the FortiGate.', 'AUTHENTICATION_FAILED: the keys differ. Check the System Events log for who changed what.', 'The Azure connection still has the original key. The FortiGate tunnel key was edited.'],
@@ -2917,7 +2929,7 @@ end`;
       steps: () => ['Policy Lookup 10.10.10.20 → 10.100.1.4 TCP/443: the firewall accepts it, but the Azure step says the VM is deallocated.', 'Azure view → Compute → Virtual machines → AZ-VM-APP01 → Start.'],
       fix: st => { vm(st).power = 'running'; },
       why: 'Not every outage is the network. Prove the path end to end before changing firewall rules.' },
-    { id: 'pol-off', level: 1, side: 'FortiGate', slot: 'pol-lan', title: 'LAN-to-Azure policy disabled',
+    { id: 'pol-off', ref: 'FGAZ-018', level: 1, side: 'FortiGate', slot: 'pol-lan', title: 'LAN-to-Azure policy disabled',
       inject: (st, lvl) => { pol(st, 'LAN-to-Azure').status = 'disable'; fgLog(st, lvl, 'firewall.policy LAN-to-Azure'); return {}; },
       ticket: () => 'Front office users cannot open the Azure app or remote into the server. The server team says Azure looks healthy.',
       hints: () => ['Policy Lookup 10.10.10.20 → 10.100.1.4 HTTPS shows which rule handles it.', 'A rule that is disabled is skipped. Look at the policy list status column.', 'Policy & Objects → Firewall Policy → LAN-to-Azure.'],
@@ -2931,28 +2943,28 @@ end`;
       steps: () => ['VPN → IPsec Tunnels: To-Azure says "Tunnel is administratively disabled".', 'Edit To-Azure → Status: enable (CLI: config vpn ipsec phase1-interface → edit To-Azure → set status enable).'],
       fix: st => { p1(st).status = 'enable'; },
       why: '"Nobody changed anything" is rarely true. The event log is your friend.' },
-    { id: 'lng-ip', level: 2, side: 'Azure', slot: 'lng-ip', title: 'Local network gateway points at the wrong office IP',
+    { id: 'lng-ip', ref: 'FGAZ-002', level: 2, side: 'Azure', slot: 'lng-ip', title: 'Local network gateway points at the wrong office IP',
       inject: (st, lvl) => { const l = lng(st), bad = pick(['203.0.113.11', '203.0.113.12', '203.0.113.14', '198.51.100.10']); l.ip = bad; azLog(st, lvl, 'Create or update local network gateway', l.name); return { bad }; },
       ticket: () => 'Someone on the Azure team "updated the office details" and now the tunnel will not come back.',
       hints: () => ['The FortiGate reports no response from Azure at all. Azure is ignoring the firewall.', 'Azure only accepts IKE from the address on the local network gateway.', 'Compare lng-talvex-office\'s IP address with the FortiGate WAN IP (port1).'],
       steps: p => ['FortiGate: To-Azure says Azure only accepts IKE from the local network gateway address.', `Azure: Site-to-site VPN → Local network gateway shows ${p.bad}. The office WAN IP is 203.0.113.10.`, 'Edit lng-talvex-office → IP address 203.0.113.10 → Save.'],
       fix: st => { lng(st).ip = '203.0.113.10'; },
       why: 'Azure silently drops IKE from unknown peers, so the firewall just sees timeouts. Always check the local network gateway first.' },
-    { id: 'ike-ver', level: 2, side: 'Azure', slot: 'ike', title: 'Azure connection switched to IKEv1',
+    { id: 'ike-ver', ref: 'FGAZ-021', level: 2, side: 'Azure', slot: 'ike', title: 'Azure connection switched to IKEv1',
       inject: (st, lvl) => { cn(st).ike = 'IKEv1'; azLog(st, lvl, 'Create or update connection', 'cn-talvex-office'); return {}; },
       ticket: () => 'The tunnel dropped right after an Azure change ticket titled "compatibility settings".',
       hints: () => ['Read the To-Azure reason on the FortiGate.', 'Both sides must speak the same IKE version.', 'Azure connection cn-talvex-office → Configuration → IKE protocol.'],
       steps: () => ['FortiGate: To-Azure says the Azure connection is set to IKEv1 but the tunnel speaks IKEv2.', 'Azure: Connection → Configuration → IKE protocol: IKEv2 → Save.'],
       fix: st => { cn(st).ike = 'IKEv2'; },
       why: 'IKEv2 is the modern standard and what Azure route-based gateways expect. Downgrading to IKEv1 breaks the tunnel and weakens it.' },
-    { id: 'pfs', level: 2, side: 'FortiGate', slot: 'p2', title: 'PFS turned on in phase 2 (Azure default policy uses none)',
+    { id: 'pfs', ref: 'FGAZ-004', level: 2, side: 'FortiGate', slot: 'p2', title: 'PFS turned on in phase 2 (Azure default policy uses none)',
       inject: (st, lvl) => { const q = p2(st), g = pick([14, 19, 20]); q.pfs = 'enable'; q.dhgrp = [g]; fgLog(st, lvl, 'vpn.ipsec.phase2-interface To-Azure-P2'); return { g }; },
       ticket: () => 'An overnight "hardening" script ran against the firewall. Azure has been down since.',
       hints: () => ['Phase 1 is up, so the keys and IKE are fine. Look at phase 2.', 'The Azure default IPsec policy uses PFS None.', 'VPN → IPsec Tunnels → edit To-Azure → phase 2 → PFS.'],
       steps: p => ['FortiGate: To-Azure phase 2 fails: the peer rejected the PFS Diffie-Hellman group.', `Phase 2 To-Azure-P2 now has PFS on with group ${p.g}. Azure's default policy has no PFS.`, 'CLI: config vpn ipsec phase2-interface → edit To-Azure-P2 → set pfs disable → next → end. (Or apply a matching custom IPsec policy on Azure.)'],
       fix: st => { const q = p2(st); q.pfs = 'disable'; q.dhgrp = []; },
       why: 'Hardening one side of a tunnel without the other side breaks it. Crypto changes are always a two-team change.' },
-    { id: 'dh', level: 2, side: 'FortiGate', slot: 'p1crypto', title: 'Phase 1 DH group changed to one Azure does not accept',
+    { id: 'dh', ref: 'FGAZ-003', level: 2, side: 'FortiGate', slot: 'p1crypto', title: 'Phase 1 DH group changed to one Azure does not accept',
       inject: (st, lvl) => { const g = pick([5, 15, 19, 20, 21]); p1(st).dhgrp = [g]; fgLog(st, lvl, 'vpn.ipsec.phase1-interface To-Azure dhgrp'); return { g }; },
       ticket: () => 'After last night\'s "crypto upgrade" on the firewall, the Azure tunnel never came back.',
       hints: () => ['The FortiGate reason mentions INVALID_KE_PAYLOAD.', 'That is a Diffie-Hellman group mismatch in phase 1.', 'Azure\'s default policy accepts DH groups 2, 14 and 24.'],
@@ -2966,7 +2978,7 @@ end`;
       steps: () => ['FortiGate: To-Azure says ESP is being dropped and Azure expects NAT-T.', 'config vpn ipsec phase1-interface → edit To-Azure → set nattraversal enable.'],
       fix: st => { p1(st).nattraversal = 'enable'; },
       why: 'Most cloud gateways are behind NAT. Without NAT-T the tunnel looks up but carries nothing.' },
-    { id: 'shadow', level: 2, side: 'FortiGate', slot: 'pol-lan', title: 'A deny rule above LAN-to-Azure shadows it',
+    { id: 'shadow', ref: 'FGAZ-018', level: 2, side: 'FortiGate', slot: 'pol-lan', title: 'A deny rule above LAN-to-Azure shadows it',
       inject: (st, lvl) => {
         const name = pick(['Block-Old-Subnet', 'Temp-Deny-Azure', 'Quarantine-Rule']), id = st.nextPolicyId++;
         st.policies.unshift(Object.assign(SIM.clone(pol(st, 'LAN-to-Azure')), { id, name, service: ['ALL'], action: 'deny', nat: false, hits: 0, lastHit: 0, comments: pick(['temporary', 'incident 4471', '']) }));
@@ -3033,14 +3045,86 @@ end`;
       steps: p => ['Policy Lookup: Azure has no route back to 10.10.10.20.', `The FortiGate no longer advertises 10.10.10.0/24 over BGP, and lng-talvex-office lists ${p.bad} instead of 10.10.10.0/24.`, 'Fix either one (best: both): config router bgp → config network → edit 1 → set prefix 10.10.10.0 255.255.255.0, and set the local network gateway address space to 10.10.10.0/24.'],
       fix: st => { st.bgp.networks = [{ id: 1, prefix: '10.10.10.0', bits: 24 }]; lng(st).addressSpace = [{ ip: '10.10.10.0', bits: 24 }]; },
       why: 'Routing is two-way. A tunnel can be perfectly up while the far side has no idea how to send the reply.' },
-    { id: 'az-custom', level: 4, side: 'Both', slot: 'p2', title: 'Azure applied a custom IPsec policy the FortiGate does not match',
+    { id: 'az-custom', ref: 'FGAZ-003', level: 4, side: 'Both', slot: 'p2', title: 'Azure applied a custom IPsec policy the FortiGate does not match',
       inject: (st, lvl) => { st.azure.policy = 'custom'; azLog(st, lvl, 'Create or update connection', 'cn-talvex-office'); return {}; },
       ticket: () => 'The Azure team "tightened the crypto policy for compliance". The tunnel has been down ever since.',
       hints: () => ['Phase 1 comes up. Phase 2 does not. Read the phase 2 reason.', 'The custom Azure policy wants AES256-GCM with PFS group 14 in phase 2.', 'Either match it on the FortiGate phase 2, or (if the change was not approved) set the connection back to the default policy.'],
       steps: () => ['FortiGate: phase 2 NO_PROPOSAL_CHOSEN: the custom Azure policy requires AES256GCM with PFS group 14.', 'Option A (keep the stronger policy): config vpn ipsec phase2-interface → edit To-Azure-P2 → set proposal aes256gcm → set pfs enable → set dhgrp 14.', 'Option B (roll back the unapproved change): Azure → Connection → Configuration → IPsec / IKE policy: Default.'],
       fix: st => { st.azure.policy = 'default'; },
-      why: 'Compliance-driven crypto changes are good, but they must be coordinated: one side changing alone is an outage.' }
+      why: 'Compliance-driven crypto changes are good, but they must be coordinated: one side changing alone is an outage.' },
+    /* ---- from the FortiGate + Azure field scenario pack (FGAZ ids): each one is a documented real-world failure ---- */
+    { id: 'dpd-off', ref: 'FGAZ-008', level: 2, side: 'FortiGate', slot: 'dpd', title: 'Dead Peer Detection disabled, then Azure did gateway maintenance',
+      inject: (st, lvl) => { p1(st).dpd = 'disable'; const g = st.azure.gateways[0]; g.staleSa = true; fgLog(st, lvl, 'vpn.ipsec.phase1-interface To-Azure dpd'); if (lvl < 5) AZ.log(st, 'Planned maintenance: VPN gateway instances updated', g.name, 'rg-talvex-hub-scus', 'Succeeded', 'Azure platform'); return {}; },
+      ticket: () => 'Azure did planned maintenance on the VPN gateway overnight. Everything was supposed to come back by itself. It did not.',
+      hints: () => ['Azure says the connection is down. What does the FortiGate think the tunnel is doing? Read the To-Azure reason.', 'The FortiGate still trusts an IPsec SA that Azure threw away during maintenance. Which feature notices a dead peer?', 'Phase 1 of To-Azure: Dead Peer Detection is disabled.'],
+      steps: () => ['FortiGate: VPN → IPsec Tunnels: To-Azure is stuck on a stale SA. Azure rebuilt its side during maintenance and the FortiGate never noticed, because DPD is off.', 'Edit To-Azure → Dead Peer Detection: On Idle (CLI: config vpn ipsec phase1-interface → edit To-Azure → set dpd on-idle → next → end). DPD finds the dead SA and the tunnel renegotiates.', 'Real world: keep the FortiGate DPD timers (dpd-retrycount, dpd-retryinterval) in line with the Azure connection DPD timeout, which Set-AzVirtualNetworkGatewayConnection -DpdTimeoutInSeconds changes.'],
+      fix: st => { p1(st).dpd = 'on-idle'; },
+      why: 'Without DPD, a tunnel that died on the far side looks up forever on yours. Azure patches its gateways, so assume the peer will restart and let DPD notice.' },
+    { id: 'ts-sel', ref: 'FGAZ-005', level: 3, side: 'FortiGate', slot: 'p2', title: 'Phase 2 narrowed to specific subnets (traffic selector mismatch)',
+      inject: (st, lvl) => { const q = p2(st), v = pick([['10.10.10.0', 24, '10.100.1.0', 24], ['10.10.10.0', 24, '10.100.0.0', 16], ['10.10.0.0', 16, '10.100.1.0', 24]]); q.srcIp = v[0]; q.srcBits = v[1]; q.dstIp = v[2]; q.dstBits = v[3]; fgLog(st, lvl, 'vpn.ipsec.phase2-interface To-Azure-P2 src-subnet dst-subnet'); return { src: v[0] + '/' + v[1], dst: v[2] + '/' + v[3] }; },
+      ticket: () => 'The firewall team "tightened the VPN so only the office LAN can reach the app subnet". The tunnel has been down ever since.',
+      hints: () => ['Phase 1 comes up. Which phase fails, and with which error?', 'TS_UNACCEPTABLE is about traffic selectors: the networks each side proposes in phase 2.', 'A route-based Azure gateway proposes 0.0.0.0/0 to 0.0.0.0/0. Look at the source and destination on To-Azure-P2.'],
+      steps: p => ['FortiGate: VPN → IPsec Tunnels: To-Azure phase 2 fails with TS_UNACCEPTABLE.', `Phase 2 To-Azure-P2 now proposes ${p.src} → ${p.dst}. A route-based Azure gateway proposes any-to-any.`, 'CLI: config vpn ipsec phase2-interface → edit To-Azure-P2 → set src-subnet 0.0.0.0 0.0.0.0 → set dst-subnet 0.0.0.0 0.0.0.0 → next → end. Restrict traffic with firewall policies instead.', 'Real FortiGate (7.4.1 and later): diagnose vpn ike log filter rem-addr4 198.51.100.25, then diagnose debug application ike -1 and diagnose debug enable to see both sides\' selectors. Before 7.4.1 the filter was diagnose vpn ike log-filter dst-addr4.'],
+      fix: st => { const q = p2(st); q.srcIp = '0.0.0.0'; q.srcBits = 0; q.dstIp = '0.0.0.0'; q.dstBits = 0; },
+      why: 'Route-based Azure gateways negotiate one any-to-any selector pair and leave the rest to routing. Specific selectors need UsePolicyBasedTrafficSelectors on the Azure connection and a phase 2 for every subnet pair.' },
+    { id: 'p2-extra', ref: 'FGAZ-017', level: 3, side: 'FortiGate', slot: 'p2', title: 'Firmware upgrade left an extra phase 2 that does not match Azure',
+      inject: (st, lvl) => { const name = pick(['To-Azure-P2-1', 'To-Azure_0', 'To-Azure-P2-old']); st.vpn.phase2.push({ name, phase1: 'To-Azure', proposals: ['aes256-sha1'], pfs: 'enable', dhgrp: [14], srcIp: '0.0.0.0', srcBits: 0, dstIp: '0.0.0.0', dstBits: 0 }); if (lvl < 5) SIM.event(st, 'system', 'notice', 'Firmware upgraded to v7.4.5 build 2702 by admin via GUI(10.10.10.41): configuration converted'); return { name }; },
+      ticket: () => 'The firewall was upgraded in last night\'s maintenance window. The Azure tunnel has been down since. The change record says "no config changes".',
+      hints: () => ['Phase 1 is up. Which phase 2 is failing? Read its name carefully.', 'Count the phase 2 objects under To-Azure (show vpn ipsec phase2-interface).', 'One of them was not there before the upgrade, and its proposal (PFS group 14) does not match Azure\'s default policy.'],
+      steps: p => [`FortiGate: To-Azure phase 2 "${p.name}" fails: the peer rejected its PFS group.`, `show vpn ipsec phase2-interface lists two phase 2 objects on To-Azure: To-Azure-P2 (correct) and ${p.name} (aes256-sha1 with PFS group 14, new since the upgrade).`, `CLI: config vpn ipsec phase2-interface → delete ${p.name} → end.`],
+      fix: (st, p) => { st.vpn.phase2 = st.vpn.phase2.filter(q => q.name !== p.name); },
+      why: 'After every firmware upgrade, diff the config against the pre-upgrade backup. Upgrades can convert or add objects, and "no config changes" only means nobody typed any.' },
+    { id: 'bgp-path', ref: 'FGAZ-010', level: 3, side: 'FortiGate', slot: 'bgp-fg', title: 'BGP peer unreachable inside the tunnel',
+      inject: (st, lvl) => {
+        if (Math.random() < 0.5) { const i = st.routes.findIndex(r => r.dst === '10.100.0.254' && r.bits === 32); if (i < 0) throw new Error('no peer route'); const route = SIM.clone(st.routes.splice(i, 1)[0]); fgLog(st, lvl, 'router.static ' + route.seq); return { kind: 'route', route }; }
+        const t = p1(st); t.tunIp = ''; t.tunRemote = ''; fgLog(st, lvl, 'system.interface To-Azure ip'); return { kind: 'tunip' };
+      },
+      ticket: p => p.kind === 'route' ? 'Someone "cleaned up unused static routes" on the firewall. Azure still shows the connection as Connected, but the office has no routes to Azure.' : 'Someone "cleaned up unused interface addresses" on the firewall. Azure still shows the connection as Connected, but the office has no routes to Azure.',
+      hints: p => ['Tunnel up, no routes: BGP. What state is the neighbor in, and why?', 'BGP runs inside the tunnel. Can the firewall even reach 10.100.0.254 through To-Azure?', p.kind === 'route' ? 'Routing Monitor (get router info routing-table all): is there still a /32 route for 10.100.0.254 via To-Azure?' : 'Network → Interfaces → To-Azure: does the tunnel interface still have 169.254.21.2 with remote 169.254.21.1?'],
+      steps: p => p.kind === 'route'
+        ? ['Network → BGP: neighbor 10.100.0.254 says there is no route to it through the IPsec tunnel.', 'The /32 static route for the Azure BGP peer via To-Azure was deleted.', 'CLI: config router static → edit 0 → set dst 10.100.0.254 255.255.255.255 → set device "To-Azure" → next → end.']
+        : ['Network → BGP: neighbor 10.100.0.254 says tunnel interface To-Azure has no IP.', 'Network → Interfaces → To-Azure: IP and remote IP are blank.', 'CLI: config system interface → edit To-Azure → set ip 169.254.21.2 255.255.255.255 → set remote-ip 169.254.21.1 255.255.255.255 → next → end.'],
+      fix: (st, p) => { if (p.kind === 'route') { if (!st.routes.some(r => r.dst === '10.100.0.254' && r.bits === 32)) st.routes.push(SIM.clone(p.route)); } else { const t = p1(st); t.tunIp = '169.254.21.2'; t.tunRemote = '169.254.21.1'; } },
+      why: 'BGP over IPsec needs three things inside the tunnel: addresses on the tunnel interface, a route to the peer through the tunnel, and matching neighbor settings. Lose one and the routes vanish while the tunnel still looks healthy.' },
+    { id: 'asn-rsvd', ref: 'FGAZ-012', level: 3, side: 'FortiGate', slot: 'bgp-fg', title: 'Firewall BGP AS changed to an Azure-reserved number',
+      inject: (st, lvl) => { const bad = pick([65515, 65517, 65518, 65519, 65520]); st.bgp.as = bad; fgLog(st, lvl, 'router.bgp as'); return { bad }; },
+      ticket: () => 'The network team renumbered the firewall\'s BGP AS "to match the Azure standard". The office lost its Azure routes right after.',
+      hints: () => ['Tunnel up, BGP down. Compare the AS number each side claims.', 'Azure reserves some private AS numbers for itself: 65515 and 65517 to 65520 (and public 8074, 8075 and 12076).', 'The office firewall must keep a non-reserved private AS that matches the local network gateway: 65010.'],
+      steps: p => [`Network → BGP: local AS is now ${p.bad}. Azure reserves it, and lng-talvex-office still says the office is AS 65010.`, 'CLI: config router bgp → set as 65010 → end.', 'Real world, check both sides: get router info bgp summary on the FortiGate, and (Get-AzLocalNetworkGateway -Name lng-talvex-office -ResourceGroupName rg-talvex-hub-scus).BgpSettings in Azure PowerShell.'],
+      fix: st => { st.bgp.as = 65010; },
+      why: 'Azure keeps 65515 and 65517-65520 for its own gateways and route servers. The on-premises side needs its own private AS, and the same number on the local network gateway.' },
+    { id: 'bgp-passive', ref: 'FGAZ-011', level: 4, side: 'FortiGate', slot: 'bgp-fg', title: 'BGP neighbor set to passive while the office peers from an APIPA address',
+      inject: (st, lvl) => { st.bgp.neighbors[0].passive = 'enable'; fgLog(st, lvl, 'router.bgp neighbor 10.100.0.254 passive'); return {}; },
+      ticket: () => 'A consultant "hardened BGP so the firewall only accepts sessions and never opens them". Routes to Azure vanished after the next tunnel reset.',
+      hints: () => ['Tunnel up, BGP not Established. Read the neighbor reason.', 'The office BGP address is 169.254.21.2, an APIPA address. Who does Microsoft say has to open the session in that case?', 'Azure never initiates to an APIPA peer, so the FortiGate must. Look for passive on the neighbor.'],
+      steps: () => ['Network → BGP: neighbor 10.100.0.254 sits in Active. It is passive, and Azure does not open BGP to an APIPA (169.254.x.x) peer, so neither side starts the session.', 'Edit the neighbor → Passive: Disable (CLI: config router bgp → config neighbor → edit 10.100.0.254 → set passive disable → next → end).', 'Real world, Azure side: Get-AzVirtualNetworkGatewayBgpPeerStatus -ResourceGroupName rg-talvex-hub-scus -VirtualNetworkGatewayName vgw-talvex-hub shows the peer state.'],
+      fix: st => { st.bgp.neighbors[0].passive = 'disable'; },
+      why: 'Microsoft documents that Azure VPN Gateway does not initiate BGP to APIPA peers. When the office uses APIPA, the office router has to be the active speaker.' },
+    { id: 'overlap', ref: 'FGAZ-020', level: 4, side: 'Azure', slot: 'vnet', title: 'Azure VNet address space now overlaps the office LAN',
+      inject: (st, lvl) => { const v = AZ.vnet(st, 'rg-talvex-hub-scus', 'vnet-talvex-hub'), bad = pick(['10.10.0.0/16', '10.10.10.0/24', '10.0.0.0/12']); v.addressSpace.push(AZ.parsePrefix(bad)); azLog(st, lvl, 'Create or update virtual network', v.name); return { bad }; },
+      ticket: () => 'The Azure team expanded the hub network to get ready for the file server migration. Since then the office cannot reach the app server, although the tunnel and BGP are both up.',
+      hints: () => ['Policy Lookup 10.10.10.20 → 10.100.1.4 gets into Azure. Read the Azure step.', 'Compare every address space on vnet-talvex-hub with the office LAN, 10.10.10.0/24.', 'A new address space contains the office LAN, so Azure thinks the office is local.'],
+      steps: p => ['Policy Lookup 10.10.10.20 → 10.100.1.4: the Azure step says the reply stays inside the VNet.', `Azure: Networking → Virtual networks → vnet-talvex-hub → Address space: ${p.bad} overlaps the office LAN 10.10.10.0/24.`, `Remove ${p.bad} from the address space (it has no subnets yet). In Azure PowerShell: $vnet = Get-AzVirtualNetwork -Name vnet-talvex-hub -ResourceGroupName rg-talvex-hub-scus; $vnet.AddressSpace.AddressPrefixes.Remove('${p.bad}'); $vnet | Set-AzVirtualNetwork.`, 'If both sides truly need the same range, renumber one side or translate it with Azure VPN Gateway NAT rules (IngressSnat / EgressSnat).'],
+      fix: (st, p) => { const v = AZ.vnet(st, 'rg-talvex-hub-scus', 'vnet-talvex-hub'), b = AZ.parsePrefix(p.bad); v.addressSpace = v.addressSpace.filter(a => !(a.ip === b.ip && a.bits === b.bits)); },
+      why: 'Overlapping address space is a design bug, not a typo. Reserve and document cloud IP ranges before anyone builds them, and check new ranges against every connected site.' }
   ];
+
+  /* real-world provenance for faults tagged with ref: the pack's own evidence note and source links, shown after an incident */
+  NM.SOURCES = {
+    "FGAZ-001": { title: "Pre-shared key mismatch", evidence: "Official Microsoft troubleshooting guide lists PSK mismatch as a leading cause; AUTHENTICATION_FAILED log text also seen in community blog.", urls: ["https://learn.microsoft.com/en-us/troubleshoot/azure/vpn-gateway/troubleshoot-vpn-tunnel-cannot-connect"] },
+    "FGAZ-002": { title: "Wrong on-premises public IP in the Azure Local Network Gateway", evidence: "Official Microsoft guide lists wrong on-premises peer public IP on the LNG as a top cause.", urls: ["https://learn.microsoft.com/en-us/troubleshoot/azure/vpn-gateway/troubleshoot-vpn-tunnel-cannot-connect"] },
+    "FGAZ-003": { title: "IKE/IPsec proposal mismatch (Azure custom policy vs FortiGate proposals)", evidence: "Microsoft docs plus a real Server Fault post and Fortinet doc.", urls: ["https://learn.microsoft.com/en-us/azure/vpn-gateway/ipsec-ike-policy-howto", "https://serverfault.com/questions/1048360/azure-site-to-site-vpn-and-fortigate-ipsec-phase-2-error-on-sa-re-establishment", "https://docs.fortinet.com/document/fortigate/8.0.2/administration-guide/255100/ipsec-vpn-to-azure-with-virtual-network-gateway"] },
+    "FGAZ-004": { title: "PFS enabled on only one side (tunnel flaps or fails at phase 2)", evidence: "Fortinet KB and Microsoft guide both name PFS mismatch.", urls: ["https://community.fortinet.com/fortigate-3/troubleshooting-tip-some-known-ipsec-vpn-issues-between-fortigate-and-third-party-devices-153830", "https://learn.microsoft.com/en-us/troubleshoot/azure/vpn-gateway/troubleshoot-vpn-tunnel-cannot-connect"] },
+    "FGAZ-005": { title: "Phase 2 traffic selector mismatch (specific subnets vs route-based gateway)", evidence: "Real Microsoft Q&A thread plus how-to blog and Microsoft doc.", urls: ["https://learn.microsoft.com/en-us/answers/questions/1289556/azure-to-fortigate-vpn-phase-2-traffic-selector-mi", "https://www.dharper.co.uk/knowledge-base/site-to-site-vpn-between-a-fortigate-and-an-azure-vpn-gateway-route-based-ikev2", "https://learn.microsoft.com/en-us/azure/vpn-gateway/ipsec-ike-policy-howto"] },
+    "FGAZ-008": { title: "Dead Peer Detection disabled or too aggressive", evidence: "Fortinet KB, Microsoft Q&A and Microsoft doc.", urls: ["https://community.fortinet.com/fortigate-3/technical-tip-explanation-of-ipsec-vpn-dpd-options-and-on-idle-tunnel-flushing-process-137398", "https://learn.microsoft.com/en-us/answers/questions/2213265/s2s-vpn-connection-custom-ipsec-policy-with-client", "https://learn.microsoft.com/en-us/azure/vpn-gateway/ipsec-ike-policy-howto"] },
+    "FGAZ-010": { title: "BGP stays Idle over the tunnel: missing BGP peer addresses/selectors", evidence: "Fortinet KBs, a real forum thread, and Microsoft BGP troubleshooting guide.", urls: ["https://community.fortinet.com/fortigate-3/technical-tip-bgp-over-an-azure-vnet-vpn-103398", "https://community.fortinet.com/fortigate-3/troubleshooting-tip-bgp-peering-is-not-established-after-setting-up-site-to-site-vpn-tunnel-between-azure-firewall-and-on-premise-fortigate-155143", "https://community.fortinet.com/support-forum-92/fortigate-azure-ipsec-to-a-vpn-gateway-using-bgp-46337", "https://learn.microsoft.com/en-us/troubleshoot/azure/vpn-gateway/vpn-gateway-troubleshoot-bgp"] },
+    "FGAZ-011": { title: "APIPA BGP: Azure never initiates the session", evidence: "Microsoft docs.", urls: ["https://learn.microsoft.com/en-us/azure/vpn-gateway/configure-bgp", "https://learn.microsoft.com/en-us/troubleshoot/azure/vpn-gateway/vpn-gateway-troubleshoot-bgp"] },
+    "FGAZ-012": { title: "BGP ASN conflict or reserved ASN", evidence: "Microsoft BGP troubleshooting guide.", urls: ["https://learn.microsoft.com/en-us/troubleshoot/azure/vpn-gateway/vpn-gateway-troubleshoot-bgp"] },
+    "FGAZ-017": { title: "FortiOS upgrade adds an extra phase 2 object so phase 2 no longer matches", evidence: "Fortinet community KB (FortiGate-to-FortiGate example, applicable to Azure).", urls: ["https://community.fortinet.com/fortigate-3/troubleshooting-tip-ipsec-phase2-failed-to-come-up-after-fortios-fortigate-upgrade-180400"] },
+    "FGAZ-018": { title: "Tunnel up, no traffic: missing firewall policy or RPF/route problem on the FortiGate", evidence: "Fortinet KB (RPF article read in full; the second link appeared in search results only).", urls: ["https://community.fortinet.com/fortigate-3/troubleshooting-tip-troubleshooting-ipsec-vpn-routing-issues-related-to-reverse-path-forwarding-rpf-145849", "https://community.fortinet.com/fortigate-3/troubleshooting-tip-ipsec-tunnel-up-but-no-traffic-is-passing-though-the-tunnel-111265"] },
+    "FGAZ-020": { title: "Overlapping address space between on-prem and Azure VNet", evidence: "Microsoft Q&A advice and Microsoft NAT doc.", urls: ["https://learn.microsoft.com/en-us/answers/questions/1289556/azure-to-fortigate-vpn-phase-2-traffic-selector-mi", "https://learn.microsoft.com/en-us/azure/vpn-gateway/nat-overview"] },
+    "FGAZ-021": { title: "BGP requested on a Basic SKU or policy-based VPN gateway; IKEv1/IKEv2 mismatch", evidence: "Microsoft docs.", urls: ["https://learn.microsoft.com/en-us/troubleshoot/azure/vpn-gateway/vpn-gateway-troubleshoot-bgp", "https://learn.microsoft.com/en-us/azure/vpn-gateway/vpn-gateway-about-vpn-gateway-settings"] }
+  };
 
   /* ---------- incidents ---------- */
   NM.faultsFor = level => {
@@ -3079,7 +3163,7 @@ end`;
     if (inc.planted.length > 1) out[0] = `There are ${inc.planted.length} separate problems in this incident. ` + out[0];
     return out;
   };
-  NM.walkthrough = inc => inc.planted.map(x => { const f = NM.fault(x.id); return { title: f.title, side: f.side, steps: f.steps(x.p), why: f.why }; });
+  NM.walkthrough = inc => inc.planted.map(x => { const f = NM.fault(x.id); return { title: f.title, side: f.side, steps: f.steps(x.p), why: f.why, ref: f.ref || '', source: f.ref ? NM.SOURCES[f.ref] || null : null }; });
   NM.applyFix = (st, inc) => { for (const x of inc.planted) NM.fault(x.id).fix(st, x.p); };
   NM.resolved = st => healthy(st);
   NM.points = inc => Math.max(10, 100 * inc.level - 15 * inc.hints - 5 * Math.floor((Date.now() - inc.startedAt) / 60000));
@@ -3720,9 +3804,9 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
   ED.bgpNeighbor = (ip) => {
     const o = ip ? S.bgp.neighbors.find(n => n.ip === ip) : { ip: '', remoteAs: '' };
     openForm({
-      title: ip ? `Edit Neighbor ${ip}` : 'New BGP Neighbor', data: { ip: o.ip, remoteAs: o.remoteAs || '' }, msg: x => `router bgp neighbor ${x.ip} saved`,
-      fields: [{ key: 'ip', label: 'Neighbor IP', mono: true, ro: !!ip, placeholder: '10.100.0.254' }, { key: 'remoteAs', label: 'Remote AS', type: 'number', placeholder: '65515' }],
-      onSave: x => { if (!SIM.isIp(x.ip)) return 'Enter a valid neighbor IP.'; const n = +x.remoteAs; if (!(n >= 1)) return 'Enter the remote AS number.'; if (!ip && S.bgp.neighbors.some(z => z.ip === x.ip)) return 'That neighbor already exists.'; if (ip) o.remoteAs = n; else S.bgp.neighbors.push({ ip: x.ip, remoteAs: n }); }
+      title: ip ? `Edit Neighbor ${ip}` : 'New BGP Neighbor', data: { ip: o.ip, remoteAs: o.remoteAs || '', passive: o.passive === 'enable' ? 'enable' : 'disable' }, msg: x => `router bgp neighbor ${x.ip} saved`,
+      fields: [{ key: 'ip', label: 'Neighbor IP', mono: true, ro: !!ip, placeholder: '10.100.0.254' }, { key: 'remoteAs', label: 'Remote AS', type: 'number', placeholder: '65515' }, { key: 'passive', label: 'Passive', type: 'select', options: [['disable', 'Disable (this firewall may open the session)'], ['enable', 'Enable (only wait for the peer)']], help: 'Azure does not open BGP sessions to APIPA (169.254.x.x) peers, so keep this disabled for Azure.' }],
+      onSave: x => { if (!SIM.isIp(x.ip)) return 'Enter a valid neighbor IP.'; const n = +x.remoteAs; if (!(n >= 1)) return 'Enter the remote AS number.'; if (!ip && S.bgp.neighbors.some(z => z.ip === x.ip)) return 'That neighbor already exists.'; const pv = x.passive === 'enable' ? 'enable' : 'disable'; if (ip) { o.remoteAs = n; o.passive = pv; } else S.bgp.neighbors.push({ ip: x.ip, remoteAs: n, passive: pv }); }
     });
   };
   ED.iface = (name) => {
@@ -4255,6 +4339,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     const d = $('#drawer'); d.hidden = !UI.drawer; if (!UI.drawer) return;
     const sc = d.querySelector('.scroll') ? d.querySelector('.scroll').scrollTop : 0;
     const N = NIGHTMARE, inc = NMS.inc, t = NMS.stats;
+    const nmSrc = w => w.source ? `<div class="nm-src"><b>Seen in the field (${esc(w.ref)}):</b> ${esc(w.source.title)}. <span class="muted">Evidence: ${esc(w.source.evidence)}</span> ${w.source.urls.map((u, i) => `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">source ${i + 1}</a>`).join(' · ')}</div>` : '';
     let body = '';
     if (!NMS.on || !inc) {
       body = `<div class="nm-hero"><h3>Production is on fire. Fix it.</h3><p class="muted" style="margin:0">Random incidents on a live FortiGate + Azure network, and every fix makes the next one harder.</p></div>
@@ -4278,10 +4363,10 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
         body += `<div class="nm-row">${inc.hints < 3 ? `<button class="btn" data-act="nm-hint">Show hint ${inc.hints + 1} of 3</button>` : `<button class="btn danger" data-act="nm-hint">A 4th hint fails the incident</button>`}<button class="btn" data-act="nm-giveup">Give up and show me</button></div>`;
       } else if (inc.status === 'resolved') {
         body += `<div class="nm-card win"><b>Resolved in ${mmss(inc.endedAt - inc.startedAt)} with ${inc.hints} hint${inc.hints === 1 ? '' : 's'}. +${inc.points} points.</b>
-          <div class="sub-h">What was wrong</div><ul style="margin:0;padding-left:18px">${N.walkthrough(inc).map(w => `<li><b>${esc(w.side)}:</b> ${esc(w.title)}. <span class="muted">${esc(w.why)}</span></li>`).join('')}</ul></div>
+          <div class="sub-h">What was wrong</div><ul style="margin:0;padding-left:18px">${N.walkthrough(inc).map(w => `<li><b>${esc(w.side)}:</b> ${esc(w.title)}. <span class="muted">${esc(w.why)}</span>${nmSrc(w)}</li>`).join('')}</ul></div>
           <div class="nm-row"><button class="btn primary" data-act="nm-next">Next incident: level ${inc.level + 1}</button></div>`;
       } else if (fail) {
-        body += `<div class="nm-card lose"><b>${inc.status === 'failed-fixed' ? 'Fixed with the walkthrough.' : 'Incident failed. Here is how to fix it.'}</b>${N.walkthrough(inc).map(w => `<div class="sub-h">${esc(w.side)}: ${esc(w.title)}</div><ol>${w.steps.map(x => `<li>${esc(x)}</li>`).join('')}</ol><div class="muted">${esc(w.why)}</div>`).join('')}</div>
+        body += `<div class="nm-card lose"><b>${inc.status === 'failed-fixed' ? 'Fixed with the walkthrough.' : 'Incident failed. Here is how to fix it.'}</b>${N.walkthrough(inc).map(w => `<div class="sub-h">${esc(w.side)}: ${esc(w.title)}</div><ol>${w.steps.map(x => `<li>${esc(x)}</li>`).join('')}</ol><div class="muted">${esc(w.why)}</div>${nmSrc(w)}`).join('')}</div>
           <div class="nm-row">${inc.status === 'failed' ? '<button class="btn" data-act="nm-fix">Apply the fix for me</button>' : ''}<button class="btn primary" data-act="nm-next">Next incident: level ${inc.level}</button></div>`;
       }
       body += `<div class="nm-stats"><div><b>${t.resolved}</b><span>Resolved</span></div><div><b>${t.failed}</b><span>Failed</span></div><div><b>${t.streak}</b><span>Streak</span></div><div><b>${t.points}</b><span>Points</span></div></div>
