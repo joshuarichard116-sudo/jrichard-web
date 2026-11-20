@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://joshuarichard116-sudo.github.io/jrichard-web/sitemap.xml

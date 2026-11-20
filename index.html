@@ -15,6 +15,16 @@
   <meta property="og:title" content="Joshua Richard · Security Operations &amp; Identity">
   <meta property="og:description" content="Lead Engineer, CMMC &amp; GCC High at an MSP, leading the CMMC and GCC High practice. Microsoft Entra ID, Azure, Defender XDR, Sentinel and CMMC-focused projects.">
   <meta property="og:type" content="website">
+  <meta property="og:url" content="https://joshuarichard116-sudo.github.io/jrichard-web/">
+  <meta property="og:site_name" content="Joshua Richard">
+  <meta property="og:image" content="https://joshuarichard116-sudo.github.io/jrichard-web/assets/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Joshua Richard, Lead Engineer, CMMC &amp; GCC High. Active U.S. Secret clearance, 4+ years at MSPs.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://joshuarichard116-sudo.github.io/jrichard-web/assets/og-image.jpg">
+  <link rel="canonical" href="https://joshuarichard116-sudo.github.io/jrichard-web/">
+  <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Person", "name": "Joshua Richard", "url": "https://joshuarichard116-sudo.github.io/jrichard-web/", "jobTitle": "Lead Engineer, CMMC & GCC High", "worksFor": {"@type": "Organization", "name": "S1 Technology"}, "alumniOf": {"@type": "CollegeOrUniversity", "name": "Louisiana State University of Alexandria"}, "sameAs": ["https://www.linkedin.com/in/joshua-richard-376140207", "https://github.com/joshuarichard116-sudo"], "knowsAbout": ["CMMC", "Microsoft GCC High", "Microsoft Entra ID", "Azure", "Identity and access management", "Security operations", "NIST SP 800-171", "PowerShell"]}</script>
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#F2ECE2" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#16140F" media="(prefers-color-scheme: dark)">
@@ -419,7 +429,7 @@
           </ul>
         </details>
         <a class="resume-btn" href="assets/Joshua-Richard-Resume.pdf" download="Joshua-Richard-Resume.pdf">Resume<span class="dl" aria-hidden="true">↓</span></a>
-        <button class="theme-btn" type="button" id="themeBtn" aria-label="Switch color theme">Theme</button>
+        <button class="theme-btn" type="button" id="themeBtn" title="Switch color theme">Theme</button>
       </div>
     </div>
   </header>
@@ -464,7 +474,7 @@
         </div>
       </section>
 
-      <img class="divider" src="assets/divider.svg" alt="">
+      <img class="divider" src="assets/divider.svg" alt="" width="1200" height="28">
 
       <section id="experience">
         <h2>Experience</h2>
@@ -508,7 +518,7 @@
         </div>
       </section>
 
-      <img class="divider" src="assets/divider.svg" alt="">
+      <img class="divider" src="assets/divider.svg" alt="" width="1200" height="28">
 
       <section id="work">
         <h2>Work projects</h2>
@@ -563,7 +573,7 @@
         </div>
       </section>
 
-      <img class="divider" src="assets/divider.svg" alt="">
+      <img class="divider" src="assets/divider.svg" alt="" width="1200" height="28">
 
       <section id="credentials">
         <h2>Education &amp; certifications</h2>
@@ -620,7 +630,7 @@
         </div>
       </section>
 
-      <img class="divider" src="assets/divider.svg" alt="">
+      <img class="divider" src="assets/divider.svg" alt="" width="1200" height="28">
 
       <section id="projects">
         <h2>Built for work problems</h2>
@@ -677,7 +687,7 @@
         </div>
       </section>
 
-      <img class="divider" src="assets/divider.svg" alt="">
+      <img class="divider" src="assets/divider.svg" alt="" width="1200" height="28">
 
       <section id="ai">
         <h2>How I use AI</h2>
@@ -703,7 +713,7 @@
         <p class="ai-foot">This portfolio was built the same way: I directed the design, checked the facts and corrected the output along the way.</p>
       </section>
 
-      <img class="divider" src="assets/divider.svg" alt="">
+      <img class="divider" src="assets/divider.svg" alt="" width="1200" height="28">
 
       <section id="approach">
         <h2>How I approach access</h2>
@@ -727,7 +737,7 @@
         </div>
       </section>
 
-      <img class="divider" src="assets/divider.svg" alt="">
+      <img class="divider" src="assets/divider.svg" alt="" width="1200" height="28">
 
       <section id="skills">
         <h2>Skills &amp; tools</h2>
@@ -760,7 +770,7 @@
         </div>
       </section>
 
-      <img class="divider" src="assets/divider.svg" alt="">
+      <img class="divider" src="assets/divider.svg" alt="" width="1200" height="28">
 
       <section id="contact">
         <div class="now">
@@ -807,7 +817,7 @@
         if (t) return t;
         return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       }
-      function label() { btn.textContent = current() === 'dark' ? 'Light' : 'Dark'; }
+      function label() { var t = current() === 'dark' ? 'Light' : 'Dark'; btn.textContent = t; btn.setAttribute('aria-label', t + ' mode'); }
       label();
       btn.addEventListener('click', function () {
         var next = current() === 'dark' ? 'light' : 'dark';
@@ -958,7 +968,6 @@
         f.className = 'face'; f.type = 'button';
         f.setAttribute('role', 'tab'); f.id = 'face-' + i;
         f.setAttribute('aria-controls', 'panel');
-        f.setAttribute('aria-label', d.label + (d.kicker ? ', ' + d.kicker : ''));
         f.style.width = w + 'px'; f.style.height = slant + 'px';
         f.style.left = (-w / 2) + 'px'; f.style.top = '0px';
         f.style.transformOrigin = '50% 100%';
