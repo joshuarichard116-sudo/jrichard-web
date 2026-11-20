@@ -2685,6 +2685,37 @@ const LIVE = (() => {
 if (typeof module !== 'undefined') module.exports = LIVE;
 
 </script>
+<style id="sec-css">
+/* ---------- Mission sections: picker, locked cards, section nav ---------- */
+.sec-list { display: grid; gap: 8px; padding-top: 6px; }
+.sec-card { display: grid; gap: 5px; width: 100%; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); padding: 10px 12px; font: inherit; color: var(--ink); }
+button.sec-card { cursor: pointer; }
+button.sec-card:hover, button.sec-card:focus-visible { border-color: var(--accent); }
+.sec-card.done { border-color: color-mix(in srgb, var(--ok) 45%, var(--line)); }
+.sec-card.locked { background: var(--panel-2); border-style: dashed; }
+.sec-card.locked .sec-name, .sec-card.locked .sec-idx { color: var(--muted); }
+.sec-card.nm-card { border-left: 4px solid #B43A2C; }
+.sec-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.sec-idx { width: 22px; height: 22px; flex: none; border-radius: 50%; display: grid; place-items: center; font-family: var(--f-mono); font-size: 11.5px; font-weight: 600; background: var(--panel-2); border: 1px solid var(--line); }
+.sec-name { flex: 1; min-width: 0; font-family: var(--f-head); font-weight: 600; font-size: 15px; }
+.sec-num { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); }
+.sec-meta { font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+.sec-blurb { font-size: 12.5px; color: var(--muted); }
+.sec-bar { height: 4px; border-radius: 2px; background: var(--line-2); overflow: hidden; }
+.sec-bar i { display: block; height: 100%; background: var(--accent); }
+.sec-card.done .sec-bar i { background: var(--ok); }
+.sec-tag { display: inline-flex; align-items: center; gap: 4px; flex: none; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: var(--accent-soft); color: var(--accent); }
+.sec-tag.ok { background: var(--ok-soft); color: var(--ok); }
+.sec-tag.lock { background: var(--warn-soft); color: var(--warn); }
+.sec-tag.next { background: var(--accent); color: var(--accent-ink); }
+.sec-ic { width: 12px; height: 12px; }
+.sec-why { display: grid; gap: 5px; margin-top: 2px; font-size: 12.5px; background: var(--warn-soft); border-radius: 6px; padding: 8px 10px; }
+.sec-why ul { margin: 0; padding-left: 18px; display: grid; gap: 3px; }
+.sec-link { border: 0; background: none; padding: 0; font: inherit; font-weight: 600; color: var(--accent); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; text-align: left; }
+.sec-all { padding: 12px 0 0; }
+.sec-nav { display: flex; align-items: center; gap: 10px; padding: 6px 2px 0; font-size: 12px; }
+.sec-fin { display: grid; gap: 8px; margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: var(--ok-soft); border: 1px solid color-mix(in srgb, var(--ok) 45%, var(--line)); font-size: 13px; }
+</style>
 <style id="nm-css">
 /* ---------- Nightmare mode ---------- */
 .tbtn.nm-on { background: #B43A2C; border-color: #B43A2C; color: #FFFFFF; }
@@ -4324,6 +4355,138 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     d.innerHTML = html;
     const s = d.querySelector('.scroll'); if (s) s.scrollTop = sc;
   }
+
+  /* ================= SECTIONS: pick where to start =================
+     The missions are grouped by tier into named sections. The drawer opens on a section picker; picking one shows only
+     that section's missions. A section locks only where it genuinely depends on lab state from another one (the objects,
+     interfaces, policies or Azure resources its checks use), and the locked card says which missions unlock it.
+     The choice lives in S.sections, so it rides along in backups; it is sanitized on every read (restore, reset and
+     Nightmare all replace S wholesale), so a hand-edited backup can only ever fall back to the picker.
+     Kept in its own block, wrapping renderMissionDrawer rather than editing it, because other work edits that function. */
+  const SECTIONS = {
+    Recon: { blurb: 'Read the box before you touch it: serial number, admin logins, the rule that eats everything. No config changes.' },
+    Interfaces: { blurb: 'Hostname, WAN management lockdown, the DMZ and the Engineering VLAN.' },
+    Objects: { blurb: 'Addresses, the Internal-Nets group and a custom CAD license service. Policies are built from these.' },
+    Policies: {
+      blurb: 'Kill the any-to-any rule, rebuild outbound, segment Engineering and publish the supplier portal.',
+      needs: ['n3', 'n4', 'o1', 'o2', 'o3'],
+      why: 'These policies use the DMZ and Engineering VLAN interfaces, and the address objects, group and CAD-License service from Objects. Their checks cannot pass until those exist.'
+    },
+    'VPN to Azure': {
+      blurb: 'Bring up the IPsec tunnel to Azure, route through it, write the tunnel policies and move to BGP.',
+      needs: ['n4', 'o1', 'o2', 'p1'],
+      why: 'The tunnel policies use ENG-VLAN20, Internal-Nets and File-Server, and the any-to-any temp rule has to be gone or "RDP denied" can never pass.'
+    },
+    Hardening: {
+      blurb: 'Web filtering, named admins with MFA, least-privilege help desk access, syslog and a second WAN circuit.',
+      needs: ['p2'],
+      why: 'The web filter and the failover circuit both hang off the outbound internet policy you rebuild in Policies.'
+    },
+    'Live Threats': {
+      blurb: 'Attacks that show up in the live traffic as you progress. Find each one in the logs and stop it.',
+      needs: ['r3'],
+      why: 'Threats only start once you can read the logs. The first appears after Recon; the rest arrive as you finish other sections.'
+    },
+    'Azure Foundations': { blurb: 'Azure view. Resource group, hub VNet, GatewaySubnet, workload subnet and the first VM.' },
+    'Hybrid connectivity': {
+      blurb: 'Azure view. Build your own VPN gateway, describe the office and cut the live tunnel over to it.',
+      needs: ['a1', 'a3', 'a4', 'a5', 'a6', 'v1', 'v3', 'm4'],
+      why: 'Your gateway deploys into the hub and GatewaySubnet from Azure Foundations, and the cutover is proven end to end: the FortiGate tunnel, its policies and BGP from VPN to Azure must already work, and AZ-VM-APP01 must exist to answer.'
+    },
+    'Infrastructure as Code': {
+      blurb: 'Azure view. Terraform (JSON): init, fix, apply, import the hub, lock down snet-app and handle drift.',
+      needs: ['a1', 'a3', 'a5'],
+      why: 'Two of these missions import and protect the hub resource group, VNet and snet-app that you build by hand in Azure Foundations.'
+    }
+  };
+  const secMis = t => MISSIONS.filter(m => m.tier === t);
+  const secTiers = () => MISSIONS.TIERS.filter(t => secMis(t).length);
+  const misById = id => MISSIONS.find(m => m.id === id);
+  const secNeeds = t => ((SECTIONS[t] || {}).needs || []).filter(misById);
+  const secMissing = t => secNeeds(t).filter(id => !isDone(misById(id)));
+  const secLocked = t => secMissing(t).length > 0;
+  const secDone = t => secMis(t).every(isDone);
+  function secState() {
+    const o = S.sections, c = o && typeof o === 'object' && !Array.isArray(o) ? o.current : null;
+    const ok = c === '*' || (typeof c === 'string' && secTiers().includes(c) && !secLocked(c));
+    S.sections = { current: ok ? c : null };
+    return S.sections;
+  }
+  const secNext = after => { const L = secTiers(), i = after ? L.indexOf(after) : -1; return L.slice(i + 1).concat(L.slice(0, i + 1)).find(t => t !== after && !secLocked(t) && !secDone(t)) || null; };
+  const secView = t => { const ms = secMis(t); return ms.every(m => m.view === 'azure') ? 'azure' : ms.some(m => m.view === 'azure') ? 'both' : 'fg'; };
+  function secPick(t, misId) {
+    if (t !== '*' && (!secTiers().includes(t) || secLocked(t))) { S.sections = { current: null }; renderAll(); return; }
+    S.sections = { current: t }; UI.drawerMode = 'missions'; UI.drawer = true;
+    if (t !== '*') {
+      const ms = secMis(t), first = ms.find(m => !isDone(m)) || ms[0];
+      UI.open = misId && ms.some(m => m.id === misId) ? misId : first ? first.id : null;
+      const v = secView(t); if ((v === 'azure') !== (UI.view === 'azure') && v !== 'both') { switchView(v); return; }
+    }
+    renderAll();
+  }
+  Object.assign(A, {
+    'sec-pick': d => secPick(d.id, d.mis),
+    'sec-list': () => { S.sections = { current: null }; UI.drawerMode = 'missions'; UI.drawer = true; renderAll(); },
+    'sec-nm': () => { UI.drawerMode = 'nm'; UI.drawer = true; renderAll(); }
+  });
+  const lockIc = '<svg class="sec-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>';
+  function secCard(t, i, rec) {
+    const ms = secMis(t), n = ms.filter(isDone).length, pct = Math.round(n / ms.length * 100), info = SECTIONS[t] || {};
+    const v = secView(t), where = v === 'azure' ? 'Azure view' : v === 'both' ? 'FortiGate + Azure' : 'FortiGate';
+    const head = `<span class="sec-top"><span class="sec-idx">${i + 1}</span><span class="sec-name">${esc(t)}</span>`;
+    const meta = `<span class="sec-meta">${ms.length} mission${ms.length === 1 ? '' : 's'} · ${where}</span>${info.blurb ? `<span class="sec-blurb">${esc(info.blurb)}</span>` : ''}`;
+    if (secLocked(t)) {
+      const miss = secMissing(t);
+      const items = miss.map(id => {
+        const m = misById(id), open = !secLocked(m.tier);
+        return `<li>${open ? `<button class="sec-link" data-act="sec-pick" data-id="${esc(m.tier)}" data-mis="${esc(m.id)}">${esc(m.title)}</button>` : `<b>${esc(m.title)}</b>`} <span class="muted">· ${esc(m.tier)}${open ? '' : ' (locked too)'}</span></li>`;
+      }).join('');
+      return `<div class="sec-card locked" role="group" aria-label="${esc(t)}, locked">${head}<span class="sec-tag lock">${lockIc}Locked</span></span>${meta}
+        <div class="sec-why"><span><b>Why it is locked.</b> ${esc(info.why || 'It builds on work from an earlier section.')}</span><span class="sub-h">Finish ${miss.length === 1 ? 'this mission' : `these ${miss.length} missions`} to unlock it</span><ul>${items}</ul></div></div>`;
+    }
+    const done = n === ms.length, tag = done ? '<span class="sec-tag ok">✓ Done</span>' : t === rec ? '<span class="sec-tag next">Suggested next</span>' : n ? '<span class="sec-tag">In progress</span>' : '';
+    return `<button class="sec-card ${done ? 'done' : ''}" data-act="sec-pick" data-id="${esc(t)}" aria-label="Start ${esc(t)}: ${n} of ${ms.length} done">${head}${tag}<span class="sec-num">${n}/${ms.length}</span></span>${meta}<span class="sec-bar"><i style="width:${pct}%"></i></span></button>`;
+  }
+  function renderSectionPicker(d) {
+    const sc = d.dataset.sec === 'pick' && d.querySelector('.scroll') ? d.querySelector('.scroll').scrollTop : 0;
+    const L = secTiers(), rec = secNext(null), locked = L.filter(secLocked).length;
+    let html = `<header><div style="display:flex;align-items:center;gap:8px"><h2 style="flex:1">Choose a section</h2><button class="ibtn" data-act="drawer-close" aria-label="Close missions">✕</button></div><p>Start wherever you like. ${doneCount()} of ${MISSIONS.length} missions done.${locked ? ` ${locked} section${locked === 1 ? ' is' : 's are'} locked until the work ${locked === 1 ? 'it builds' : 'they build'} on exists; each one says what to finish.` : ''}</p></header><div class="scroll"><div class="sec-list">`;
+    html += L.map((t, i) => secCard(t, i, rec)).join('');
+    html += `<button class="sec-card nm-card" data-act="sec-nm" aria-label="Open Nightmare mode"><span class="sec-top"><span class="sec-idx">☠</span><span class="sec-name">Nightmare mode</span><span class="sec-tag">Any time</span></span><span class="sec-meta">Random incidents · FortiGate + Azure</span><span class="sec-blurb">A working production network with random faults planted. Never locked: it builds its own network, and replaces your current configuration when it starts.</span></button>`;
+    html += `</div><div class="sec-all"><button class="btn" data-act="sec-pick" data-id="*">Show every mission in one list</button></div></div>`;
+    d.innerHTML = html; d.dataset.sec = 'pick';
+    const s = d.querySelector('.scroll'); if (s) s.scrollTop = sc;
+  }
+  function secNav(t) {
+    const L = secTiers(), i = L.indexOf(t);
+    return `<div class="sec-nav"><button class="btn" data-act="sec-list">◂ All sections</button><span class="muted">${t === '*' ? 'Every mission, one list' : `Section ${i + 1} of ${L.length}`}</span></div>`;
+  }
+  function secFoot(t) {
+    if (t === '*' || !secDone(t)) return '';
+    const nx = secNext(t), opened = secTiers().filter(x => x !== t && secNeeds(x).some(id => misById(id).tier === t) && !secLocked(x) && !secDone(x));
+    return `<div class="sec-fin"><b>${esc(t)} is complete.</b>${opened.length ? `<span>This unlocked: ${opened.map(esc).join(', ')}.</span>` : ''}<div class="nm-row">${nx ? `<button class="btn primary" data-act="sec-pick" data-id="${esc(nx)}">Next: ${esc(nx)}</button>` : '<span>Every open section is done. Try Nightmare mode.</span>'}<button class="btn" data-act="sec-list">All sections</button></div></div>`;
+  }
+  const baseMissionDrawer = renderMissionDrawer;
+  renderMissionDrawer = function () {
+    const d = $('#drawer'); d.hidden = !UI.drawer; if (!UI.drawer) return;
+    const cur = secState().current;
+    if (!cur) return renderSectionPicker(d);
+    const old = d.querySelector('.scroll'), sc = old && d.dataset.sec === cur ? old.scrollTop : 0;
+    const all = MISSIONS.TIERS;
+    if (cur !== '*') MISSIONS.TIERS = [cur];
+    try { baseMissionDrawer(); } finally { MISSIONS.TIERS = all; }
+    d.dataset.sec = cur;
+    const s = d.querySelector('.scroll');
+    if (s) { s.insertAdjacentHTML('afterbegin', secNav(cur)); s.insertAdjacentHTML('beforeend', secFoot(cur)); s.scrollTop = sc; }
+  };
+  /* tell the learner when finishing something opens a section, wherever they are in the lab */
+  let secWasLocked = null;
+  setInterval(() => {
+    if (!UI.started || NMS.on) { secWasLocked = null; return; }
+    const now = secTiers().filter(secLocked);
+    if (secWasLocked) for (const t of secWasLocked) if (!now.includes(t)) toast('Section unlocked', `${t} is open. Pick it from the section list any time.`, 'ok');
+    secWasLocked = now;
+  }, 1500);
 
   /* ================= TERMINAL ================= */
   const shell = new CLI.Shell(() => S, msg => commit(msg, 'CLI'));
