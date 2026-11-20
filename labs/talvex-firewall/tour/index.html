@@ -7,7 +7,7 @@
 <title>Talvex Firewall Lab · 2-minute tour</title>
 <meta name="description" content="A 2-minute screenshot tour of the Talvex Firewall Lab, an interactive firewall and Azure training simulation built by Joshua Richard.">
 <meta property="og:title" content="Talvex Firewall Lab · 2-minute tour">
-<meta property="og:description" content="Five screens, plain-English captions: what the lab is and what it trains.">
+<meta property="og:description" content="Six screens, plain-English captions: what the lab is and what it trains.">
 <meta property="og:image" content="https://joshuarichard116-sudo.github.io/jrichard-web/assets/og-image.jpg">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="https://joshuarichard116-sudo.github.io/jrichard-web/labs/talvex-firewall/tour/">
@@ -52,9 +52,9 @@
 <main class="wrap">
   <section class="intro">
     <p class="eyebrow">Talvex Firewall Lab · 2-minute tour</p>
-    <h1>What the lab is, in five screens</h1>
+    <h1>What the lab is, in six screens</h1>
     <span class="rule" aria-hidden="true"></span>
-    <p class="lede">I built this firewall and Azure simulator to work out configurations safely before I make them on live client systems. The public version is a 43-mission training lab with a fictional company. If you don't have an hour to play it, these five screens show what it does.</p>
+    <p class="lede">I built this firewall and Azure simulator to work out configurations safely before I make them on live client systems. The public version is a 46-mission training lab with a fictional company, plus a Nightmare mode of random production incidents. If you don't have an hour to play it, these six screens show what it does.</p>
   </section>
   <ol>
     <li><figure>
@@ -63,7 +63,7 @@
     </figure></li>
     <li><figure>
       <img src="2-missions.jpg" width="1200" height="750" alt="Mission panel listing missions such as Badge in, Who logged in at 3 AM, Close the front door and Stand up the DMZ, with hints and live checks." loading="lazy">
-      <figcaption><h2>43 missions guide the work</h2><p>Missions go from recon (find the serial number for the CMMC asset inventory) to hardening, VLANs, a DMZ, web filtering and admin lockdown. Each one checks the live configuration as you work, with hints if you get stuck.</p></figcaption>
+      <figcaption><h2>46 missions guide the work</h2><p>Missions go from recon (find the serial number for the CMMC asset inventory) to hardening, VLANs, a DMZ, web filtering and admin lockdown. Each one checks the live configuration as you work, with hints if you get stuck.</p></figcaption>
     </figure></li>
     <li><figure>
       <img src="3-logs.jpg" width="1200" height="750" alt="Forward traffic log with accepted HTTPS sessions, outbound RDP sessions, and a denied SMB attempt from an internet address." loading="lazy">
@@ -76,6 +76,10 @@
     <li><figure>
       <img src="5-azure.jpg" width="1200" height="750" alt="Simulated Azure subscription home page warning that a virtual network overlaps the on-premises network, which would break the site-to-site VPN." loading="lazy">
       <figcaption><h2>The Azure side</h2><p>A switch at the top flips to a simulated Azure subscription that uses real Azure names and checks. You build a site-to-site VPN into Azure, and it catches mistakes like an address range that overlaps the office network, which would break the tunnel.</p></figcaption>
+    </figure></li>
+    <li><figure>
+      <img src="6-nightmare.jpg" width="1200" height="750" alt="Nightmare mode panel showing a level 1 incident ticket, live monitoring checks with two failing, and hint and give-up buttons." loading="lazy">
+      <figcaption><h2>Nightmare mode: production is on fire</h2><p>An optional mode that starts from a working production network, plants random faults on either side of the tunnel, and hands you only a ticket and monitoring. Fix it and the next incident is harder; from level 4 problems stack across both teams. Three hints, then a step-by-step walkthrough.</p></figcaption>
     </figure></li>
   </ol>
   <div class="end">

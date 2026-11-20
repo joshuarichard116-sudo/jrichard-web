@@ -2706,6 +2706,24 @@ if (typeof module !== 'undefined') module.exports = LIVE;
 .nm-card ol { margin: 6px 0 0; padding-left: 20px; }
 .nm-card li { margin: 4px 0; }
 .nm-warn { color: var(--bad); font-size: 13px; }
+.topo-card { grid-column: 1 / -1; }
+.topo-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 2px; }
+.topo-hint { font-size: 12px; margin-left: auto; }
+.topo { width: 100%; height: auto; display: block; overflow: visible; }
+.topo .tn { cursor: pointer; outline: none; }
+.topo .tn rect { fill: var(--panel-2); stroke: var(--line); stroke-width: 1.5; transition: stroke .15s ease; }
+.topo .tn:hover rect, .topo .tn:focus-visible rect { stroke: var(--accent); stroke-width: 2.5; }
+.topo .nt { font: 600 12.5px var(--f-ui); fill: var(--ink); }
+.topo .ns { font: 10.5px var(--f-mono); fill: var(--muted); }
+.topo .ll { font: 600 11.5px var(--f-ui); fill: var(--ink); }
+.topo .ls { font: 11px var(--f-ui); fill: var(--muted); }
+.topo .tl line { stroke-width: 3; stroke: var(--line); }
+.topo .tl.ok line { stroke: var(--ok); } .topo .tl.bad line { stroke: var(--bad); } .topo .tl.warn line { stroke: var(--warn); }
+.topo .tl.mute line { stroke-dasharray: 6 6; }
+.topo .tl line.flow { stroke: var(--accent); stroke-dasharray: 2 14; stroke-linecap: round; animation: topoflow 1.1s linear infinite; }
+.topo .x { font: 700 16px var(--f-ui); fill: var(--bad); }
+@keyframes topoflow { to { stroke-dashoffset: -16; } }
+@media (prefers-reduced-motion: reduce) { .topo .tl line.flow { animation: none; } }
 .nm .checklist { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 4px; }
 .nm .checklist li { display: flex; gap: 8px; align-items: baseline; }
 .nm .checklist .y { color: var(--ok); font-weight: 700; } .nm .checklist .n { color: var(--bad); font-weight: 700; }
@@ -3215,6 +3233,38 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
 
   /* ================= PAGES ================= */
   const P = {};
+  /* ---------- live topology: every link comes from the same engine the lab runs on ---------- */
+  function topoHtml() {
+    const P = SIM.peer(S), p1 = S.vpn.phase1.find(p => p.remoteGw === P.remoteGw) || S.vpn.phase1[0];
+    const t = p1 ? SIM.tunnel(S, p1.name) : null, bgp = SIM.bgpStatus(S), bgpUp = bgp.some(n => n.up);
+    const lan = S.interfaces.find(i => i.role === 'lan') || {}, wan = S.interfaces.find(i => i.role === 'wan') || {};
+    const vms = S.azure.vms || [], vm = vms.find(m => m.privateIp === '10.100.1.4') || (P.vnet ? vms.find(m => String(m.vnet).toLowerCase() === P.vnet.name.toLowerCase()) : null);
+    let e2e = null; try { e2e = SIM.lookup(S, { srcintf: lan.name || 'port2', srcip: '10.10.10.20', dstip: vm ? vm.privateIp : '10.100.1.4', proto: 'tcp', port: 443 }); } catch (e) { }
+    const flow = !!(e2e && e2e.verdict === 'accept' && e2e.far && e2e.far.ok);
+    const st = x => x === true ? 'ok' : x === false ? 'bad' : 'mute';
+    const links = [
+      { a: 0, b: 1, s: st(lan.status === 'up'), tip: `${lan.name || 'LAN'} ${lan.ip || ''}/${lan.bits || ''} is ${lan.status || 'missing'}` },
+      { a: 1, b: 2, s: !t ? 'mute' : t.up ? 'ok' : t.p1 ? 'warn' : 'bad', tip: t ? `${p1.name}: ${t.reason}` : 'No IPsec tunnel configured yet', label: !t ? 'no tunnel' : t.up ? 'IPsec up' : t.p1 ? 'phase 2 down' : 'IPsec down', sub: bgp.length ? (bgpUp ? 'BGP established' : 'BGP down') : 'static routing' },
+      { a: 2, b: 3, s: P.live ? st(!!P.vnet) : 'mute', tip: P.live ? `${P.gw.name} serves ${P.gw.vnet}` : 'The Azure team\'s temporary gateway answers. Build your own in the Azure view.' },
+      { a: 3, b: 4, s: vm ? st(vm.power === 'running') : 'mute', tip: vm ? `${vm.name} (${vm.privateIp}) is ${vm.power}` : 'No VM at 10.100.1.4 yet' }
+    ];
+    const nodes = [
+      { x: 75, t: 'Office LAN', s: lan.ip ? SIM.n2ip(SIM.netOf(lan.ip, lan.bits)) + '/' + lan.bits : '', go: 'interfaces' },
+      { x: 280, t: S.system.hostname, s: 'WAN ' + (wan.ip || ''), go: 'ipsec' },
+      { x: 530, t: P.live ? P.gw.name : 'Azure gateway (temp)', s: P.remoteGw, go: 'az-vpn' },
+      { x: 735, t: P.vnet ? P.vnet.name : 'Azure VNet', s: P.vnet ? P.vnet.addressSpace.map(x => x.ip + '/' + x.bits).join(', ') : 'not built yet', go: 'az-vnets' },
+      { x: 925, t: vm ? vm.name : 'App server', s: vm ? vm.privateIp + (vm.power === 'running' ? '' : ' · ' + vm.power) : 'not built yet', go: 'az-vms' }
+    ];
+    const Y = 62, W = 70;
+    let svg = '';
+    for (const l of links) {
+      const x1 = nodes[l.a].x + W, x2 = nodes[l.b].x - W, mx = (x1 + x2) / 2;
+      svg += `<g class="tl ${l.s}"><title>${esc(l.tip)}</title><line x1="${x1}" y1="${Y}" x2="${x2}" y2="${Y}"/>${flow && l.s === 'ok' ? `<line class="flow" x1="${x1}" y1="${Y}" x2="${x2}" y2="${Y}"/>` : ''}${l.s === 'bad' ? `<text x="${mx}" y="${Y + 6}" text-anchor="middle" class="x">✕</text>` : ''}${l.label ? `<text x="${mx}" y="${Y - 12}" text-anchor="middle" class="ll">${esc(l.label)}</text><text x="${mx}" y="${Y + 24}" text-anchor="middle" class="ls">${esc(l.sub)}</text>` : ''}</g>`;
+    }
+    for (const n of nodes) svg += `<g class="tn" data-act="nav" data-id="${n.go}" role="link" tabindex="0" aria-label="${esc(n.t)}: open"><title>Open ${esc(n.t)}</title><rect x="${n.x - W}" y="${Y - 26}" width="${W * 2}" height="52" rx="9"/><text x="${n.x}" y="${Y - 4}" text-anchor="middle" class="nt">${esc(n.t)}</text><text x="${n.x}" y="${Y + 13}" text-anchor="middle" class="ns">${esc(n.s)}</text></g>`;
+    return `<section class="card widget topo-card"><div class="topo-head"><h2>Live topology</h2>${flow ? pill('Traffic flows end to end', 'ok') : pill('End-to-end path broken', 'bad')}<span class="muted topo-hint">Click a box to open it. Hover a link for its exact status.</span></div>
+      <svg class="topo" viewBox="0 0 1000 104" role="img" aria-label="Path from the office LAN through the firewall and IPsec tunnel to the Azure app server">${svg}</svg></section>`;
+  }
   P.dashboard = () => {
     const up = Math.floor((Date.now() - S.system.bootedAt) / 1000);
     const ifs = SIM.allIfaces(S);
@@ -3222,7 +3272,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     const done = doneCount();
     const tunnels = S.vpn.phase1.map(p => ({ p, t: SIM.tunnel(S, p.name) }));
     return head('Status of the Talvex perimeter firewall. Everything here is a simulation: change it freely, it cannot break anything real.') + `
-    <div class="dash">
+    <div class="dash">${topoHtml()}
       <section class="card widget"><h2>System Information</h2><dl class="kv">
         <dt>Hostname</dt><dd class="mono">${esc(S.system.hostname)}</dd>
         <dt>Serial number</dt><dd class="mono">${esc(S.system.serial)}</dd>
@@ -3455,7 +3505,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     const ams = MISSIONS.filter(m => m.view === 'azure'), ad = ams.filter(isDone).length;
     const subnets = z.vnets.reduce((n, v) => n + v.subnets.length, 0), running = z.vms.filter(m => m.power === 'running').length;
     return head('A simulated Azure subscription with real Azure names, limits and validation. Build the hub here, break it freely, then port the design to a live subscription.') + warn.map(w => banner('warn', w)).join('') + `
-    <div class="dash">
+    <div class="dash">${topoHtml()}
       <section class="card widget"><h2>Subscription</h2><dl class="kv">
         <dt>Name</dt><dd>${esc(z.subscription.name)}</dd><dt>Subscription ID</dt><dd class="mono">${esc(z.subscription.id)}</dd>
         <dt>Signed in as</dt><dd class="mono">${esc(AZ.USER)}</dd><dt>Plan region</dt><dd>South Central US</dd></dl></section>
@@ -4368,7 +4418,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
   $('#startRoot').innerHTML = `<div class="modal-back"><div class="modal start" role="dialog" aria-modal="true" aria-label="Start the lab"><header><h2>Talvex Firewall Lab</h2></header><div class="body">
     <p style="margin:0">You are taking over the Talvex Components firewall as the old IT guy left it. The ${MISSIONS.length} missions walk you from reading the logs to a hardened box with a site-to-site tunnel into Azure, and then into building the Azure side itself, while live traffic and a few live attackers keep the logs moving.</p>
     <div class="notice"><b>Nothing is saved.</b> Closing or reloading this page resets the firewall, the missions and the traffic. Plan on one sitting of about 60 to 75 minutes. If you must step away, System → Backup &amp; Reset can copy your config to paste back later.</div>
-    <ul style="margin:0;padding-left:18px"><li>Missions open on the right. Checks run live as you work.</li><li>Policy Lookup shows which rule handles any packet.</li><li>The CLI button opens a console that shares the same config.</li><li>The FortiGate | Azure switch at the top flips between the firewall and a simulated Azure subscription.</li><li>New threats unlock as you progress. Watch the logs.</li></ul><p style="margin:12px 0 0;font-size:12px;opacity:.75">Independent training simulation by Joshua Richard. Not affiliated with or endorsed by Fortinet; FortiGate, FortiOS and FortiGuard are trademarks of Fortinet, Inc. Talvex is a fictional company and all data here is made up. <a href="../../">Back to the portfolio</a></p>
+    <ul style="margin:0;padding-left:18px"><li>Missions open on the right. Checks run live as you work.</li><li>Policy Lookup shows which rule handles any packet.</li><li>The CLI button opens a console that shares the same config.</li><li>The FortiGate | Azure switch at the top flips between the firewall and a simulated Azure subscription.</li><li>New threats unlock as you progress. Watch the logs.</li><li>The FortiGate and Azure sides are live: build your own Azure VPN gateway and both ends negotiate for real.</li><li>Want it harder? <b>Nightmare</b> (top bar) throws random, escalating production incidents at you.</li></ul><p style="margin:12px 0 0;font-size:12px;opacity:.75">Independent training simulation by Joshua Richard. Not affiliated with or endorsed by Fortinet; FortiGate, FortiOS and FortiGuard are trademarks of Fortinet, Inc. Talvex is a fictional company and all data here is made up. <a href="../../">Back to the portfolio</a></p>
   </div><footer><button class="btn primary" id="startBtn" type="button">Start the lab</button></footer></div></div>`;
   $('#startBtn').addEventListener('click', startLab);
   $('#startBtn').focus();
