@@ -46,10 +46,18 @@
   <span class="rule" aria-hidden="true"></span>
   <p>The link may be old or mistyped. Here's where you can go instead:</p>
   <div class="links">
-    <a class="btn primary" href="/jrichard-web/">Home page</a>
-    <a class="btn" href="/jrichard-web/labs/talvex-firewall/">Play the firewall lab</a>
-    <a class="btn" href="/jrichard-web/assets/Joshua-Richard-Resume.pdf" download="Joshua-Richard-Resume.pdf">Resume (PDF)</a>
+    <a class="btn primary" data-path="" href="/jrichard-web/">Home page</a>
+    <a class="btn" data-path="labs/talvex-firewall/" href="/jrichard-web/labs/talvex-firewall/">Play the firewall lab</a>
+    <a class="btn" data-path="assets/Joshua-Richard-Resume.pdf" href="/jrichard-web/assets/Joshua-Richard-Resume.pdf" download="Joshua-Richard-Resume.pdf">Resume (PDF)</a>
   </div>
 </main>
+<script>
+  /* Works on both addresses: github.io/jrichard-web/ today, or a custom domain at the root later. */
+  (function () {
+    var base = location.pathname.indexOf('/jrichard-web/') === 0 ? '/jrichard-web/' : '/';
+    document.querySelectorAll('a[data-path]').forEach(function (a) { a.setAttribute('href', base + a.getAttribute('data-path')); });
+    var icon = document.querySelector('link[rel="icon"]'); if (icon) icon.setAttribute('href', base + 'assets/favicon.svg');
+  })();
+</script>
 </body>
 </html>
