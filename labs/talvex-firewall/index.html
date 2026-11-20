@@ -1,9 +1,9 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>body{margin:0}[hidden]{display:none!important}</style>
-<meta name="description" content="Talvex Firewall Lab: an interactive firewall and Azure training simulation with 43 missions, by Joshua Richard.">
+<meta name="description" content="Talvex Firewall Lab: an interactive firewall and Azure training simulation with 46 missions, by Joshua Richard.">
 <meta property="og:title" content="Talvex Firewall Lab · Joshua Richard">
-<meta property="og:description" content="An interactive firewall and Azure training simulation with 43 missions. Runs in your browser.">
+<meta property="og:description" content="An interactive firewall and Azure training simulation with 46 missions. Runs in your browser.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://joshuarichard116-sudo.github.io/jrichard-web/labs/talvex-firewall/">
 <meta property="og:image" content="https://joshuarichard116-sudo.github.io/jrichard-web/assets/og-image.jpg">
@@ -583,16 +583,42 @@ SIM.schedMatch = (st, name, date) => {
 };
 
 /* ---------- VPN negotiation against the simulated Azure gateway ---------- */
+/* The far end of the tunnel. Until the user builds an Azure VPN gateway + local network gateway + connection,
+   the Azure team's temporary gateway (SIM.PEER) answers. Once a connection exists, the FortiGate negotiates
+   live against the Azure resources the user built: their shared key, IKE version, IPsec policy, BGP and addresses. */
+SIM.peer = st => {
+  const z = st.azure || {}, AZ = SIM.AZ, lc = x => String(x == null ? '' : x).toLowerCase();
+  for (const cn of (z.connections || [])) {
+    const gw = (z.gateways || []).find(g => lc(g.name) === lc(cn.gateway));
+    if (!gw) continue;
+    const lng = (z.lngs || []).find(l => lc(l.name) === lc(cn.lng)) || null;
+    const vnet = AZ.vnet(st, gw.vnetRg, gw.vnet) || null;
+    return Object.assign({}, SIM.PEER, {
+      live: true, cn, gw, lng, vnet, remoteGw: gw.publicIp, psk: cn.sharedKey,
+      azureNets: vnet ? vnet.addressSpace.map(p => [p.ip, p.bits]) : [],
+      bgp: { enabled: !!(gw.bgp && cn.enableBgp), peerIp: AZ.gwBgpIp(st, gw) || '', asn: +gw.asn || 65515, theirTunnelIp: SIM.AZURE_BGP.theirTunnelIp,
+             ourTunnelIp: (lng && lng.bgp && lng.bgpPeerIp) || SIM.AZURE_BGP.ourTunnelIp, lngAsn: lng && lng.bgp ? +lng.asn : null }
+    });
+  }
+  return Object.assign({ live: false }, SIM.PEER);
+};
 SIM.tunnel = (st, name) => {
   const p1 = st.vpn.phase1.find(p => p.name === name);
   if (!p1) return { up: false, p1: false, reason: 'No such tunnel' };
-  const P = SIM.PEER;
+  const P = SIM.peer(st);
   const wan = st.interfaces.find(i => i.name === p1.interface);
   if (!wan || wan.status !== 'up' || wan.ip === '0.0.0.0') return { up: false, p1: false, reason: `Outgoing interface ${p1.interface || '(none)'} is down or has no IP` };
   if (wan.role !== 'wan' && !(st.routes.some(r => r.device === wan.name && r.bits === 0))) return { up: false, p1: false, reason: `No route to ${p1.remoteGw} via ${wan.name} (bind the tunnel to the internet-facing interface)` };
   if (p1.remoteGw !== P.remoteGw) return { up: false, p1: false, reason: `No response from ${p1.remoteGw || '(blank)'}: IKE SA_INIT timed out (is the remote gateway the Azure VPN gateway public IP?)` };
   if (p1.status === 'disable') return { up: false, p1: false, reason: 'Tunnel is administratively disabled' };
-  if (String(p1.ike) !== '2') return { up: false, p1: false, reason: 'Peer is configured for IKEv2. IKEv1 Main Mode packets ignored: negotiation timed out' };
+  if (P.live) {
+    if (!SIM.AZ.gwReady(P.gw)) return { up: false, p1: false, reason: `No response from ${P.remoteGw}: Azure VPN gateway ${P.gw.name} is still deploying (provisioning state: Updating)` };
+    if (!P.lng) return { up: false, p1: false, reason: `Azure dropped the IKE request: connection ${P.cn.name} points at local network gateway "${P.cn.lng}", which does not exist` };
+    if (P.lng.ip !== wan.ip) return { up: false, p1: false, reason: `No response from ${P.remoteGw}: Azure only accepts IKE from the address on local network gateway ${P.lng.name} (${P.lng.ip || 'blank'}), but this firewall connects from ${wan.ip}. Fix the local network gateway IP address on the Azure side` };
+    if (!P.vnet) return { up: false, p1: false, reason: `Azure gateway ${P.gw.name} has no virtual network behind it (${P.gw.vnet} was not found)` };
+  }
+  const peerIke = P.live && P.cn.ike === 'IKEv1' ? '1' : '2';
+  if (String(p1.ike) !== peerIke) return { up: false, p1: false, reason: peerIke === '2' ? 'Peer is configured for IKEv2. IKEv1 Main Mode packets ignored: negotiation timed out' : `Azure connection ${P.cn.name} is set to IKEv1 but this tunnel speaks IKEv2: IKE_SA_INIT ignored. Use the same IKE version on both sides (IKEv2 is recommended)` };
   const props = p1.proposals || [];
   const custom = (st.azure || {}).policy === 'custom';
   const kl = +p1.keylife || 86400;
@@ -606,7 +632,7 @@ SIM.tunnel = (st, name) => {
     const dh = (p1.dhgrp || []).map(Number);
     if (!dh.some(g => P.dh.includes(g))) return { up: false, p1: false, reason: `IKE SA_INIT: INVALID_KE_PAYLOAD. Offered DH group(s) [${dh.join(', ') || 'none'}]; peer accepts 2, 14, 24` };
   }
-  if (p1.psk !== P.psk) return { up: false, p1: false, reason: 'IKE_AUTH: AUTHENTICATION_FAILED (pre-shared key mismatch)' };
+  if (p1.psk !== P.psk) return { up: false, p1: false, reason: P.live ? `IKE_AUTH: AUTHENTICATION_FAILED. The pre-shared key does not match the shared key on Azure connection ${P.cn.name}` : 'IKE_AUTH: AUTHENTICATION_FAILED (pre-shared key mismatch)' };
   if (p1.nattraversal === 'disable') return { up: false, p1: false, reason: 'IKE_AUTH completed but ESP is being dropped: the Azure gateway sits behind NAT and expects NAT-T (UDP 4500). Enable nattraversal' };
   const p2s = st.vpn.phase2.filter(q => q.phase1 === p1.name);
   if (!p2s.length) return { up: false, p1: true, reason: 'Phase 1 is up but no Phase 2 selector is defined, so no traffic can pass' };
@@ -626,10 +652,12 @@ SIM.tunnel = (st, name) => {
 
 /* ---------- BGP over the tunnel ---------- */
 SIM.bgpStatus = st => {
-  const B = st.bgp || { as: 0, neighbors: [] }, A = SIM.AZURE_BGP;
+  const B = st.bgp || { as: 0, neighbors: [] }, P = SIM.peer(st), A = P.live ? { peerIp: P.bgp.peerIp, asn: P.bgp.asn, ourTunnelIp: P.bgp.ourTunnelIp, theirTunnelIp: P.bgp.theirTunnelIp } : SIM.AZURE_BGP;
   return (B.neighbors || []).map(n => {
     const r = { ip: n.ip, remoteAs: n.remoteAs, up: false, reason: '', learned: [] };
     if (!B.as) { r.reason = 'Local AS is not set'; return r; }
+    if (P.live && !P.bgp.enabled) { r.reason = `BGP is off on the Azure side (gateway ${P.gw.name}: ${P.gw.bgp ? 'on' : 'off'}, connection ${P.cn.name}: ${P.cn.enableBgp ? 'on' : 'off'}). Both must be on`; return r; }
+    if (P.live && P.bgp.lngAsn && +B.as !== P.bgp.lngAsn) { r.reason = `OPEN rejected by Azure: local network gateway ${P.lng.name} says the office is AS ${P.bgp.lngAsn}, but this firewall is AS ${B.as}`; return r; }
     if (n.ip !== A.peerIp) { r.reason = `No BGP speaker at ${n.ip} (Azure gateway BGP peer IP is ${A.peerIp})`; return r; }
     if (+n.remoteAs !== A.asn) { r.reason = `OPEN rejected: peer AS is ${A.asn}, configured ${n.remoteAs}`; return r; }
     if (+B.as === A.asn) { r.reason = `Local AS ${A.asn} collides with the Azure gateway AS; pick a private AS (64512-65534)`; return r; }
@@ -641,7 +669,7 @@ SIM.bgpStatus = st => {
     const p1 = st.vpn.phase1.find(p => p.name === tun.name);
     if (!p1.tunIp) { r.reason = `Tunnel interface ${tun.name} has no IP. Azure peers with ${A.ourTunnelIp}; set it on the interface`; return r; }
     if (p1.tunIp !== A.ourTunnelIp) { r.reason = `BGP OPEN from ${p1.tunIp} ignored: Azure was configured to peer with ${A.ourTunnelIp}`; return r; }
-    r.up = true; r.reason = 'Established'; r.learned = SIM.PEER.azureNets.map(([ip, bits]) => ({ dst: ip, bits, device: tun.name }));
+    r.up = true; r.reason = 'Established'; r.learned = P.azureNets.map(([ip, bits]) => ({ dst: ip, bits, device: tun.name }));
     return r;
   });
 };
@@ -803,11 +831,40 @@ SIM.lookup = (st, q) => {
       }
     }
   }
+  const egr = SIM.iface(st, r.device);
+  if (egr && egr.type === 'tunnel') { const far = SIM.farEnd(st, egr.name, q.srcip, dst); if (far) { R.far = far; step('azure', far.msg, far.ok); } }
   R.verdict = 'accept'; R.reason = 'accepted by policy ' + match.id;
   R.logged = match.logtraffic === 'all';
   if (R.logged) step('log', 'Logged to Forward Traffic (Log Allowed Traffic: All Sessions)', true);
   else step('log', match.logtraffic === 'utm' ? 'Not logged: logging is "Security Events" only and no security event fired' : 'Not logged: logging is disabled on this policy', null);
   return R;
+};
+
+/* What happens on the Azure side after the firewall forwards a packet into the tunnel (informational:
+   the firewall verdict is unchanged, but the lookup shows whether the conversation would actually work). */
+SIM.farEnd = (st, tunName, src, dst) => {
+  const P = SIM.peer(st), t = SIM.tunnel(st, tunName);
+  if (!t.up) return { ok: false, msg: `Across the tunnel: nothing gets through, ${tunName} is down (${t.reason})` };
+  if (!P.live) return { ok: null, msg: `Across the tunnel: handed to the Azure team's temporary gateway at ${P.remoteGw}. Build your own gateway and connection in the Azure view to follow the packet all the way` };
+  const fmt = p => p.ip + '/' + p.bits;
+  if (!P.vnet.addressSpace.some(p => SIM.inNet(dst, p.ip, p.bits))) return { ok: false, msg: `Azure: ${dst} is outside ${P.vnet.name} (${P.vnet.addressSpace.map(fmt).join(', ')}), so ${P.gw.name} drops it` };
+  const bgpBack = (SIM.bgpStatus(st) || []).some(n => n.up) && SIM.AZ.onPremNets(st).some(n => SIM.inNet(src, n.ip, n.bits) && ((st.bgp || {}).networks || []).some(x => SIM.inNet(src, x.ip, x.bits)));
+  const lngBack = P.lng && (P.lng.addressSpace || []).some(p => SIM.inNet(src, p.ip, p.bits));
+  if (!bgpBack && !lngBack) return { ok: false, msg: `Azure: the packet arrives, but Azure has no route back to ${src}. Add that network to local network gateway ${P.lng.name}'s address space, or advertise it over BGP` };
+  const vm = (st.azure.vms || []).find(m => m.privateIp === dst);
+  if (!vm) return { ok: false, msg: `Azure: ${P.vnet.name} accepts it, but no VM or NIC holds ${dst}, so nothing answers` };
+  if (vm.power !== 'running') return { ok: false, msg: `Azure: ${vm.name} (${dst}) is ${vm.power}. No reply until it is started` };
+  return { ok: true, msg: `Azure: ${P.gw.name} decrypts it, ${P.vnet.name} delivers it to ${vm.name} (${dst}), and the reply returns through the tunnel` };
+};
+/* The Azure portal's view of the connection, from the same negotiation */
+SIM.azConn = st => {
+  const P = SIM.peer(st);
+  if (!P.live) return null;
+  if (!SIM.AZ.gwReady(P.gw)) return { status: 'Updating', reason: `Gateway ${P.gw.name} is deploying` };
+  const p1 = st.vpn.phase1.find(p => p.remoteGw === P.remoteGw);
+  if (!p1) return { status: 'Not connected', reason: `No IKE traffic is arriving: the office firewall has no tunnel pointing at ${P.remoteGw}` };
+  const t = SIM.tunnel(st, p1.name);
+  return { status: t.up ? 'Connected' : (t.p1 ? 'Connecting' : 'Not connected'), reason: t.reason, tunnel: p1.name, up: t.up };
 };
 
 /* commit a lookup into hits + logs (GUI/CLI "real" traffic) */
@@ -947,6 +1004,7 @@ SIM.AZ = (() => {
     const vnets = st.azure.vnets.filter(v => eq(v.rg, rg.name));
     for (const v of vnets) { const ext = AZ.vmsIn(st, v).find(m => !eq(m.rg, rg.name)); if (ext) return `InUseSubnetCannotBeDeleted: virtual network ${v.name} is in use by ${ext.name}-nic in resource group ${ext.rg}. Delete that virtual machine first.`; }
     st.azure.vms = st.azure.vms.filter(m => !eq(m.rg, rg.name));
+    { const z = AZ.hy(st); z.connections = z.connections.filter(c => !eq(c.rg, rg.name)); z.gateways = z.gateways.filter(g => !eq(g.rg, rg.name)); z.lngs = z.lngs.filter(l => !eq(l.rg, rg.name)); }
     st.azure.vnets = st.azure.vnets.filter(v => !eq(v.rg, rg.name));
     st.azure.resourceGroups = st.azure.resourceGroups.filter(r => r !== rg);
     AZ.log(st, 'Delete resource group', rg.name, rg.name); return null;
@@ -987,6 +1045,7 @@ SIM.AZ = (() => {
   };
   AZ.deleteVnet = (st, rg, vn) => {
     const v = AZ.vnet(st, rg, vn); if (!v) return `Virtual network ${vn} was not found.`;
+    if (AZ.hy(st).gateways.some(g => eq(g.vnetRg, v.rg) && eq(g.vnet, v.name))) return `Cannot delete virtual network ${v.name} because it has a VPN gateway. Delete the gateway first.`;
     const m = AZ.vmsIn(st, v)[0]; if (m) return `Cannot delete virtual network ${v.name} because it is in use by resource ${m.name}-nic (subnet ${m.subnet}). Delete the virtual machine first.`;
     st.azure.vnets = st.azure.vnets.filter(x => x !== v);
     AZ.log(st, 'Delete virtual network', v.name, v.rg); return null;
@@ -1018,6 +1077,7 @@ SIM.AZ = (() => {
   AZ.deleteSubnet = (st, rg, vn, name) => {
     const v = AZ.vnet(st, rg, vn); if (!v) return `Virtual network ${vn} was not found.`;
     const s = AZ.subnet(v, name); if (!s) return `Subnet ${name} was not found.`;
+    if (eq(s.name, 'GatewaySubnet') && AZ.hy(st).gateways.some(g => eq(g.vnetRg, v.rg) && eq(g.vnet, v.name))) return 'InUseSubnetCannotBeDeleted: GatewaySubnet is in use by the VPN gateway. Delete the gateway first.';
     const m = AZ.vmsIn(st, v, s.name)[0];
     if (m) return `InUseSubnetCannotBeDeleted: Subnet ${s.name} is in use by ${m.name}-nic and cannot be deleted. In order to delete the subnet, delete all the resources within the subnet.`;
     v.subnets = v.subnets.filter(x => x !== s);
@@ -1068,6 +1128,105 @@ SIM.AZ = (() => {
   };
 
   /* ---------- seed: an almost empty subscription, plus what Rick left behind ---------- */
+  /* ---------- hybrid connectivity: VPN gateway, local network gateway, connection ----------
+   These are the Azure end of the site-to-site tunnel. SIM.peer() reads them, so whatever is built here is
+   what the FortiGate negotiates against (shared key, IKE version, IPsec policy, BGP, addresses). */
+  AZ.GW_SKUS = [['VpnGw1', 'VpnGw1 (650 Mbps, up to 30 tunnels)'], ['VpnGw2', 'VpnGw2 (1 Gbps, up to 30 tunnels)']];
+  AZ.GW_PUBLIC_IP = '198.51.100.25';
+  AZ.GW_DEPLOY_MS = 20000; // a real VPN gateway takes 30 to 45 minutes; the lab compresses it to 20 seconds
+  AZ.GW_UPDATE_MS = 6000;
+  const hyName = n => /^[A-Za-z0-9](?:[\w.-]{0,78}[A-Za-z0-9_])?$/.test(n);
+  const hyNameMsg = 'Names are 1-80 characters: letters, numbers, underscores, periods and hyphens. Start with a letter or number; end with a letter, number or underscore.';
+  const okAsn = a => Number.isInteger(a) && a >= 1 && a <= 4294967295 && !(a >= 65515 && a <= 65520) && ![8074, 8075, 12076].includes(a);
+  AZ.hy = st => { const z = st.azure; if (!Array.isArray(z.gateways)) z.gateways = []; if (!Array.isArray(z.lngs)) z.lngs = []; if (!Array.isArray(z.connections)) z.connections = []; return z; };
+  AZ.gateway = (st, n) => AZ.hy(st).gateways.find(g => eq(g.name, n));
+  AZ.lng = (st, n) => AZ.hy(st).lngs.find(g => eq(g.name, n));
+  AZ.connection = (st, n) => AZ.hy(st).connections.find(c => eq(c.name, n));
+  AZ.gwReady = g => !!g && Date.now() >= (g.readyAt || 0);
+  /* the gateway's BGP peer IP comes from its GatewaySubnet (the design pins it at 10.100.0.254) */
+  AZ.gwBgpIp = (st, g) => { const v = AZ.vnet(st, g.vnetRg, g.vnet), sn = AZ.subnet(v, 'GatewaySubnet'); if (!sn) return null; return SIM.inNet('10.100.0.254', sn.ip, sn.bits) ? '10.100.0.254' : SIM.n2ip(SIM.ip2n(sn.ip) + AZ.size(sn.bits) - 2); };
+  AZ.createGateway = (st, o) => {
+    const z = AZ.hy(st), name = nrm(o.name);
+    if (!hyName(name)) return hyNameMsg;
+    if (AZ.gateway(st, name)) return `A virtual network gateway named ${name} already exists.`;
+    const v = AZ.vnet(st, o.vnetRg, o.vnet); if (!v) return 'Select a virtual network.';
+    if (!AZ.subnet(v, 'GatewaySubnet')) return `Virtual network ${v.name} has no subnet named GatewaySubnet. A VPN gateway can only be deployed into GatewaySubnet.`;
+    if (z.gateways.some(g => eq(g.vnetRg, v.rg) && eq(g.vnet, v.name))) return `Virtual network ${v.name} already has a VPN gateway. A virtual network can have only one.`;
+    if (!AZ.GW_SKUS.some(k => k[0] === o.sku)) return 'Select a SKU.';
+    const bgp = o.bgp === true || o.bgp === 'enable', asn = bgp ? +o.asn || 65515 : 65515;
+    if (bgp && asn !== 65515 && !okAsn(asn)) return `ASN ${o.asn} is reserved or out of range. Use 65515 (the Azure default) or a private ASN outside 65515-65520.`;
+    const now = Date.now();
+    z.gateways.push({ name, rg: v.rg, location: v.location, vnetRg: v.rg, vnet: v.name, sku: o.sku, bgp, asn, publicIp: AZ.GW_PUBLIC_IP, created: now, readyAt: now + AZ.GW_DEPLOY_MS });
+    AZ.log(st, 'Create or update virtual network gateway', name, v.rg); return null;
+  };
+  AZ.updateGateway = (st, name, o) => {
+    const g = AZ.gateway(st, name); if (!g) return `Virtual network gateway ${name} was not found.`;
+    if (!AZ.gwReady(g)) return `${g.name} is still updating. Wait for the provisioning state to read Succeeded.`;
+    const bgp = o.bgp === true || o.bgp === 'enable', asn = bgp ? +o.asn || 65515 : g.asn;
+    if (bgp && asn !== 65515 && !okAsn(asn)) return `ASN ${o.asn} is reserved or out of range.`;
+    if (o.sku && !AZ.GW_SKUS.some(k => k[0] === o.sku)) return 'Select a SKU.';
+    Object.assign(g, { bgp, asn, sku: o.sku || g.sku, readyAt: Date.now() + AZ.GW_UPDATE_MS });
+    AZ.log(st, 'Create or update virtual network gateway', g.name, g.rg); return null;
+  };
+  AZ.deleteGateway = (st, name) => {
+    const z = AZ.hy(st), g = AZ.gateway(st, name); if (!g) return `Virtual network gateway ${name} was not found.`;
+    const c = z.connections.find(x => eq(x.gateway, g.name)); if (c) return `Gateway ${g.name} is used by connection ${c.name}. Delete the connection first.`;
+    z.gateways = z.gateways.filter(x => x !== g); AZ.log(st, 'Delete virtual network gateway', g.name, g.rg); return null;
+  };
+  AZ.saveLng = (st, o, existing) => {
+    const z = AZ.hy(st), name = nrm(o.name), old = existing ? AZ.lng(st, existing) : null;
+    if (existing && !old) return `Local network gateway ${existing} was not found.`;
+    if (!old) { if (!hyName(name)) return hyNameMsg; if (AZ.lng(st, name)) return `A local network gateway named ${name} already exists.`; }
+    const rg = AZ.rg(st, old ? old.rg : o.rg); if (!rg) return 'Select an existing resource group.';
+    const ip = nrm(o.ip); if (!SIM.isIp(ip)) return 'IP address: enter the public IPv4 address of the on-premises VPN device.';
+    if (SIM.isPrivate(ip)) return `IP address: ${ip} is a private address. Azure must reach the on-premises VPN device over the internet, so use its public IP.`;
+    const space = [];
+    for (const part of String(o.space || '').split(/[\s,]+/).filter(Boolean)) { const p = AZ.parsePrefix(part); if (!p) return `Address space: "${part}" is not a valid CIDR prefix.`; space.push(p); }
+    const bgp = o.bgp === true || o.bgp === 'enable';
+    let asn = null, bgpPeerIp = '';
+    if (bgp) { asn = +o.asn; if (!okAsn(asn)) return 'BGP: enter the on-premises ASN (for example 65010). 65515-65520 are reserved by Azure.'; bgpPeerIp = nrm(o.bgpPeerIp); if (!SIM.isIp(bgpPeerIp)) return 'BGP peer IP: enter the on-premises BGP address (for example 169.254.21.2).'; }
+    if (!bgp && !space.length) return 'Add at least one address space (the on-premises networks), or turn on BGP so Azure learns them.';
+    const rec = { name: old ? old.name : name, rg: rg.name, location: old ? old.location : (o.location || rg.location), ip, addressSpace: space, bgp, asn, bgpPeerIp, created: old ? old.created : Date.now() };
+    if (old) Object.assign(old, rec); else z.lngs.push(rec);
+    AZ.log(st, 'Create or update local network gateway', rec.name, rec.rg); return null;
+  };
+  AZ.deleteLng = (st, name) => {
+    const z = AZ.hy(st), l = AZ.lng(st, name); if (!l) return `Local network gateway ${name} was not found.`;
+    const c = z.connections.find(x => eq(x.lng, l.name)); if (c) return `Local network gateway ${l.name} is used by connection ${c.name}. Delete the connection first.`;
+    z.lngs = z.lngs.filter(x => x !== l); AZ.log(st, 'Delete local network gateway', l.name, l.rg); return null;
+  };
+  const okKey = k => /^[!-;=?-~]{1,128}$/.test(k);
+  AZ.saveConnection = (st, o, existing) => {
+    const z = AZ.hy(st), name = nrm(o.name), old = existing ? AZ.connection(st, existing) : null;
+    if (existing && !old) return `Connection ${existing} was not found.`;
+    if (!old) { if (!hyName(name)) return hyNameMsg; if (AZ.connection(st, name)) return `A connection named ${name} already exists.`; }
+    const g = AZ.gateway(st, old ? old.gateway : o.gateway); if (!g) return 'Select a virtual network gateway.';
+    const l = AZ.lng(st, old ? old.lng : o.lng); if (!l) return 'Select a local network gateway.';
+    if (!old && z.connections.some(c => eq(c.gateway, g.name) && eq(c.lng, l.name))) return `A connection between ${g.name} and ${l.name} already exists.`;
+    const key = String(o.sharedKey || ''); if (!okKey(key)) return 'Shared key (PSK): 1-128 printable characters, no spaces or angle brackets.';
+    if (!['IKEv2', 'IKEv1'].includes(o.ike)) return 'Select the IKE protocol.';
+    const enableBgp = o.enableBgp === true || o.enableBgp === 'enable';
+    if (enableBgp && !g.bgp) return `BGP can only be enabled on the connection when the gateway (${g.name}) has BGP turned on.`;
+    if (enableBgp && !l.bgp) return `BGP is on for the connection, but local network gateway ${l.name} has no BGP settings (ASN and peer IP).`;
+    if (['default', 'custom'].includes(o.policy)) st.azure.policy = o.policy;
+    const rec = { name: old ? old.name : name, rg: g.rg, location: g.location, gateway: g.name, lng: l.name, sharedKey: key, ike: o.ike, enableBgp, created: old ? old.created : Date.now() };
+    if (old) Object.assign(old, rec); else z.connections.push(rec);
+    AZ.log(st, 'Create or update connection', rec.name, rec.rg); return null;
+  };
+  AZ.deleteConnection = (st, name) => {
+    const z = AZ.hy(st), c = AZ.connection(st, name); if (!c) return `Connection ${name} was not found.`;
+    z.connections = z.connections.filter(x => x !== c); AZ.log(st, 'Delete connection', c.name, c.rg); return null;
+  };
+  AZ.validHy = az => {
+    const opt = k => az[k] === undefined || Array.isArray(az[k]);
+    if (!['gateways', 'lngs', 'connections'].every(opt)) return false;
+    const str = (x, re) => typeof x === 'string' && re.test(x);
+    const nm = /^[A-Za-z0-9](?:[\w.-]{0,78}[A-Za-z0-9_])?$/;
+    if ((az.gateways || []).some(g => !str(g.name, nm) || !str(g.vnet, nm) || !SIM.isIp(g.publicIp) || typeof g.bgp !== 'boolean' || !Number.isFinite(g.asn) || !Number.isFinite(g.readyAt))) return false;
+    if ((az.lngs || []).some(l => !str(l.name, nm) || !SIM.isIp(l.ip) || !Array.isArray(l.addressSpace) || !l.addressSpace.every(p => p && SIM.isIp(p.ip) && Number.isInteger(p.bits)))) return false;
+    if ((az.connections || []).some(c => !str(c.name, nm) || !str(c.gateway, nm) || !str(c.lng, nm) || typeof c.sharedKey !== 'string' || !okKey(c.sharedKey) || !['IKEv1', 'IKEv2'].includes(c.ike))) return false;
+    return true;
+  };
   AZ.seed = now => {
     now = now || Date.now(); const d = days => now - days * 86400000;
     const az = {
@@ -1076,6 +1235,7 @@ SIM.AZ = (() => {
       resourceGroups: [{ name: 'rg-rick-test', location: 'eastus2', created: d(201) }],
       vnets: [{ name: 'vnet-test', rg: 'rg-rick-test', location: 'eastus2', addressSpace: [{ ip: '10.10.0.0', bits: 16 }], subnets: [{ name: 'default', ip: '10.10.0.0', bits: 24 }], created: d(201) }],
       vms: [{ name: 'vm-rick-test', rg: 'rg-rick-test', location: 'eastus2', image: 'ubuntu2204', size: 'Standard_B2s', power: 'deallocated', vnetRg: 'rg-rick-test', vnet: 'vnet-test', subnet: 'default', ipAlloc: 'Dynamic', privateIp: '10.10.0.4', created: d(201) }],
+      gateways: [], lngs: [], connections: [],
       activity: []
     };
     const st = { azure: az }, R = 'rick@talvex.example';
@@ -1096,6 +1256,7 @@ SIM.AZ = (() => {
       if (!az || !['default', 'custom'].includes(az.policy)) return false;
       if (!az.subscription || !/^[\w .-]{1,64}$/.test(az.subscription.name) || !/^[0-9a-f-]{36}$/.test(az.subscription.id)) return false;
       if (!['resourceGroups', 'vnets', 'vms', 'activity'].every(k => Array.isArray(az[k]))) return false;
+      if (!AZ.validHy(az)) return false;
       if (!az.resourceGroups.every(r => str(r.name) && AZ.RULES.rg.ok(r.name) && loc(r.location) && num(r.created))) return false;
       if (!az.vnets.every(v => str(v.name) && AZ.RULES.vnet.ok(v.name) && AZ.RULES.rg.ok(String(v.rg)) && loc(v.location) && num(v.created) && Array.isArray(v.addressSpace) && v.addressSpace.length && v.addressSpace.every(pfx) && Array.isArray(v.subnets) && v.subnets.every(s => str(s.name) && AZ.RULES.subnet.ok(s.name) && pfx(s)))) return false;
       if (!az.vms.every(m => str(m.name) && AZ.RULES.linux.ok(m.name) && AZ.RULES.rg.ok(String(m.rg)) && AZ.RULES.rg.ok(String(m.vnetRg)) && AZ.RULES.vnet.ok(String(m.vnet)) && AZ.RULES.subnet.ok(String(m.subnet)) && loc(m.location) && !!AZ.image(m.image) && AZ.SIZES.some(s => s[0] === m.size) && AZ.POWER.includes(m.power) && AZ.ALLOC.includes(m.ipAlloc) && SIM.isIp(m.privateIp) && num(m.created))) return false;
@@ -2284,11 +2445,63 @@ const MISSIONS = (() => {
       why: 'Sizing subnets with on-prem math is a classic mistake that bites on small subnets: a /29 gives you only 3 usable addresses in Azure, not 6.',
       cli: 'az network vnet subnet show -g rg-talvex-hub-scus --vnet-name vnet-talvex-hub -n snet-app --query addressPrefix',
       check: answer('a7', a => a === '251')
+    },
+    {
+      id: 'hy1', tier: 'Hybrid connectivity', view: 'azure', title: 'Your own VPN gateway', type: 'config',
+      story: 'The Azure team stood up a temporary gateway at 198.51.100.25 so the tunnel could come up early. That was a stopgap. Deploy the real gateway in your hub so you own both ends of the tunnel. It takes over the same public IP.',
+      tasks: ['Create virtual network gateway vgw-talvex-hub on vnet-talvex-hub (it deploys into GatewaySubnet).', 'SKU VpnGw1, BGP on, ASN 65515.', 'Wait for the provisioning state to read Succeeded.'],
+      hints: ['Azure view → Networking → Site-to-site VPN → Create.', 'No GatewaySubnet yet? Mission "A home for the gateway" builds it.', 'Deployment takes about 20 seconds here (30 to 45 minutes in real Azure). Plan change windows around that.'],
+      why: 'In real projects the gateway is yours to run: its SKU sets throughput and tunnel count, and its BGP settings have to line up with the office firewall.',
+      cli: 'az network vnet-gateway create -g rg-talvex-hub-scus -n vgw-talvex-hub --vnet vnet-talvex-hub --gateway-type Vpn --vpn-type RouteBased --sku VpnGw1 --asn 65515 --public-ip-addresses pip-vgw-talvex-hub',
+      check: st => {
+        const g = (st.azure.gateways || []).find(x => x.name.toLowerCase() === 'vgw-talvex-hub');
+        return [
+          { label: 'Gateway vgw-talvex-hub on vnet-talvex-hub', ok: !!g && g.vnet.toLowerCase() === 'vnet-talvex-hub' },
+          { label: 'SKU VpnGw1, BGP on, ASN 65515', ok: !!g && g.sku === 'VpnGw1' && g.bgp && g.asn === 65515 },
+          { label: 'Provisioning state Succeeded', ok: !!g && SIM.AZ.gwReady(g) }
+        ];
+      }
+    },
+    {
+      id: 'hy2', tier: 'Hybrid connectivity', view: 'azure', title: 'Tell Azure where the office is', type: 'config',
+      story: 'Azure only talks IKE with peers it knows about. A local network gateway is how you describe the office to Azure: the firewall\'s public IP, the networks behind it, and its BGP identity.',
+      tasks: ['Create local network gateway lng-talvex-office in rg-talvex-hub-scus.', 'IP address: the FortiGate WAN IP (port1).', 'Address spaces 10.10.10.0/24 and 10.10.20.0/24.', 'BGP on: ASN 65010 (the firewall\'s local AS), peer IP 169.254.21.2 (the tunnel interface).'],
+      hints: ['The WAN IP is on the FortiGate dashboard and on port1 under Network → Interfaces.', 'Azure refuses private addresses here: it must reach the office over the internet.', 'The BGP values are the office side of the session, the same ones you set on the FortiGate in "Let Azure advertise its routes".'],
+      why: 'A wrong IP on the local network gateway is one of the most common reasons a tunnel never comes up: Azure silently ignores IKE from anyone else.',
+      cli: 'az network local-gateway create -g rg-talvex-hub-scus -n lng-talvex-office --gateway-ip-address 203.0.113.10 --local-address-prefixes 10.10.10.0/24 10.10.20.0/24 --asn 65010 --bgp-peering-address 169.254.21.2',
+      check: st => {
+        const l = (st.azure.lngs || []).find(x => x.name.toLowerCase() === 'lng-talvex-office'), wan = st.interfaces.find(i => i.name === 'port1');
+        const has = pfx => !!l && l.addressSpace.some(p => p.ip + '/' + p.bits === pfx);
+        return [
+          { label: 'Local network gateway lng-talvex-office exists', ok: !!l },
+          { label: 'IP address is the FortiGate WAN IP', ok: !!l && !!wan && l.ip === wan.ip },
+          { label: 'Address spaces include 10.10.10.0/24 and 10.10.20.0/24', ok: has('10.10.10.0/24') && has('10.10.20.0/24') },
+          { label: 'BGP: ASN 65010, peer 169.254.21.2', ok: !!l && l.bgp && l.asn === 65010 && l.bgpPeerIp === '169.254.21.2' }
+        ];
+      }
+    },
+    {
+      id: 'hy3', tier: 'Hybrid connectivity', view: 'azure', title: 'Cut over to your gateway', type: 'config',
+      story: 'Everything is in place. Create the connection and the office firewall stops talking to the temporary gateway and negotiates with yours. From here on, both sides are live: change something on either side and the other side reacts.',
+      tasks: ['Create connection cn-talvex-office between vgw-talvex-hub and lng-talvex-office.', 'Shared key: the same pre-shared key the FortiGate tunnel uses. IKEv2. BGP enabled.', 'Prove it: the connection shows Connected, BGP is established, and Policy Lookup from 10.10.10.20 to 10.100.1.4 on HTTPS reaches AZ-VM-APP01.'],
+      hints: ['Site-to-site VPN → Connection → Create. The status pill updates live.', 'If the status says AUTHENTICATION_FAILED, the two pre-shared keys differ by even one character.', 'If BGP will not come up, compare the "Give these to the office firewall" card with the FortiGate BGP and tunnel settings.'],
+      why: 'This is the moment of truth on a real migration: both teams change their side, and the logs on each end tell you who is wrong. Here you can see both ends at once.',
+      cli: 'az network vpn-connection create -g rg-talvex-hub-scus -n cn-talvex-office --vnet-gateway1 vgw-talvex-hub --local-gateway2 lng-talvex-office --shared-key "<the PSK>" --enable-bgp',
+      check: st => {
+        const c = (st.azure.connections || []).find(x => x.name.toLowerCase() === 'cn-talvex-office'), cs = SIM.azConn(st), r = L(st, 'port2', '10.10.10.20', '10.100.1.4', 'tcp', 443);
+        return [
+          { label: 'Connection cn-talvex-office exists with BGP enabled', ok: !!c && c.enableBgp },
+          { label: 'Connection status Connected', ok: !!cs && cs.status === 'Connected' },
+          { label: 'BGP established with your gateway', ok: SIM.peer(st).live && SIM.bgpStatus(st).some(n => n.up) },
+          { label: 'HTTPS from 10.10.10.20 reaches AZ-VM-APP01', ok: !!(r && r.far && r.far.ok) }
+        ];
+      }
     }
   ];
 })();
-MISSIONS.TIERS = ['Recon', 'Interfaces', 'Objects', 'Policies', 'VPN to Azure', 'Hardening', 'Live Threats', 'Azure Foundations'];
+MISSIONS.TIERS = ['Recon', 'Interfaces', 'Objects', 'Policies', 'VPN to Azure', 'Hardening', 'Live Threats', 'Azure Foundations', 'Hybrid connectivity'];
 MISSIONS.TIER_NOTES = {
+  'Hybrid connectivity': 'Azure view. Build your own end of the tunnel. Once the connection exists, the FortiGate negotiates live against what you built, so both sides must agree.',
   'Azure Foundations': 'These run in the Azure view (switch at the top). Same naming and validation rules as a real subscription.',
   Policies: 'While the any-to-any temp rule is enabled, it catches everything first, so later checks will fail even when your new policy is right. That is the lesson, not a bug: kill it, then build.',
   'Live Threats': 'These unlock as you progress. Red means the attack is getting through right now.'
@@ -2509,6 +2722,7 @@ if (typeof module !== 'undefined') module.exports = LIVE;
 
   /* ---------- missions ---------- */
   function evaluate(silent) {
+    try { watchLink(silent); } catch (e) { }
     for (const m of MISSIONS) {
       let r; try { r = m.check(S); } catch (e) { r = [{ label: 'Check error: ' + e.message, ok: false }]; }
       UI.status[m.id] = r;
@@ -2517,6 +2731,25 @@ if (typeof module !== 'undefined') module.exports = LIVE;
       if (ok && !rec.done) { rec.done = Date.now(); if (!silent) toast('Mission complete', `${m.title} (${MISSIONS.filter(x => S.missions[x.id] && S.missions[x.id].done).length}/${MISSIONS.length})`, 'ok'); }
     }
   }
+  /* both sides see the same link: log every tunnel state change to the FortiGate event log and the Azure activity log */
+  function watchLink(silent) {
+    UI.link = UI.link || {};
+    for (const p1 of S.vpn.phase1) {
+      const t = SIM.tunnel(S, p1.name), key = (t.up ? 'up' : t.p1 ? 'p1' : 'down') + '|' + t.reason, prev = UI.link[p1.name];
+      UI.link[p1.name] = key;
+      if (silent || prev === undefined || prev === key) continue;
+      SIM.event(S, 'vpn', t.up ? 'notice' : 'warning', t.up ? `IPsec tunnel ${p1.name} UP: ${t.reason}` : `IPsec tunnel ${p1.name} ${t.p1 ? 'phase 2 failed' : 'down'}: ${t.reason}`);
+      const P = SIM.peer(S);
+      if (P.live && p1.remoteGw === P.remoteGw) AZ.log(S, `Connection status: ${t.up ? 'Connected' : 'Not connected'}`, P.cn.name, P.cn.rg, t.up ? 'Succeeded' : 'Failed', 'Azure VPN gateway');
+      if (prev.split('|')[0] !== key.split('|')[0]) toast(t.up ? 'Tunnel up' : 'Tunnel down', `${p1.name}: ${t.up ? 'both sides agree' : t.reason}`, t.up ? 'ok' : 'bad');
+    }
+  }
+  setInterval(() => {
+    const gws = (S && S.azure && S.azure.gateways) || []; if (!gws.length) return;
+    const busy = gws.some(g => !AZ.gwReady(g)), was = UI.gwBusy; UI.gwBusy = busy;
+    if (busy && UI.page === 'az-vpn') renderMain();
+    if (was && !busy) { evaluate(); renderAll(); }
+  }, 1000);
   const isDone = m => !!(S.missions[m.id] && S.missions[m.id].done);
   const doneCount = () => MISSIONS.filter(isDone).length;
 
@@ -2575,7 +2808,7 @@ if (typeof module !== 'undefined') module.exports = LIVE;
   const AZNAV = [
     { items: [['az-home', 'Home', I.dash], ['az-resources', 'All resources', I.list]] },
     { grp: 'Management', icon: I.sys, items: [['az-rgs', 'Resource groups'], ['az-activity', 'Activity log']] },
-    { grp: 'Networking', icon: I.net, items: [['az-vnets', 'Virtual networks']] },
+    { grp: 'Networking', icon: I.net, items: [['az-vnets', 'Virtual networks'], ['az-vpn', 'Site-to-site VPN']] },
     { grp: 'Compute', icon: I.vm, items: [['az-vms', 'Virtual machines']] }
   ];
   const PAGES = NAV.concat(AZNAV).flatMap(g => g.items.map(i => i[0])).concat(['az-vnet']); // az-vnet = VNet detail, reached from the list
@@ -2852,6 +3085,9 @@ if (typeof module !== 'undefined') module.exports = LIVE;
     const z = S.azure, rgf = UI.azRg;
     const rows = [].concat(
       z.vnets.map(v => ({ name: v.name, type: 'Virtual network', rg: v.rg, loc: v.location, open: ['az-vnet-open', `${v.rg}/${v.name}`] })),
+      (z.gateways || []).map(g => ({ name: g.name, type: 'Virtual network gateway', rg: g.rg, loc: g.location, open: ['nav', 'az-vpn'] })),
+      (z.lngs || []).map(g => ({ name: g.name, type: 'Local network gateway', rg: g.rg, loc: g.location, open: ['nav', 'az-vpn'] })),
+      (z.connections || []).map(g => ({ name: g.name, type: 'Connection', rg: g.rg, loc: g.location, open: ['nav', 'az-vpn'] })),
       z.vms.map(m => ({ name: m.name, type: 'Virtual machine', rg: m.rg, loc: m.location, open: ['nav', 'az-vms'] })),
       z.vms.map(m => ({ name: `${m.name}-nic`, type: 'Network interface', rg: m.rg, loc: m.location }))
     ).filter(r => (!rgf || r.rg.toLowerCase() === rgf.toLowerCase()) && fmatch(r.name, r.type, r.rg, r.loc));
@@ -2908,6 +3144,37 @@ if (typeof module !== 'undefined') module.exports = LIVE;
     return head('Virtual machines and the private IP their NIC holds. Stopping (deallocating) a VM stops compute billing; its private IP stays reserved.') +
       `<div class="toolbar"><button class="btn primary" data-act="az-vm-new">${I.plus} Create</button>${azFilter('Filter virtual machines…')}</div>
       <div class="tablewrap"><table class="grid"><thead><tr><th>Name</th><th>Status</th><th>Resource group</th><th>Location</th><th>Image</th><th>Size</th><th>Private IP</th><th>Virtual network / subnet</th><th></th></tr></thead><tbody>${rows.map(m => { const img = AZ.image(m.image); const id = `${m.rg}/${m.name}`; return `<tr><td class="mono">${esc(m.name)}</td><td>${vmStatus(m)}</td><td class="mono">${esc(m.rg)}</td><td>${azRegion(m.location)}</td><td>${esc(img ? img.label : m.image)}</td><td class="mono">${esc(m.size)}</td><td class="mono">${esc(m.privateIp)} <span class="help">(${esc(m.ipAlloc)})</span></td><td class="mono">${esc(m.vnet)} / ${esc(m.subnet)}</td><td class="acts">${m.power === 'running' ? `<button class="ibtn" data-act="az-vm-power" data-id="${esc(id)}" data-name="deallocated" title="Stop" aria-label="Stop ${esc(m.name)}">${I.stop}</button>` : `<button class="ibtn" data-act="az-vm-power" data-id="${esc(id)}" data-name="running" title="Start" aria-label="Start ${esc(m.name)}">${I.play}</button>`}${actBtn('az-vm-del', id, I.del, 'Delete virtual machine')}</td></tr>`; }).join('') || '<tr><td colspan="9" class="empty">No virtual machines.</td></tr>'}</tbody></table></div>`;
+  };
+
+  P['az-vpn'] = () => {
+    const z = AZ.hy(S), g = z.gateways[0], l = z.lngs[0], c = z.connections[0], cs = SIM.azConn(S), now = Date.now();
+    const kv = rows => `<dl class="kv">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${v}</dd>`).join('')}</dl>`;
+    const btn = (act, label, id, primary) => `<button class="btn${primary ? ' primary' : ''}" data-act="${act}"${id ? ` data-id="${esc(id)}"` : ''}>${label}</button>`;
+    const state = g ? (AZ.gwReady(g) ? pill('Succeeded', 'ok') : pill(`Updating, about ${Math.max(1, Math.ceil((g.readyAt - now) / 1000))}s left`, 'warn')) : '';
+    const gwCard = g ? `<section class="card widget"><h2>Virtual network gateway</h2>${kv([
+        ['Name', `<span class="mono">${esc(g.name)}</span>`], ['Provisioning state', state], ['SKU', esc(g.sku)], ['Virtual network', `${esc(g.vnet)} (${esc(g.rg)})`],
+        ['Public IP address', `<span class="mono">${esc(g.publicIp)}</span>`], ['BGP', g.bgp ? `On, ASN <span class="mono">${esc(g.asn)}</span>, peer IP <span class="mono">${esc(AZ.gwBgpIp(S, g) || '')}</span>` : 'Off']])}
+        <div class="toolbar">${btn('az-gw-edit', 'Configuration', g.name)}${btn('az-gw-del', 'Delete', g.name)}</div></section>`
+      : `<section class="card widget"><h2>Virtual network gateway</h2><p class="muted">No VPN gateway yet. It deploys into the hub's GatewaySubnet and gives Azure a public IP for the tunnel.</p><div class="toolbar">${btn('az-gw-new', I.plus + ' Create', '', true)}</div></section>`;
+    const lngCard = l ? `<section class="card widget"><h2>Local network gateway</h2>${kv([
+        ['Name', `<span class="mono">${esc(l.name)}</span>`], ['IP address (office firewall)', `<span class="mono">${esc(l.ip)}</span>`],
+        ['Address space', l.addressSpace.length ? `<span class="mono">${l.addressSpace.map(p => esc(AZ.fmt(p))).join(', ')}</span>` : '<span class="muted">none (learned over BGP)</span>'],
+        ['BGP', l.bgp ? `ASN <span class="mono">${esc(l.asn)}</span>, peer IP <span class="mono">${esc(l.bgpPeerIp)}</span>` : 'Off']])}
+        <div class="toolbar">${btn('az-lng-edit', 'Configuration', l.name)}${btn('az-lng-del', 'Delete', l.name)}</div></section>`
+      : `<section class="card widget"><h2>Local network gateway</h2><p class="muted">Tells Azure where the office is: the firewall's public IP and the networks behind it.</p><div class="toolbar">${btn('az-lng-new', I.plus + ' Create', '', true)}</div></section>`;
+    const kind = cs ? (cs.status === 'Connected' ? 'ok' : cs.status === 'Updating' ? 'warn' : 'bad') : 'mute';
+    const cnCard = c ? `<section class="card widget"><h2>Connection</h2>${kv([
+        ['Name', `<span class="mono">${esc(c.name)}</span>`], ['Status', pill(cs ? cs.status : 'Unknown', kind)], ['Last IKE event', `<span class="muted">${esc(cs ? cs.reason : '')}</span>`],
+        ['Gateways', `${esc(c.gateway)} ↔ ${esc(c.lng)}`], ['IKE protocol', esc(c.ike)], ['IPsec / IKE policy', S.azure.policy === 'custom' ? 'Custom (AES256, SHA256, DH14, GCM, PFS14)' : 'Default'],
+        ['BGP', c.enableBgp ? 'Enabled' : 'Disabled'], ['Shared key', `<span class="mono">${'•'.repeat(Math.min(12, c.sharedKey.length))}</span>`]])}
+        <div class="toolbar">${btn('az-cn-edit', 'Configuration', c.name)}${btn('az-cn-del', 'Delete', c.name)}</div></section>`
+      : `<section class="card widget"><h2>Connection</h2><p class="muted">Joins the gateway to the office. Its shared key, IKE version, IPsec policy and BGP setting must match the FortiGate exactly.</p><div class="toolbar">${g && l ? btn('az-cn-new', I.plus + ' Create', '', true) : '<span class="muted">Create the gateway and the local network gateway first.</span>'}</div></section>`;
+    const give = g ? `<section class="card widget"><h2>Give these to the office firewall</h2>${kv([
+        ['Remote gateway', `<span class="mono">${esc(g.publicIp)}</span>`], ['IKE version', c ? esc(c.ike.replace('IKEv', '')) : '2'],
+        ['BGP neighbor', g.bgp ? `<span class="mono">${esc(AZ.gwBgpIp(S, g) || '')}</span>, remote AS <span class="mono">${esc(g.asn)}</span>` : 'BGP off'],
+        ['Tunnel interface IP', `<span class="mono">${esc((l && l.bgp && l.bgpPeerIp) || '169.254.21.2')}</span>`]])}</section>` : '';
+    return head('The Azure end of the site-to-site tunnel. Everything here is live: the office FortiGate negotiates against exactly what you build, so a mismatch on either side shows up on both.') +
+      `<div class="dash">${gwCard}${lngCard}${cnCard}${give}</div>`;
   };
 
   P['az-activity'] = () => {
@@ -3350,6 +3617,57 @@ if (typeof module !== 'undefined') module.exports = LIVE;
       onSave: x => { const [vnetRg, vnet] = String(x.vnet || '').split('/'); const err = AZ.createVm(S, Object.assign({}, x, { vnetRg, vnet })); const m = err ? null : AZ.vm(S, x.rg, x.name.trim()); return azDone(err, 'Deployment succeeded', m ? `${m.name} is running at ${m.privateIp}` : ''); }
     });
   };
+  const hubVnetOpts = () => { const l = S.azure.vnets.map(v => [`${v.rg}/${v.name}`, `${v.name} (${v.rg})${AZ.subnet(v, 'GatewaySubnet') ? '' : ', no GatewaySubnet'}`]); return l.length ? l : [['', 'No virtual networks yet']]; };
+  const onOff = [['enable', 'Enabled'], ['disable', 'Disabled']];
+  ED.azGw = name => {
+    const g = name ? AZ.gateway(S, name) : null;
+    openForm({
+      title: g ? `Configuration: ${g.name}` : 'Create virtual network gateway', saveLabel: g ? 'Save' : 'Review + create',
+      data: g ? { name: g.name, vnet: `${g.vnetRg}/${g.vnet}`, sku: g.sku, bgp: g.bgp ? 'enable' : 'disable', asn: String(g.asn) } : { name: 'vgw-talvex-hub', vnet: (hubVnetOpts()[0] || [''])[0], sku: 'VpnGw1', bgp: 'enable', asn: '65515' },
+      fields: [
+        { type: 'section', label: 'Instance details' }, { key: 'name', label: 'Name', mono: true, ro: !!g, placeholder: 'vgw-talvex-hub' },
+        { key: 'vnet', label: 'Virtual network', type: 'select', options: hubVnetOpts, ro: !!g, help: 'The gateway deploys into the subnet named GatewaySubnet' },
+        { key: 'sku', label: 'SKU', type: 'select', options: AZ.GW_SKUS },
+        { type: 'section', label: 'BGP' }, { key: 'bgp', label: 'Configure BGP', type: 'select', options: onOff },
+        { key: 'asn', label: 'Autonomous system number (ASN)', mono: true, show: d => d.bgp === 'enable', help: '65515 is the Azure default' },
+        { type: 'note', key: '_n', html: g ? 'Changing BGP puts the gateway into Updating for a few seconds, which drops the tunnel briefly.' : 'A real gateway takes 30 to 45 minutes to deploy. The lab compresses it to 20 seconds.' }
+      ],
+      onSave: x => { if (g) return azDone(AZ.updateGateway(S, g.name, x), 'Updating gateway', g.name); const [vnetRg, vnet] = String(x.vnet || '').split('/'); return azDone(AZ.createGateway(S, Object.assign({}, x, { vnetRg, vnet })), 'Deployment started', `${x.name} is deploying`); }
+    });
+  };
+  ED.azLng = name => {
+    const l = name ? AZ.lng(S, name) : null, wan = S.interfaces.find(i => i.role === 'wan') || { ip: '' };
+    openForm({
+      title: l ? `Configuration: ${l.name}` : 'Create local network gateway', saveLabel: l ? 'Save' : 'Review + create',
+      data: l ? { name: l.name, rg: l.rg, ip: l.ip, space: l.addressSpace.map(AZ.fmt).join(' '), bgp: l.bgp ? 'enable' : 'disable', asn: String(l.asn || ''), bgpPeerIp: l.bgpPeerIp || '' }
+        : { name: 'lng-talvex-office', rg: (S.azure.resourceGroups.find(r => r.name.toLowerCase() === 'rg-talvex-hub-scus') || S.azure.resourceGroups[0] || { name: '' }).name, ip: '', space: '', bgp: 'disable', asn: '', bgpPeerIp: '169.254.21.2' },
+      fields: [
+        { type: 'section', label: 'Instance details' }, { key: 'name', label: 'Name', mono: true, ro: !!l }, { key: 'rg', label: 'Resource group', type: 'select', options: rgOpts, ro: !!l },
+        { key: 'ip', label: 'IP address', mono: true, placeholder: wan.ip || '203.0.113.10', help: 'The public IP of the office firewall (FortiGate WAN interface)' },
+        { key: 'space', label: 'Address space(s)', mono: true, placeholder: '10.10.10.0/24 10.10.20.0/24', help: 'The office networks Azure should send back through the tunnel. Separate with spaces' },
+        { type: 'section', label: 'BGP settings' }, { key: 'bgp', label: 'Configure BGP settings', type: 'select', options: onOff },
+        { key: 'asn', label: 'Autonomous system number (ASN)', mono: true, placeholder: '65010', show: d => d.bgp === 'enable', help: 'The office firewall\'s local AS' },
+        { key: 'bgpPeerIp', label: 'BGP peer IP address', mono: true, show: d => d.bgp === 'enable', help: 'The office side of the BGP session (the FortiGate tunnel interface IP)' }
+      ],
+      onSave: x => azDone(AZ.saveLng(S, x, l ? l.name : null), l ? 'Saved' : 'Deployment succeeded', x.name)
+    });
+  };
+  ED.azCn = name => {
+    const c = name ? AZ.connection(S, name) : null, z = AZ.hy(S);
+    const gwOpts = () => z.gateways.length ? z.gateways.map(g => g.name) : [['', 'No gateways']], lngOpts = () => z.lngs.length ? z.lngs.map(g => g.name) : [['', 'No local network gateways']];
+    openForm({
+      title: c ? `Configuration: ${c.name}` : 'Create connection', saveLabel: c ? 'Save' : 'Review + create',
+      data: c ? { name: c.name, gateway: c.gateway, lng: c.lng, sharedKey: c.sharedKey, ike: c.ike, enableBgp: c.enableBgp ? 'enable' : 'disable', policy: S.azure.policy }
+        : { name: 'cn-talvex-office', gateway: (z.gateways[0] || {}).name || '', lng: (z.lngs[0] || {}).name || '', sharedKey: '', ike: 'IKEv2', enableBgp: 'disable', policy: S.azure.policy || 'default' },
+      fields: [
+        { type: 'section', label: 'Basics' }, { key: 'name', label: 'Name', mono: true, ro: !!c }, { key: 'gateway', label: 'Virtual network gateway', type: 'select', options: gwOpts, ro: !!c }, { key: 'lng', label: 'Local network gateway', type: 'select', options: lngOpts, ro: !!c },
+        { type: 'section', label: 'Settings' }, { key: 'sharedKey', label: 'Shared key (PSK)', mono: true, help: 'Must match the pre-shared key on the FortiGate tunnel exactly' },
+        { key: 'ike', label: 'IKE protocol', type: 'select', options: ['IKEv2', 'IKEv1'] }, { key: 'enableBgp', label: 'Enable BGP', type: 'select', options: onOff },
+        { key: 'policy', label: 'IPsec / IKE policy', type: 'select', options: [['default', 'Default'], ['custom', 'Custom (AES256, SHA256, DH14, GCM, PFS14)']] }
+      ],
+      onSave: x => azDone(AZ.saveConnection(S, x, c ? c.name : null), c ? 'Saved' : 'Connection created', x.name)
+    });
+  };
   const azDel = (label, fn) => confirmBox(`Delete ${label}?`, `This permanently deletes ${label}.`, 'Delete', () => { const err = fn(); if (err) toast('Delete failed', err, 'bad'); else toast('Deleted', label, 'ok'); });
 
   const del = (kind, label, fn) => confirmBox(`Delete ${label}?`, `This removes ${label} from the configuration.`, 'Delete', () => { const err = fn(); if (err) { toast('Cannot delete', err, 'bad'); return; } SIM.event(S, 'system', 'notice', `Configuration changed by admin via GUI(10.10.10.20): ${kind} ${label} deleted`); });
@@ -3407,6 +3725,9 @@ if (typeof module !== 'undefined') module.exports = LIVE;
     'az-sub-new': d => ED.azSubnet(d.id),
     'az-sub-del': d => { const [rg, n, s] = d.id.split('/'); azDel(`subnet ${s}`, () => AZ.deleteSubnet(S, rg, n, s)); },
     'az-vm-new': () => ED.azVm(),
+    'az-gw-new': () => ED.azGw(), 'az-gw-edit': d => ED.azGw(d.id), 'az-gw-del': d => azDel('virtual network gateway ' + d.id, () => { const e = AZ.deleteGateway(S, d.id); if (!e) commit(); return e; }),
+    'az-lng-new': () => ED.azLng(), 'az-lng-edit': d => ED.azLng(d.id), 'az-lng-del': d => azDel('local network gateway ' + d.id, () => { const e = AZ.deleteLng(S, d.id); if (!e) commit(); return e; }),
+    'az-cn-new': () => ED.azCn(), 'az-cn-edit': d => ED.azCn(d.id), 'az-cn-del': d => azDel('connection ' + d.id, () => { const e = AZ.deleteConnection(S, d.id); if (!e) commit(); return e; }),
     'az-vm-del': d => { const [rg, n] = d.id.split('/'); azDel(`virtual machine ${n} and its network interface`, () => AZ.deleteVm(S, rg, n)); },
     'az-vm-power': d => { const [rg, n] = d.id.split('/'); const e = AZ.setPower(S, rg, n, d.name); if (e) toast('Failed', e, 'bad'); else toast(d.name === 'running' ? 'Started' : 'Stopped (deallocated)', n, 'ok'); commit(); }
   };
