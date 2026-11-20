@@ -3150,10 +3150,27 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
       if (prev.split('|')[0] !== key.split('|')[0]) toast(t.up ? 'Tunnel up' : 'Tunnel down', `${p1.name}: ${t.up ? 'both sides agree' : t.reason}`, t.up ? 'ok' : 'bad');
     }
   }
+  /* Live refreshes rebuild #main and the drawer with innerHTML. Doing that while someone is dragging a
+     highlight (or has one waiting to be copied) destroys the node the selection started in, so the browser
+     re-anchors it at the top of the pane and the highlight jumps onto lines above what was picked. Hold the
+     live refresh for a pane while a drag starts in it or a selection touches it; it resumes on the next tick
+     after the selection is cleared. */
+  let dragIn = null;
+  document.addEventListener('pointerdown', e => { if (e.button === 0) dragIn = e.target; }, true);
+  const endDrag = () => { dragIn = null; };
+  document.addEventListener('pointerup', endDrag, true); document.addEventListener('pointercancel', endDrag, true); window.addEventListener('blur', endDrag);
+  function selHeld(el) {
+    if (!el) return false;
+    if (dragIn && el.contains(dragIn)) return true;
+    const s = window.getSelection && window.getSelection();
+    if (!s || s.isCollapsed || !s.rangeCount) return false;
+    for (let i = 0; i < s.rangeCount; i++) { try { if (s.getRangeAt(i).intersectsNode(el)) return true; } catch (e) { } }
+    return false;
+  }
   setInterval(() => {
     const gws = (S && S.azure && S.azure.gateways) || []; if (!gws.length) return;
     const busy = gws.some(g => !AZ.gwReady(g)), was = UI.gwBusy; UI.gwBusy = busy;
-    if (busy && UI.page === 'az-vpn') renderMain();
+    if (busy && UI.page === 'az-vpn' && !selHeld($('#main'))) renderMain();
     if (was && !busy) { evaluate(); renderAll(); }
   }, 1000);
   const isDone = m => !!(S.missions[m.id] && S.missions[m.id].done);
@@ -4401,13 +4418,13 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
   function onTick() {
     evaluate();
     const ae = document.activeElement; const typing = ae && ae.closest && ae.closest('#main') && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName);
-    if (liveSet.has(UI.page) && !typing) renderMain();
+    if (liveSet.has(UI.page) && !typing && !selHeld($('#main'))) renderMain();
     renderHeader();
     const d = doneCount();
     const inDrawer = ae && ae.closest && ae.closest('#drawer') && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName);
     const anyThreat = LIVE.THREATS.some(t => (S.threats[t.id] || {}).active);
-    if (UI.drawer && !inDrawer && (d !== lastDone || anyThreat)) renderDrawer();
-    lastDone = d;
+    if (UI.drawer && !inDrawer && (d !== lastDone || anyThreat) && !selHeld($('#drawer'))) { renderDrawer(); lastDone = d; }
+    else if (!UI.drawer) lastDone = d;
   }
   function onThreat(t) { toast('New activity in the logs', `${t.name}. A new Live Threats mission is open.`, 'bad'); SIM.event(S, 'system', 'warning', `Anomaly detector: unusual traffic pattern observed (${t.name.toLowerCase()})`); }
   function startLab() {
