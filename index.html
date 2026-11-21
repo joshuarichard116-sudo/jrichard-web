@@ -1021,7 +1021,9 @@
 
     /* ---- sparkles: ambient sparks, a cursor trail, and bursts on select ---- */
     const canvas = document.getElementById('sparks');
-    const ctx = canvas.getContext('2d');
+    // willReadFrequently keeps this small canvas on the CPU renderer. Same pixels everywhere, but it sidesteps
+    // GPU-canvas driver bugs (seen on an NVIDIA RTX 2000-series card) where additive sparks smeared into white bands.
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     const parts = [];
     const MAX = fine ? 140 : 70;
     let dpr = 1, last = performance.now(), cursor = null, trailAt = 0;
