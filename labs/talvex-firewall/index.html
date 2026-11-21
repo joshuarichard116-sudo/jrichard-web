@@ -2444,7 +2444,7 @@ SIM.TF = (() => {
       if (f === 'terraform.tfstate' && w.state.serial) return { lines: JSON.stringify({ version: 4, terraform_version: TF.VERSION, serial: w.state.serial, lineage: w.state.lineage, outputs: w.state.outputs, resources: w.state.resources.map(r => ({ mode: 'managed', type: r.type, name: r.name, provider: 'provider["registry.terraform.io/hashicorp/azurerm"]', instances: [{ attributes: r.attrs, dependencies: r.deps }] })) }, null, 2).split('\n').map(t => L(t)) };
       return { lines: [L(`cat: ${f}: No such file or directory`, 'err')] };
     }
-    if (cmd === 'az') return { lines: [L('This console is for Terraform. The Azure CLI equivalents are under each mission; the portal pages use the same API.', 'dim')] };
+    if (cmd === 'az') return { lines: [L('This console runs Terraform only; the az CLI is not simulated. Each Terraform mission\'s solution shows the code and commands to use.', 'dim')] };
     if (cmd !== 'terraform') return { lines: [L(`${cmd}: command not found. Try "terraform -help".`, 'err')] };
     const sub = rest.shift();
     const flags = { target: [], vars: {} }, pos = [];
@@ -5115,7 +5115,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
       }
     }
   ];
-  for (const m of add) MISSIONS.push(m);
+  for (const m of add) { m.cliLabel = 'Terraform solution'; MISSIONS.push(m); }
   MISSIONS.TIERS.push('Infrastructure as Code');
   MISSIONS.TIER_NOTES['Infrastructure as Code'] = 'Azure view → Automation → Terraform. Same subscription, same rules, written as Terraform JSON (main.tf.json). Do Azure Foundations first: two of these adopt and protect the hub you built there.';
 
@@ -8304,7 +8304,7 @@ if (typeof module !== 'undefined') module.exports = CATS;
             if (!ok && (rec.hints || 0) < m.hints.length) html += `<div><button class="btn" data-act="mis-hint" data-id="${m.id}">Show hint ${(rec.hints || 0) + 1} of ${m.hints.length}</button></div>`;
           }
           if (ok) html += `<div class="why"><b>Why this matters.</b> ${esc(m.why)}</div>`;
-          if (ok || rec.showCli) html += `<div><div class="sub-h">${m.view === 'azure' ? 'Azure CLI equivalent' : 'CLI equivalent'}</div><pre>${esc(m.cli)}</pre></div>`;
+          if (ok || rec.showCli) html += `<div><div class="sub-h">${esc(m.cliLabel || (m.view === 'azure' ? 'Azure CLI equivalent' : 'CLI equivalent'))}</div><pre>${esc(m.cli)}</pre></div>`;
           else html += `<div><button class="btn" data-act="mis-cli" data-id="${m.id}">Reveal the CLI (spoiler)</button></div>`;
           html += `</div>`;
         }
