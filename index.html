@@ -1045,7 +1045,9 @@
       // a few sparks per second rise from around the base, a few drift off the tip
       const cx = scene.clientWidth / 2, base = geo.top + geo.H + bob;
       if (Math.random() < dt * (fine ? 14 : 7)) {
-        spawn(cx + (Math.random() * 2 - 1) * geo.R * 1.05, base - Math.random() * 14 * geo.s,
+        // only from the outer corners of the base, so they never drift up over the face labels
+        const side = Math.random() < 0.5 ? -1 : 1;
+        spawn(cx + side * (0.85 + Math.random() * 0.3) * geo.R, base - Math.random() * 14 * geo.s,
               (Math.random() - 0.5) * 6, -(14 + Math.random() * 26) * geo.s, 2.4 + Math.random() * 2.2, 1 + Math.random() * 1.9);
       }
       if (Math.random() < dt * 1.6) {
@@ -1074,7 +1076,7 @@
       const cx = scene.clientWidth / 2, base = geo.top + geo.H + bob;
       const n = Math.round(38 * strength);
       for (let k = 0; k < n; k++) {
-        const h = Math.random();                                   // 0 = base, 1 = tip
+        const h = 0.38 + Math.random() * 0.62;                     // 0 = base, 1 = tip; stay above the labels
         const half = geo.R * 1.25 * (1 - h * 0.85);
         const x = cx - dir * half * (0.6 + Math.random() * 0.6);   // start on the trailing side
         const y = base - h * geo.H * 0.9 + (Math.random() - 0.5) * 10;
@@ -1089,8 +1091,8 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, Hh);
       const dark = isDark();
-      // additive glow in dark mode (the original look); sweeps are capped in sweep() so it can't pile up into a white smear
-      ctx.globalCompositeOperation = dark ? 'lighter' : 'source-over';
+      // normal blending, soft alphas: additive glow smeared into white bands on some GPUs and drowned out the labels
+      ctx.globalCompositeOperation = 'source-over';
       const col = dark ? '232, 184, 74' : '168, 116, 10';
       for (let k = parts.length - 1; k >= 0; k--) {
         const q = parts[k];
@@ -1104,15 +1106,15 @@
         const twinkle = 0.65 + 0.35 * Math.sin(q.tw + q.age * 9);
         const r = q.size * (0.6 + 0.4 * fade);
         if (q.streak) {                          // motion streak trailing behind the spark
-          ctx.strokeStyle = `rgba(${col}, ${(fade * (dark ? 0.75 : 0.6)).toFixed(3)})`;
-          ctx.lineWidth = r; ctx.lineCap = 'round';
+          ctx.strokeStyle = `rgba(${col}, ${(fade * (dark ? 0.4 : 0.35)).toFixed(3)})`;
+          ctx.lineWidth = r * 0.7; ctx.lineCap = 'round';
           ctx.beginPath(); ctx.moveTo(q.x - q.vx * 0.05, q.y - q.vy * 0.05); ctx.lineTo(q.x, q.y); ctx.stroke();
           continue;
         }
-        ctx.fillStyle = `rgba(${col}, ${(fade * twinkle * (dark ? 0.9 : 0.75)).toFixed(3)})`;
+        ctx.fillStyle = `rgba(${col}, ${(fade * twinkle * (dark ? 0.6 : 0.55)).toFixed(3)})`;
         ctx.beginPath(); ctx.arc(q.x, q.y, r, 0, 6.283); ctx.fill();
         if (dark && r > 1.6) {                  // soft halo on the bigger sparks
-          ctx.fillStyle = `rgba(${col}, ${(fade * 0.12).toFixed(3)})`;
+          ctx.fillStyle = `rgba(${col}, ${(fade * 0.06).toFixed(3)})`;
           ctx.beginPath(); ctx.arc(q.x, q.y, r * 3.2, 0, 6.283); ctx.fill();
         }
       }
@@ -1132,8 +1134,8 @@
         // front half of the ellipse runs from angle PI (left) to 0 (right)
         const from = a.dir > 0 ? Math.PI - tail * Math.PI : head * Math.PI;
         const to = a.dir > 0 ? Math.PI - head * Math.PI : tail * Math.PI;
-        ctx.strokeStyle = `rgba(${col}, ${(0.85 * (1 - t) * a.strength).toFixed(3)})`;
-        ctx.lineWidth = 3 * (1 - t) + 1; ctx.lineCap = 'round';
+        ctx.strokeStyle = `rgba(${col}, ${(0.45 * (1 - t) * a.strength).toFixed(3)})`;
+        ctx.lineWidth = 2 * (1 - t) + 1; ctx.lineCap = 'round';
         ctx.beginPath(); ctx.ellipse(cx, base, rx, ry, 0, Math.min(from, to), Math.max(from, to)); ctx.stroke();
       }
     }
@@ -1141,7 +1143,7 @@
     function drawRing(cx, base, rx, ry, col) {
       ctx.save();
       ctx.setLineDash([5 * geo.s, 5 * geo.s]); ctx.lineWidth = 1.5;
-      ctx.strokeStyle = `rgba(${col}, .5)`;
+      ctx.strokeStyle = `rgba(${col}, .3)`;
       ctx.beginPath(); ctx.ellipse(cx, base, rx, ry, 0, 0, Math.PI); ctx.stroke();
       ctx.setLineDash([]);
       const spin = ((angle + tx + sway) * Math.PI / 180) + (reduce ? 0 : performance.now() / 40000 * 6.283);
@@ -1149,10 +1151,10 @@
         const a = Math.PI / 2 + spin + off, y = Math.sin(a);
         if (y <= 0.05) continue;                 // behind the pyramid
         const x = cx + Math.cos(a) * rx, yy = base + y * ry;
-        ctx.fillStyle = `rgba(${col}, ${(alpha * 0.25).toFixed(2)})`;
+        ctx.fillStyle = `rgba(${col}, ${(alpha * 0.12).toFixed(2)})`;
         ctx.beginPath(); ctx.arc(x, yy, 9 * geo.s, 0, 6.283); ctx.fill();
-        ctx.fillStyle = `rgba(${col}, ${alpha})`;
-        ctx.beginPath(); ctx.arc(x, yy, 4.5 * geo.s, 0, 6.283); ctx.fill();
+        ctx.fillStyle = `rgba(${col}, ${(alpha * 0.8).toFixed(2)})`;
+        ctx.beginPath(); ctx.arc(x, yy, 3.5 * geo.s, 0, 6.283); ctx.fill();
       }
       ctx.restore();
     }
