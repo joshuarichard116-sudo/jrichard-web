@@ -2944,6 +2944,92 @@ CLI.complete = function (shell, line) {
 if (typeof module !== 'undefined') module.exports = CLI;
 
 </script>
+<style id="shared-css">
+/* ---------- shared-state views (Phase 3) ---------- */
+.banner.ok { background: var(--ok-soft); border-color: var(--ok); }
+.banner.bad { background: var(--bad-soft); border-color: var(--bad); }
+ol.steps { margin: 0; padding-left: 20px; display: grid; gap: 3px; font-size: 12.5px; min-width: 0; overflow-wrap: anywhere; }
+ol.steps li.n { color: var(--bad); }
+.mis.regressed .badge { border-color: var(--warn); background: var(--warn-soft); color: var(--warn); }
+.reg-tag { display: inline-block; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; padding: 1px 5px; border-radius: 4px; background: var(--warn-soft); color: var(--warn); }
+</style>
+<script>
+/* ================= SHARED VIEWS: answers every page, mission check and Nightmare check derive from one state =================
+   Everything in the lab reads the same config object (S, built by SIM.seed). These helpers turn that config into the
+   facts several places need, so a page, a live check and a mission can never disagree: who can log in from where, what
+   an admin profile really allows, whether logs reach the syslog collector, which policy is doing the work. No DOM. */
+(() => {
+  const AREAS = [['sysgrp', 'System'], ['netgrp', 'Network'], ['fwgrp', 'Firewall'], ['loggrp', 'Log & Report'], ['utmgrp', 'Security Profiles'], ['vpngrp', 'VPN']];
+  SIM.ADMIN_AREAS = AREAS;
+  const RANK = { none: 0, read: 1, 'read-write': 2 };
+
+  /* what an administrator account may see and change, straight from its profile */
+  SIM.adminAccess = (st, name) => {
+    const a = (st.admins || []).find(x => x.name === name);
+    if (!a) return null;
+    const p = (st.accprofiles || []).find(x => x.name === a.profile);
+    const out = { admin: a.name, profile: a.profile, exists: !!p, areas: {} };
+    for (const [k, label] of AREAS) out.areas[k] = { label, level: p ? (p[k] || 'none') : 'none' };
+    return out;
+  };
+  SIM.adminCan = (st, name, grp, need) => { const x = SIM.adminAccess(st, name); return !!x && RANK[x.areas[grp].level] >= RANK[need || 'read']; };
+
+  /* a management login attempt, end to end: the packet (interface access, local-in policy, trusted hosts on the
+     login page), then the account (its own trusted hosts, lockout, two-factor). Same SIM.lookup the Policy Lookup uses. */
+  SIM.adminLogin = (st, o) => {
+    const method = o.method || 'https', steps = [];
+    const port = method === 'ssh' ? 22 : method === 'http' ? 80 : method === 'telnet' ? 23 : (+st.system.adminSport || 443);
+    let srcintf = o.srcintf;
+    if (!srcintf) { const r = SIM.routeLookup(st, o.srcip); srcintf = r ? r.device : null; }
+    const inIf = srcintf && SIM.iface(st, srcintf);
+    if (!inIf) return { ok: false, stage: 'network', reason: `No interface faces ${o.srcip}`, steps };
+    const dst = o.dstip || inIf.ip;
+    const R = SIM.lookup(st, { srcintf, srcip: o.srcip, dstip: dst, proto: 'tcp', port });
+    for (const s of R.steps) steps.push(s);
+    if (R.verdict !== 'accept') return { ok: false, stage: 'network', reason: R.reason, steps, srcintf };
+    const a = (st.admins || []).find(x => x.name === o.user);
+    if (!a) return { ok: false, stage: 'account', reason: `No administrator named ${o.user}`, steps, srcintf };
+    if ((a.trusthosts || []).length && !a.trusthosts.some(t => SIM.inNet(o.srcip, t.ip, t.bits))) {
+      steps.push({ kind: 'auth', text: `${a.name}: ${o.srcip} is not one of this account's trusted hosts. Login refused`, ok: false });
+      return { ok: false, stage: 'trusthost', reason: `${o.srcip} is not a trusted host for ${a.name}`, steps, srcintf };
+    }
+    const lock = ((st.adminLock || {})[a.name]) || 0;
+    if (lock && (o.now || Date.now()) < lock) {
+      steps.push({ kind: 'auth', text: `${a.name} is locked out after repeated failed logins`, ok: false });
+      return { ok: false, stage: 'lockout', reason: `${a.name} is locked out`, steps, srcintf };
+    }
+    const mfa = a.twofactor && a.twofactor !== 'disable';
+    steps.push({ kind: 'auth', text: `${a.name}: password accepted${mfa ? `, then a ${a.twofactor === 'token' ? 'FortiToken (TOTP)' : 'emailed'} code is required` : '. No second factor is asked for'}`, ok: true });
+    return { ok: true, stage: 'ok', reason: mfa ? 'password + second factor' : 'password only', mfa, steps, srcintf, profile: a.profile };
+  };
+
+  /* is the syslog collector actually getting the logs? route, egress interface, tunnel, something listening */
+  SIM.syslog = st => {
+    const y = ((st.logset || {}).syslog) || {};
+    if (y.status !== 'enable') return { on: false, ok: false, reason: 'Syslog is disabled. Logs stay on the local disk only' };
+    if (!SIM.isIp(y.server)) return { on: true, ok: false, reason: 'No valid collector IP' };
+    const r = SIM.routeLookup(st, y.server);
+    if (!r) return { on: true, ok: false, reason: `No route to ${y.server}. Logs are queued and then dropped` };
+    const dev = SIM.iface(st, r.device);
+    if (dev && dev.type === 'tunnel' && !SIM.tunnel(st, dev.name).up) return { on: true, ok: false, via: r.device, reason: `${y.server} is routed into tunnel ${dev.name}, which is down` };
+    if (r.device === 'port1' && SIM.isPrivate(y.server)) return { on: true, ok: false, via: r.device, reason: `${y.server} is a private address but the only route is the internet default route on port1` };
+    const known = SIM.HOSTS[y.server];
+    if (!known) return { on: true, ok: false, via: r.device, reason: `Sent via ${r.device}, but nothing at ${y.server} listens on ${(y.mode || 'udp').toUpperCase()}/${y.port}` };
+    if (+y.port !== 514 && (y.mode || 'udp') === 'udp') return { on: true, ok: false, via: r.device, reason: `The collector on ${known} listens on UDP/514, not UDP/${y.port}` };
+    const traffic = ['information', 'debug'].includes(y.severity);
+    return { on: true, ok: true, via: r.device, host: known, traffic, reason: `Forwarding to ${y.server} (${known}) via ${r.device}${traffic ? '' : `. Severity ${y.severity} leaves traffic logs out`}` };
+  };
+
+  /* the policy doing most of the work, by hit count */
+  SIM.topPolicy = st => (st.policies || []).reduce((b, p) => (!b || (p.hits || 0) > (b.hits || 0) ? p : b), null);
+
+  /* successful admin logins from outside the private ranges, read from the event log */
+  SIM.externalLogins = st => (st.logs.event || []).map(e => /Administrator (\S+) logged in successfully from \w+\(([\d.]+)\)/.exec(e.msg)).filter(m => m && !SIM.isPrivate(m[2])).map(m => ({ user: m[1], ip: m[2] }));
+
+  /* usable addresses in an Azure subnet (Azure keeps 5 per subnet) */
+  SIM.azUsable = bits => Math.max(0, Math.pow(2, 32 - bits) - 5);
+})();
+</script>
 <script>
 /* ================= SCAVENGER HUNT ================= */
 const MISSIONS = (() => {
@@ -2964,7 +3050,7 @@ const MISSIONS = (() => {
       hints: ['It is on the main status page of the device.', 'Dashboard → System Information card.', 'From the CLI: get system status'],
       why: 'Asset inventory is one of the first things a CMMC assessor checks (Configuration Management, CM.L2-3.4.1). You will be asked for serials, firmware versions and support status on almost every onboarding.',
       cli: 'get system status',
-      check: answer('r1', a => a === 'tlxfw-vm04-29481')
+      check: st => [{ label: 'Correct answer submitted', ok: norm(st.answers.r1) !== '' && norm(st.answers.r1) === norm(st.system.serial) }]
     },
     {
       id: 'r2', tier: 'Recon', title: 'Who logged in at 3 AM?', type: 'answer',
@@ -2973,7 +3059,7 @@ const MISSIONS = (() => {
       hints: ['Admin logins are system events, not traffic.', 'Log & Report → System Events. Look for "logged in successfully".', 'Ignore the 10.10.10.x login: that one is from inside the office.'],
       why: 'This is your first incident-response instinct on a new firewall: who has been logging in, from where, and what did they change. An admin login from the internet means the management interface is exposed on WAN (you will fix that in a later mission).',
       cli: 'Log & Report → System Events (no direct CLI view in this lab)',
-      check: answer('r2', a => a === '185.220.101.47')
+      check: st => { const seen = SIM.externalLogins(st).map(x => x.ip); const ips = seen.length ? seen : ['185.220.101.47']; return [{ label: 'Correct answer submitted', ok: ips.includes(norm(st.answers.r2)) }]; }
     },
     {
       id: 'r3', tier: 'Recon', title: 'Find the rule that eats everything', type: 'answer',
@@ -2982,7 +3068,7 @@ const MISSIONS = (() => {
       hints: ['Log & Report → Forward Traffic, look at the Policy column.', 'Then look at Firewall Policy: notice which policy sits at the top of the list.', 'Policies are evaluated top-down and the first match wins. Order matters more than ID number.'],
       why: 'Policy ID and policy order are different things. A policy with ID 3 can sit above ID 1. Shadowed rules (rules that can never be hit because a broader one above catches the traffic) are one of the most common findings in a firewall audit.',
       cli: 'show firewall policy\ndiagnose firewall iprope lookup 10.10.10.20 50000 8.8.8.8 443 tcp port2',
-      check: answer('r3', a => a === '3')
+      check: st => { const top = SIM.topPolicy(st); return [{ label: 'Correct answer submitted', ok: !!top && norm(st.answers.r3) === String(top.id) }]; }
     },
 
     /* ---------------- TIER 2: INTERFACES ---------------- */
@@ -3338,15 +3424,16 @@ const MISSIONS = (() => {
       check: st => {
         const j = st.admins.find(a => a.name === 'jrichard'), ad = st.admins.find(a => a.name === 'admin');
         const inLan = th => th.some(t => t.ip === '10.10.10.0' && t.bits === 24);
-        const ok = L(st, 'port2', '10.10.10.20', '10.10.10.1', 'tcp', +st.system.adminSport || 443);
-        const refused = st.admins.every(a => a.trusthosts.length) && !st.admins.some(a => a.trusthosts.some(t => SIM.inNet('10.20.0.15', t.ip, t.bits)));
+        const eng = st.admins.map(a => SIM.adminLogin(st, { user: a.name, srcip: '10.20.0.15', srcintf: SIM.iface(st, 'ENG-VLAN20') ? 'ENG-VLAN20' : 'port2', dstip: '10.10.10.1' }));
+        const refused = eng.length > 0 && eng.every(r => !r.ok);
+        const me = j ? SIM.adminLogin(st, { user: 'jrichard', srcip: '10.10.10.20', srcintf: 'port2' }) : null;
         return [
           { label: 'jrichard exists as super_admin', ok: !!j && j.profile === 'super_admin' },
           { label: 'jrichard has two-factor on', ok: !!j && j.twofactor !== 'disable' },
           { label: 'jrichard trusted host 10.10.10.0/24', ok: !!j && inLan(j.trusthosts) },
           { label: 'Built-in admin restricted or removed', ok: !ad || (ad.trusthosts.length > 0 && ad.trusthosts.every(t => SIM.inNet(t.ip, '10.10.10.0', 24) && t.bits >= 24)) },
-          { label: 'A login from 10.20.0.15 would be refused', ok: refused },
-          { label: 'You can still manage it from 10.10.10.20 on port2', ok: acc(ok) }
+          { label: 'A login from 10.20.0.15 would be refused (every account)', ok: refused },
+          { label: 'jrichard can log in from 10.10.10.20 on port2, with a second factor', ok: !!me && me.ok && me.mfa }
         ];
       }
     },
@@ -3360,11 +3447,14 @@ const MISSIONS = (() => {
       cli: 'config system accprofile\n    edit helpdesk\n        set fwgrp read\n        set loggrp read\n    next\nend\nconfig system admin\n    edit helpdesk-user\n        set accprofile "helpdesk"\n        set password <strong-password>\n        set trusthost1 10.10.10.0 255.255.255.0\n    next\nend',
       check: st => {
         const pr = (st.accprofiles || []).find(x => x.name === 'helpdesk'); const u = st.admins.find(a => a.name === 'helpdesk-user');
+        const can = (g, n) => !!u && SIM.adminCan(st, 'helpdesk-user', g, n), lg = u ? SIM.adminLogin(st, { user: 'helpdesk-user', srcip: '10.10.10.20', srcintf: 'port2' }) : null;
         return [
           { label: 'Profile helpdesk exists', ok: !!pr },
           { label: 'Firewall and logs: read only', ok: !!pr && pr.fwgrp === 'read' && pr.loggrp === 'read' },
           { label: 'System, Network, Security Profiles, VPN: none', ok: !!pr && pr.sysgrp === 'none' && pr.netgrp === 'none' && pr.utmgrp === 'none' && pr.vpngrp === 'none' },
-          { label: 'helpdesk-user uses it, trusted host 10.10.10.0/24', ok: !!u && u.profile === 'helpdesk' && u.trusthosts.some(t => t.ip === '10.10.10.0' && t.bits === 24) }
+          { label: 'helpdesk-user uses it, trusted host 10.10.10.0/24', ok: !!u && u.profile === 'helpdesk' && u.trusthosts.some(t => t.ip === '10.10.10.0' && t.bits === 24) },
+          { label: 'helpdesk-user can read policies and logs but cannot change them', ok: can('fwgrp', 'read') && can('loggrp', 'read') && !can('fwgrp', 'read-write') && !can('loggrp', 'read-write') },
+          { label: 'helpdesk-user can log in from the LAN (10.10.10.20)', ok: !!lg && lg.ok }
         ];
       }
     },
@@ -3376,11 +3466,11 @@ const MISSIONS = (() => {
       why: 'AU.L2-3.3.1 and 3.3.2: audit records must be retained and reviewable. "It\'s on the firewall" fails the moment the firewall is replaced, and most SIEM onboarding starts right here.',
       cli: 'config log syslogd setting\n    set status enable\n    set server "10.10.10.50"\n    set port 514\n    set mode udp\n    set severity information\nend',
       check: st => {
-        const y = (st.logset || {}).syslog || {}; const r = y.server && SIM.isIp(y.server) ? SIM.routeLookup(st, y.server) : null;
+        const y = (st.logset || {}).syslog || {}, sl = SIM.syslog(st);
         return [
           { label: 'Syslog enabled to 10.10.10.50', ok: y.status === 'enable' && y.server === '10.10.10.50' },
           { label: 'UDP 514, severity Information', ok: +y.port === 514 && y.severity === 'information' && y.mode === 'udp' },
-          { label: 'Collector reachable (route exists)', ok: !!r }
+          { label: 'Logs are arriving at the collector (route, interface and listener)', ok: sl.ok && !!sl.traffic }
         ];
       }
     },
@@ -3558,7 +3648,7 @@ const MISSIONS = (() => {
       hints: ['A /24 has 256 addresses.', 'On-prem you would subtract 2. Azure subtracts more.', 'Azure reserves 5: network, default gateway, two for DNS, and broadcast.'],
       why: 'Sizing subnets with on-prem math is a classic mistake that bites on small subnets: a /29 gives you only 3 usable addresses in Azure, not 6.',
       cli: 'az network vnet subnet show -g rg-talvex-hub-scus --vnet-name vnet-talvex-hub -n snet-app --query addressPrefix',
-      check: answer('a7', a => a === '251')
+      check: answer('a7', a => a === String(SIM.azUsable(24)))
     },
     {
       id: 'hy1', tier: 'Hybrid connectivity', view: 'azure', title: 'Your own VPN gateway', type: 'config',
@@ -3733,12 +3823,18 @@ const LIVE = (() => {
     return R;
   }
 
+  /* a threat starts when the config it depends on exists in the shared state (the gate mission's check passes now),
+     not when a mission was once ticked off: restore a backup with the work done and the threats are there too */
+  const unlocked = (st, id) => {
+    const m = typeof MISSIONS !== 'undefined' ? MISSIONS.find(x => x.id === id) : null;
+    if (!m) return !!(st.missions[id] && st.missions[id].done);
+    try { return m.check(st).every(x => x.ok); } catch (e) { return false; }
+  };
   function tickThreats(st, now) {
     for (const t of THREATS) {
       const rec = st.threats[t.id] || (st.threats[t.id] = { active: false, seen: 0, accepted: 0, lastAttempt: 0, lastAccepted: 0, since: 0 });
       if (!rec.active) {
-        const m = st.missions[t.unlockAfter];
-        if (m && m.done) { rec.active = true; rec.since = now; E.nextThreat[t.id] = now + 1500; if (t.onActivate) t.onActivate(st); if (E.hooks.onThreat) E.hooks.onThreat(t, rec); }
+        if (unlocked(st, t.unlockAfter)) { rec.active = true; rec.since = now; E.nextThreat[t.id] = now + 1500; if (t.onActivate) t.onActivate(st); if (E.hooks.onThreat) E.hooks.onThreat(t, rec); }
         continue;
       }
       if (now < (E.nextThreat[t.id] || 0)) continue;
@@ -3755,8 +3851,10 @@ const LIVE = (() => {
   function tick() {
     const st = E.st; if (!st) return;
     const now = Date.now();
-    // the Azure team applies a custom IPsec policy once the first tunnel has been up a bit (mission v1b)
-    if (st.azure && st.azure.policy === 'default' && st.missions.v1 && st.missions.v1.done && now - st.missions.v1.done > 20000) {
+    // the Azure team applies a custom IPsec policy once the first tunnel to their temporary gateway has been up a while (mission v1b)
+    const tun = st.vpn.phase1.find(p => p.remoteGw === SIM.PEER.remoteGw && SIM.tunnel(st, p.name).up);
+    if (tun && !SIM.peer(st).live) E.upSince = E.upSince || now; else E.upSince = 0;
+    if (st.azure && st.azure.policy === 'default' && E.upSince && now - E.upSince > 20000) {
       st.azure.policy = 'custom';
       SIM.event(st, 'vpn', 'warning', 'IPsec To-Azure: IKE SA deleted by peer 198.51.100.25 (policy change). Renegotiation failed: NO_PROPOSAL_CHOSEN');
       if (E.hooks.onAzure) E.hooks.onAzure();
@@ -3782,7 +3880,7 @@ const LIVE = (() => {
     start(st, hooks) { E.st = st; E.hooks = hooks || {}; E.startedAt = Date.now(); E.killed = {}; clearInterval(E.timer); E.timer = setInterval(tick, 1600); tick(); },
     stop() { clearInterval(E.timer); E.timer = null; },
     running: () => !!E.timer,
-    setState(st) { E.st = st; E.nextThreat = {}; E.killed = {}; },
+    setState(st) { E.st = st; E.nextThreat = {}; E.killed = {}; E.upSince = 0; },
     elapsed: () => E.startedAt ? Date.now() - E.startedAt : 0,
     flows: () => E.flows,
     kill(st, id) {
@@ -3819,7 +3917,7 @@ const TELE = (() => {
   const hex = n => Array.from({ length: n }, () => '0123456789abcdef'[rnd(16)]).join('');
   const lc = x => String(x == null ? '' : x).toLowerCase();
   const HIST = 40; // samples kept for sparklines (about a minute at one tick per 1.6 s)
-  const fresh = () => ({ st: null, last: 0, ifc: {}, tun: {}, bgp: {}, az: { cn: null, alerts: [], cond: {} }, vm: {}, nsg: {}, flowlog: [], cpu: 6, mem: 41, nextFg: 0, gwHist: [] });
+  const fresh = () => ({ sys: { st: null, sent: 0, dropped: 0, last: 0 }, st: null, last: 0, ifc: {}, tun: {}, bgp: {}, az: { cn: null, alerts: [], cond: {} }, vm: {}, nsg: {}, flowlog: [], cpu: 6, mem: 41, nextFg: 0, gwHist: [] });
   let E = fresh();
 
   const ifc = n => E.ifc[n] || (E.ifc[n] = { rx: 0, tx: 0, rxp: 0, txp: 0, rate: 0, hist: [] });
@@ -3845,7 +3943,11 @@ const TELE = (() => {
     if (E.flowlog.length > 120) E.flowlog.length = 120;
   }
   const baseRecord = SIM.record;
-  SIM.record = (st, q, R) => { baseRecord(st, q, R); try { nsgFlow(st, q, R); } catch (e) { } };
+  SIM.record = (st, q, R) => { const n = st.logs.traffic.length + st.logs.local.length, top = st.logs.traffic[0], ltop = st.logs.local[0]; baseRecord(st, q, R); try { nsgFlow(st, q, R); } catch (e) { } if (st === E.st && (st.logs.traffic[0] !== top || st.logs.local[0] !== ltop)) sys(st, 'traffic'); };
+  /* syslog: every new log line is forwarded while SIM.syslog says the collector is reachable; counted, not stored */
+  const sys = (st, kind) => { const y = E.sys; if (!y.st || !y.st.ok || (kind === 'traffic' && !y.st.traffic)) { if (y.st && y.st.on) y.dropped++; return; } y.sent++; y.last = Date.now(); };
+  const baseEvent = SIM.event;
+  SIM.event = (st, sub, level, msg) => { baseEvent(st, sub, level, msg); if (st === E.st) sys(st, 'event'); };
 
   /* ---------- Azure Monitor: simple alert rules the Azure team left behind ---------- */
   const RULES = [
@@ -3878,6 +3980,7 @@ const TELE = (() => {
   function tick(st) {
     if (!st) return;
     if (E.st !== st) { E = fresh(); E.st = st; }
+    try { const was = E.sys.st, now1 = SIM.syslog(st); E.sys.st = now1; if (was && was.ok !== now1.ok) SIM.event(st, 'system', now1.ok ? 'information' : 'warning', now1.ok ? `syslogd: connected to ${st.logset.syslog.server}:${st.logset.syslog.port}` : `syslogd: cannot deliver to ${st.logset.syslog.server || '(none)'}: ${now1.reason}`); } catch (e) { }
     const now = Date.now(), dt = E.last ? Math.min(5, Math.max(0, (now - E.last) / 1000)) : 1.6; E.last = now;
 
     /* interface counters from the live sessions: requests one way, replies (most bytes) the other */
@@ -3980,6 +4083,7 @@ const TELE = (() => {
     vm: (rg, name) => E.vm[lc(rg + '/' + name)] || null,
     nsgHits: (n, rule, dir) => { const c = E.nsg[SIM.TF.nsgRef(n) + '|' + rule + '|' + (dir || 'Inbound')]; return c ? c.n : 0; },
     flowlog: () => E.flowlog,
+    syslog: () => E.sys,
     cpu: () => E.cpu, mem: () => E.mem,
     started: () => !!E.last
   };
@@ -5053,16 +5157,17 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     <div class="tablewrap"><table class="grid"><thead><tr><th>Name</th><th>System</th><th>Network</th><th>Firewall</th><th>Log & Report</th><th>Security Profiles</th><th>VPN</th><th>Used by</th><th></th></tr></thead><tbody>${(S.accprofiles || []).map(a => { const lv = v => v === 'read-write' ? pill('Read/Write', 'ok') : v === 'read' ? pill('Read', 'info') : pill('None', 'mute'); return `<tr><td class="mono">${esc(a.name)}${a.builtin ? '' : ' ' + pill('custom', 'info')}<div class="help">${esc(a.comment)}</div></td><td>${lv(a.sysgrp)}</td><td>${lv(a.netgrp)}</td><td>${lv(a.fwgrp)}</td><td>${lv(a.loggrp)}</td><td>${lv(a.utmgrp)}</td><td>${lv(a.vpngrp)}</td><td class="num">${SIM.usedBy(S, 'accprofile', a.name).length}</td><td class="acts">${a.builtin ? '' : actBtn('ap-edit', a.name, I.edit, 'Edit') + actBtn('ap-del', a.name, I.del, 'Delete')}</td></tr>`; }).join('')}</tbody></table></div>`;
 
   P.logsettings = () => {
-    const y = S.logset.syslog; const r = y.server && SIM.isIp(y.server) ? SIM.routeLookup(S, y.server) : null;
+    const y = S.logset.syslog, sl = SIM.syslog(S);
+    const stat = !sl.on ? '' : `<div class="banner ${sl.ok ? 'ok' : 'bad'}" role="status">${esc(sl.reason)}</div>`;
     return head('Where logs go. The local disk is short-term; a syslog collector or log analyzer is what an assessor expects.') +
-      `<form class="card widget" id="syslogForm" style="max-width:640px;display:grid;gap:14px">
+      stat + `<form class="card widget" id="syslogForm" style="max-width:640px;display:grid;gap:14px">
         <div class="frow"><span class="lab">Send logs to syslog</span><label class="switch"><input type="checkbox" id="sl_status" ${y.status === 'enable' ? 'checked' : ''}><i></i>${y.status === 'enable' ? 'Enabled' : 'Disabled'}</label></div>
         <div class="frow"><label class="lab" for="sl_server">Server IP</label><input class="inp mono" id="sl_server" value="${esc(y.server)}" placeholder="10.10.10.50"></div>
         <div class="frow"><label class="lab" for="sl_port">Port</label><input class="inp num" id="sl_port" type="number" min="1" max="65535" value="${esc(y.port)}"></div>
         <div class="frow"><label class="lab" for="sl_mode">Mode</label><select class="inp" id="sl_mode">${['udp', 'legacy-reliable', 'reliable'].map(m => `<option ${m === y.mode ? 'selected' : ''}>${m}</option>`).join('')}</select></div>
         <div class="frow"><label class="lab" for="sl_sev">Minimum severity<small>Information includes traffic logs</small></label><select class="inp" id="sl_sev">${['emergency', 'alert', 'critical', 'error', 'warning', 'notification', 'information', 'debug'].map(m => `<option ${m === y.severity ? 'selected' : ''}>${m}</option>`).join('')}</select></div>
         <div class="frow"><label class="lab" for="sl_fac">Facility</label><input class="inp mono" id="sl_fac" value="${esc(y.facility)}"></div>
-        <div style="display:flex;gap:10px;align-items:center"><button class="btn primary" type="submit">Apply</button><span class="help">${y.status === 'enable' ? (r ? `Collector reachable via ${esc(r.device)}` : 'No route to the collector') : 'Local disk only (about two weeks of traffic logs)'}</span></div></form>`;
+        <div style="display:flex;gap:10px;align-items:center"><button class="btn primary" type="submit">Apply</button><span class="help">${y.status === 'enable' ? esc(sl.ok ? `Delivering via ${sl.via}` : 'Not delivering: see above') : 'Local disk only (about two weeks of traffic logs)'}</span></div></form>`;
   };
 
   P.settings = () => {
@@ -5111,7 +5216,8 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
       const rows = S.logs.event.filter(match).slice(0, 200);
       body = `<div class="tablewrap"><table class="grid"><thead><tr><th>Date/Time</th><th>Level</th><th>Message</th></tr></thead><tbody>${rows.map(e => `<tr><td class="mono num">${fmtTs(e.ts)}</td><td>${pill(e.level, e.level === 'alert' ? 'bad' : e.level === 'warning' ? 'warn' : e.level === 'notice' ? 'info' : 'mute')}</td><td>${esc(e.msg)}</td></tr>`).join('') || '<tr><td colspan="3" class="empty">No matching events.</td></tr>'}</tbody></table></div>`;
     }
-    return head('Forward traffic, local traffic and system events. Newest first.') + tabs('logs', [['traffic', 'Forward Traffic'], ['local', 'Local Traffic'], ['event', 'System Events']]) +
+    const sl = SIM.syslog(S);
+    return head('Forward traffic, local traffic and system events. Newest first.') + (sl.on ? `<p class="help">${sl.ok ? '✓' : '⚠'} Syslog: ${esc(sl.reason)}</p>` : '') + tabs('logs', [['traffic', 'Forward Traffic'], ['local', 'Local Traffic'], ['event', 'System Events']]) +
       `<div class="toolbar"><input class="search" id="logFilter" placeholder="Filter (IP, policy, text)…" value="${esc(UI.filter)}" aria-label="Filter logs"></div>` + body;
   };
 
@@ -6472,6 +6578,49 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     if (secWasLocked) for (const t of secWasLocked) if (!now.includes(t)) toast('Section unlocked', `${t} is open. Pick it from the section list any time.`, 'ok');
     secWasLocked = now;
   }, 1500);
+
+  /* ================= SHARED STATE: pages that show what the config actually does =================
+     Administrators gets a login test that runs SIM.adminLogin (the same model mission checks and Nightmare use), and
+     each account shows what its profile really allows. Missions that were complete but whose check fails now (because
+     something later changed the config underneath them) are flagged instead of staying silently green.
+     Kept in its own block, wrapping pages rather than editing them, because other work edits those functions. */
+  const lvPill = v => v === 'read-write' ? pill('Read/Write', 'ok') : v === 'read' ? pill('Read', 'info') : pill('None', 'mute');
+  const baseAdmins = P.admins;
+  P.admins = () => {
+    const t = UI.loginTry || { user: (S.admins[0] || {}).name || 'admin', src: '10.10.10.20' }, r = t.res;
+    const acc = S.admins.map(a => { const x = SIM.adminAccess(S, a.name); return `<tr><td class="mono">${esc(a.name)}</td><td class="mono">${esc(a.profile)}${x && !x.exists ? ' ' + pill('profile missing', 'bad') : ''}</td>${SIM.ADMIN_AREAS.map(([k]) => `<td>${lvPill(x ? x.areas[k].level : 'none')}</td>`).join('')}</tr>`; }).join('');
+    return baseAdmins() + `<div class="card widget" style="margin-top:14px"><h3 style="margin:0 0 8px">What each account can do</h3><p class="help">From each account's admin profile. Editing a profile changes every account that uses it.</p>
+      <div class="tablewrap"><table class="grid"><thead><tr><th>Account</th><th>Profile</th>${SIM.ADMIN_AREAS.map(([, l]) => `<th>${esc(l)}</th>`).join('')}</tr></thead><tbody>${acc}</tbody></table></div></div>
+      <form class="card widget" id="loginTryForm" style="margin-top:14px;display:grid;gap:10px"><h3 style="margin:0">Test a login</h3><p class="help" style="margin:0">Follows the attempt the way the firewall would: interface access, local-in policy, trusted hosts, lockout and two-factor.</p>
+        <div class="frow"><label class="lab" for="lt_user">Account</label><select class="inp" id="lt_user">${S.admins.map(a => `<option ${a.name === t.user ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></div>
+        <div class="frow"><label class="lab" for="lt_src">From IP</label><input class="inp mono" id="lt_src" value="${esc(t.src)}"></div>
+        <div class="frow"><label class="lab" for="lt_m">Method</label><select class="inp" id="lt_m">${['https', 'ssh'].map(m => `<option ${m === (t.method || 'https') ? 'selected' : ''}>${m}</option>`).join('')}</select></div>
+        <div><button class="btn primary" type="submit">Try it</button></div>
+        ${r ? `<div class="banner ${r.ok ? 'ok' : 'bad'}" role="status"><b>${r.ok ? 'Login succeeds' : 'Login refused'}</b>: ${esc(r.reason)}</div><ol class="steps">${r.steps.map(x => `<li class="${x.ok === false ? 'n' : x.ok ? 'y' : ''}">${esc(x.text)}</li>`).join('')}</ol>` : ''}
+      </form>`;
+  };
+  document.addEventListener('submit', e => {
+    if (e.target.id !== 'loginTryForm') return;
+    e.preventDefault();
+    const user = $('#lt_user').value, src = $('#lt_src').value.trim(), method = $('#lt_m').value;
+    if (!SIM.isIp(src)) { toast('Not run', 'Enter a source IP address.', 'bad'); return; }
+    UI.loginTry = { user, src, method, res: SIM.adminLogin(S, { user, srcip: src, method }) };
+    renderMain();
+  });
+  /* a mission that was complete but no longer passes against the current config */
+  const regressed = m => isDone(m) && m.type !== 'answer' && (UI.status[m.id] || []).some(x => !x.ok);
+  const baseMissionDrawer3 = renderMissionDrawer;
+  renderMissionDrawer = function () {
+    baseMissionDrawer3();
+    const d = $('#drawer'); if (!d || d.hidden) return;
+    for (const m of MISSIONS) {
+      if (!regressed(m)) continue;
+      const b = d.querySelector(`button.head[data-act="mis-open"][data-id="${m.id}"]`); if (!b) continue;
+      const box = b.closest('.mis'); if (!box || box.classList.contains('regressed')) continue;
+      box.classList.add('regressed');
+      const sm = b.querySelector('small'); if (sm) sm.insertAdjacentHTML('afterbegin', '<span class="reg-tag">Broken by a later change</span> ');
+    }
+  };
 
   /* ================= TERMINAL ================= */
   const shell = new CLI.Shell(() => S, msg => commit(msg, 'CLI'));
