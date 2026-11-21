@@ -7022,6 +7022,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     toast(on ? 'Live Mode on' : 'Live Mode off', why || (on ? 'Traffic, sessions, logs and timed checks are running.' : 'Paused on a snapshot. Your config changes still update everything and missions still check.'), on ? 'ok' : '');
   }
   const liveOn = why => setLive(true, why);
+  try { window.liveOn = liveOn; } catch (e) { } // Nightmare (PR 10) may call it from another script block
   $('#liveBtn').addEventListener('click', () => setLive(!UI.live));
   /* the first time a mission that needs live traffic is open while Live Mode is off, say so once with a modal; the card keeps a banner */
   const liveBanner = () => `<div class="live-banner" role="note"><p><b>Hey, you're about to begin the live training portion of the lab.</b> Toggle Live Mode on here to start this portion.</p><button class="btn primary sm" data-act="live-on">Turn on Live Mode</button></div>`;
