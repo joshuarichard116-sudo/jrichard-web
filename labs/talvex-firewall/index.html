@@ -388,6 +388,87 @@ tr.muted td { color: var(--muted); }
 @media (max-width: 1100px) { .tf-grid { grid-template-columns: minmax(0, 1fr); } .tf-src { min-height: 300px; } .tf-con { min-height: 420px; max-height: 70vh; } }
 </style>
 
+<style id="fit-css">
+/* ---------- Fit: nothing runs past the right edge of its box (Phase 1) ----------
+   Long tokens wrap, flex/grid children may shrink, inputs never exceed their box, and only code blocks and wide
+   tables scroll sideways, inside their own frame. The main pane and the missions panel never scroll sideways. */
+*, *::before, *::after { box-sizing: border-box; }
+input, select, textarea, .inp { max-width: 100%; }
+.main, .drawer .scroll { overflow-x: hidden; }
+.main > *, .dash > *, .card, .widget, .frow > *, .toolbar > :not(.btn):not(button), .lookup form > *, label.f, .kv > *, .evt > *,
+.mis, .mis .content, .mis .content > *, .mis > button.head > *, .sec-card, .sec-card > *, .tf-grid > *, .nm > *, .modal .body > * { min-width: 0; }
+p, li, dd, dt, td, h1, h2, .lede, .help, .story, .hint, .why, .notice, .banner, .toast, .verdict, .trace .row > span, .kv dd, .evt > span, .sec-blurb, .crumb { overflow-wrap: anywhere; }
+pre, .mis pre, .mis dl.cli-ex dt { max-width: 100%; overflow-x: auto; overflow-wrap: normal; white-space: pre; }
+.mis dl.cli-ex dt { white-space: pre-wrap; overflow-wrap: anywhere; }
+.mis > button.head { grid-template-columns: 22px minmax(0, 1fr) auto; }
+.mis .ans { flex-wrap: wrap; }
+.mis .ans .inp { flex: 1 1 160px; }
+.toolbar .help { min-width: 0; overflow-wrap: anywhere; }
+.search { flex: 1 1 200px; }
+/* tab strips wrap instead of scrolling (the stray arrows were a 1px vertical overflow from the active tab's underline) */
+.tabs { overflow: visible; flex-wrap: wrap; row-gap: 0; }
+/* tables: headers may wrap, cells break long tokens, chips truncate with the full value in a tooltip */
+table.grid th { white-space: normal; }
+table.grid td { overflow-wrap: anywhere; }
+table.grid td.acts, table.grid td.num, table.grid td .pill { overflow-wrap: normal; }
+td .chip { max-width: 18ch; overflow: hidden; text-overflow: ellipsis; display: inline-block; vertical-align: top; }
+.tablewrap { max-width: 100%; }
+table.grid td .pill { white-space: normal; text-align: left; }
+@media (max-width: 1360px) { table.grid th, table.grid td { padding-left: 7px; padding-right: 7px; } }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.v.b { font-weight: 700; }
+
+/* ---------- Firewall Policy table: fits the pane; low-priority columns fold into the Name cell when narrow ---------- */
+.tablewrap.pol { container-type: inline-size; overflow-x: auto; }
+table.grid.pol { table-layout: auto; }
+table.grid.pol th, table.grid.pol td { padding-left: 7px; padding-right: 7px; }
+table.grid.pol td.seq { white-space: nowrap; color: var(--muted); }
+table.grid.pol td.seq .mv { display: inline-flex; flex-direction: column; vertical-align: middle; margin-right: 2px; }
+table.grid.pol td.seq .mv .ibtn { width: 20px; height: 16px; }
+table.grid.pol td.seq .mv .ibtn svg { width: 12px; height: 12px; }
+table.grid.pol td.pname { min-width: 9em; }
+table.grid.pol .st-btn { height: 24px; padding: 0 8px; font-size: 12px; }
+table.grid.pol td.acts .ibtn { width: 24px; }
+table.grid.pol .pmeta { display: none; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+table.grid.pol .pmeta > span { display: none; }
+table.grid.pol .pmeta .chip { max-width: 14ch; }
+@container (max-width: 1060px) { table.grid.pol .c-log { display: none; } table.grid.pol .pmeta, table.grid.pol .pmeta .m-log { display: flex; } }
+@container (max-width: 960px) { table.grid.pol .c-prof { display: none; } table.grid.pol .pmeta .m-prof { display: flex; } }
+@container (max-width: 880px) { table.grid.pol .c-nat, table.grid.pol .c-hits, table.grid.pol .c-seq { display: none; } table.grid.pol td .chip { max-width: 14ch; } table.grid.pol .pmeta .m-nat, table.grid.pol .pmeta .m-hits { display: flex; } }
+@container (max-width: 760px) { table.grid.pol td .chip { max-width: 12ch; } table.grid.pol td.pname { min-width: 7em; } }
+@container (max-width: 680px) { table.grid.pol .c-to { display: none; } table.grid.pol .m-to { display: flex; } table.grid.pol th, table.grid.pol td { padding-left: 5px; padding-right: 5px; } table.grid.pol td .chip { max-width: 10ch; } table.grid.pol .pill { padding: 1px 6px; } table.grid.pol .pill::before { display: none; } }
+table.grid.pol .m-to { display: none; gap: 3px; align-items: center; margin-top: 3px; color: var(--muted); font-size: 12px; }
+.st-sw { width: 34px; height: 20px; border-radius: 10px; border: 0; padding: 0; background: var(--line); position: relative; cursor: pointer; vertical-align: middle; }
+.st-sw i { position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.st-sw[aria-checked="true"] { background: var(--ok); }
+.st-sw[aria-checked="true"] i { transform: translateX(14px); }
+
+/* ---------- Security profiles page: tables wrap inside their cards, no nested scrollbars ---------- */
+.prof-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 14px; }
+.prof-grid .tablewrap { overflow: visible; border: 0; }
+.prof-grid table.grid { table-layout: fixed; }
+.prof-grid table.grid th:nth-child(1) { width: 34%; } .prof-grid table.grid th:nth-child(3) { width: 26%; }
+
+/* ---------- Selection and copy: values select cleanly, chrome does not get dragged along ---------- */
+button, .btn, .ibtn, .tbtn, .pill, .tabs, .crumb, .widget h2, table.grid th, .kv dt, .sub-h, .tier, .rail, .top, .sec-tag, .badge, svg, .cpy { -webkit-user-select: none; user-select: none; }
+.kv dd, table.grid td, .evt > span, .mono, .v, .story, .hint, .why, pre, input, textarea { -webkit-user-select: text; user-select: text; }
+.cv { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; min-width: 0; vertical-align: top; }
+.cv > .v { min-width: 0; overflow-wrap: anywhere; }
+.cpy { flex: none; display: inline-grid; place-items: center; width: 20px; height: 20px; padding: 0; border-radius: 4px; border: 1px solid transparent; background: transparent; color: var(--muted); cursor: pointer; opacity: .55; position: relative; }
+.cpy svg { width: 12px; height: 12px; }
+.cpy:hover, .cpy:focus-visible { opacity: 1; border-color: var(--line); background: var(--panel-2); color: var(--ink); }
+tr:hover .cpy, .kv dd:hover .cpy, .cv:hover .cpy { opacity: 1; }
+.cpy.done { opacity: 1; color: var(--ok); }
+.cpy.done::after { content: "Copied"; position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--panel); font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; white-space: nowrap; pointer-events: none; z-index: 5; }
+@media (hover: none) { .cpy { opacity: 1; } }
+
+/* ---------- Background lattice: a 1px SVG pattern (the old 0.5px gradient lines vanished at some sizes and zoom levels) ---------- */
+:root { --pz-lattice-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='110.85' viewBox='0 0 64 110.85'%3E%3Cpath d='M0 0L64 110.85M64 0L0 110.85M0 55.425H64' fill='none' stroke='rgba(39,36,29,.085)' stroke-width='1'/%3E%3C/svg%3E"); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --pz-lattice-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='110.85' viewBox='0 0 64 110.85'%3E%3Cpath d='M0 0L64 110.85M64 0L0 110.85M0 55.425H64' fill='none' stroke='rgba(243,238,230,.05)' stroke-width='1'/%3E%3C/svg%3E"); } }
+:root[data-theme="dark"] { --pz-lattice-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='110.85' viewBox='0 0 64 110.85'%3E%3Cpath d='M0 0L64 110.85M64 0L0 110.85M0 55.425H64' fill='none' stroke='rgba(243,238,230,.05)' stroke-width='1'/%3E%3C/svg%3E"); }
+.main { background-color: var(--bg); background-image: var(--pz-lattice-img); background-size: 64px 110.85px; background-repeat: repeat; background-attachment: local; }
+</style>
+
 <div class="app" id="app">
   <header class="top">
     <button class="tbtn menu-btn" id="menuBtn" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
@@ -622,14 +703,28 @@ SIM.svcMatch = (st, name, proto, port, depth = 0) => {
   if (g) return g.members.some(m => SIM.svcMatch(st, m, proto, port, depth + 1));
   return false;
 };
+/* ---------- the firewall clock: one time source, shown in the configured time zone ---------- */
+SIM.TZ = { 'US/Central': 'America/Chicago', 'US/Eastern': 'America/New_York', 'US/Mountain': 'America/Denver', 'US/Pacific': 'America/Los_Angeles', UTC: 'UTC' };
+SIM.clock = (() => {
+  const cache = {};
+  const fmt = tz => cache[tz] || (cache[tz] = (() => { try { return new Intl.DateTimeFormat('en-US', { timeZone: SIM.TZ[tz] || tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', weekday: 'short' }); } catch (e) { return null; } })());
+  /* parts of a moment as the firewall sees it: {y, mo, d, h, mi, s, dow (0 = Sunday)} */
+  return (ts, tz) => {
+    const dt = new Date(ts == null ? Date.now() : ts), f = fmt(tz || 'US/Central');
+    if (!f) return { y: dt.getFullYear(), mo: dt.getMonth() + 1, d: dt.getDate(), h: dt.getHours(), mi: dt.getMinutes(), s: dt.getSeconds(), dow: dt.getDay() };
+    const o = {}; for (const p of f.formatToParts(dt)) o[p.type] = p.value;
+    return { y: +o.year, mo: +o.month, d: +o.day, h: +o.hour % 24, mi: +o.minute, s: +o.second, dow: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(o.weekday) };
+  };
+})();
+SIM.fmtTime = (ts, tz) => { const c = SIM.clock(ts, tz), p = n => String(n).padStart(2, '0'); return `${c.y}-${p(c.mo)}-${p(c.d)} ${p(c.h)}:${p(c.mi)}:${p(c.s)}`; };
 SIM.schedMatch = (st, name, date) => {
   const s = st.schedules.find(x => x.name === name);
   if (!s) return false;
   if (name === 'always') return true;
-  const d = date || new Date();
-  const day = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][d.getDay()];
+  const c = SIM.clock(date || Date.now(), st.system && st.system.timezone);
+  const day = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][c.dow];
   if (!s.days.includes(day)) return false;
-  const mins = d.getHours() * 60 + d.getMinutes();
+  const mins = c.h * 60 + c.mi;
   const [sh, sm] = s.start.split(':').map(Number), [eh, em] = s.end.split(':').map(Number);
   const a = sh * 60 + sm, b = eh * 60 + em;
   if (a === b) return true;
@@ -4705,7 +4800,9 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const KEY = 'talvex-fwlab-v1';
   const pad = n => String(n).padStart(2, '0');
-  const fmtTs = ts => { const d = new Date(ts); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
+  /* One clock for the whole lab: every timestamp (dashboard, logs, events, sessions, Azure activity) is shown in the
+     firewall's configured time zone (System → Settings), not the browser's, so they always agree with "System time". */
+  const fmtTs = ts => SIM.fmtTime(ts, S && S.system && S.system.timezone);
   const cidr = (ip, b) => ip === '0.0.0.0' && !b ? '0.0.0.0/0' : `${ip}/${b}`;
 
   /* ---------- state + persistence ---------- */
@@ -4784,6 +4881,8 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     if (was && !busy) { evaluate(); renderAll(); }
   }, 1000);
   const isDone = m => !!(S.missions[m.id] && S.missions[m.id].done);
+  /* open mission cards: UI.open is the one the lab opens for you (first unfinished, a picked section); UI.opens are the ones you opened */
+  const misOpen = id => UI.open === id || (UI.opens || (UI.opens = new Set())).has(id);
   const doneCount = () => MISSIONS.filter(isDone).length;
 
   /* security: no string in the config may carry markup. Every change (forms, CLI, backup restore) goes through commit(),
@@ -4851,7 +4950,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
 
   /* ---------- shared bits ---------- */
   const pill = (txt, kind) => `<span class="pill ${kind}">${esc(txt)}</span>`;
-  const chips = (arr, cls) => `<div class="chips">${(arr || []).map(a => `<span class="chip ${cls || 'ref'}">${esc(a)}</span>`).join('')}</div>`;
+  const chips = (arr, cls) => `<div class="chips">${(arr || []).map(a => `<span class="chip ${cls || 'ref'}" title="${esc(a)}">${esc(a)}</span>`).join('')}</div>`;
   const actBtn = (act, id, icon, title) => `<button class="ibtn" data-act="${act}" data-id="${esc(id)}" title="${esc(title)}" aria-label="${esc(title)}">${icon}</button>`;
   const head = (desc) => { const [g0, t] = pageTitle(UI.page); const g = UI.view === 'azure' ? ['Azure', g0].filter(Boolean).join(' › ') : g0; return `<div class="crumb">${esc(g)}</div><h1>${esc(t)}</h1>${desc ? `<p class="lede">${desc}</p>` : ''}`; };
   const tabs = (key, list) => { const cur = UI.tab[key] || list[0][0]; return `<div class="tabs" role="tablist">${list.map(([k, l]) => `<button role="tab" class="${k === cur ? 'on' : ''}" data-act="tab" data-key="${key}" data-id="${k}">${esc(l)}</button>`).join('')}</div>`; };
@@ -4902,21 +5001,21 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     return head('Status of the Talvex perimeter firewall. Everything here is a simulation: change it freely, it cannot break anything real.') + `
     <div class="dash">${topoHtml()}
       <section class="card widget"><h2>System Information</h2><dl class="kv">
-        <dt>Hostname</dt><dd class="mono">${esc(S.system.hostname)}</dd>
-        <dt>Serial number</dt><dd class="mono">${esc(S.system.serial)}</dd>
+        <dt>Hostname</dt><dd class="mono">${cv(S.system.hostname, 'hostname')}</dd>
+        <dt>Serial number</dt><dd class="mono">${cv(S.system.serial, 'serial number')}</dd>
         <dt>Model</dt><dd>${esc(S.system.model)}</dd>
         <dt>Firmware</dt><dd>${esc(S.system.osver)} ${pill('Update available', 'warn')}</dd>
         <dt>Mode</dt><dd>NAT</dd>
         <dt>System time</dt><dd class="num">${fmtTs(Date.now())} (${esc(S.system.timezone)})</dd>
         <dt>Uptime</dt><dd class="num">${Math.floor(up / 86400)} days ${Math.floor(up % 86400 / 3600)} hours</dd>
       </dl></section>
-      <section class="card widget"><h2>Network Ports</h2><div class="ports">${S.interfaces.filter(i => i.type === 'physical').map(i => `<div class="port ${i.status === 'up' ? 'up' : ''}"><div class="jack"></div><b class="mono">${esc(i.name)}</b><div class="muted">${esc(i.alias || i.role)}</div></div>`).join('')}</div>
+      <section class="card widget"><h2>Network Ports</h2><div class="ports">${S.interfaces.filter(i => i.type === 'physical').map(i => `<div class="port ${i.status === 'up' ? 'up' : ''}"><div class="jack"></div><b class="mono">${esc(i.name)}</b><div class="muted">${esc(i.alias || (i.role && i.role !== 'undefined' ? i.role.toUpperCase() : ''))}&nbsp;</div></div>`).join('')}</div>
         <p class="help" style="margin:10px 0 0">${ifs.filter(i => i.type === 'vlan').length} VLAN interface(s), ${ifs.filter(i => i.type === 'tunnel').length} tunnel interface(s)</p></section>
       ${resourcesCard()}${bandwidthCard()}
       <section class="card widget"><h2>IPsec</h2>${tunnels.length ? tunnels.map(({ p, t }) => `<div style="display:flex;gap:8px;align-items:center;justify-content:space-between"><span class="mono">${esc(p.name)} → ${esc(p.remoteGw)}</span>${pill(t.up ? 'Up' : 'Down', t.up ? 'ok' : 'bad')}</div>${tunStats(p.name)}`).join('') : '<p class="muted" style="margin:0">No tunnels configured.</p>'}</section>
       <section class="card widget"><h2>Live Traffic</h2><dl class="kv"><dt>Active sessions</dt><dd class="num">${S.sessions.length}</dd><dt>Flows since start</dt><dd class="num">${LIVE.flows().toLocaleString()}</dd><dt>Lab time</dt><dd class="num">${fmtElapsed(LIVE.elapsed())}</dd><dt>Active threats</dt><dd class="num">${LIVE.THREATS.filter(t => (S.threats[t.id] || {}).active).length} of ${LIVE.THREATS.length} unlocked</dd></dl><p style="margin:10px 0 0"><button class="btn" data-act="nav" data-id="sessions">View sessions</button></p></section>
       <section class="card widget"><h2>Scavenger Hunt</h2><p style="margin:0 0 8px"><b class="num" style="font-size:22px">${done}</b> <span class="muted">of ${MISSIONS.length} missions complete</span></p><div class="meter"><i style="width:${Math.round(done / MISSIONS.length * 100)}%;background:var(--ok)"></i></div><p style="margin:12px 0 0"><button class="btn primary" data-act="open-missions">${I.flag} Open missions</button></p></section>
-      <section class="card widget" style="grid-column:1/-1"><h2>Recent System Events</h2><div class="evt">${S.logs.event.slice(0, 7).map(e => `<span class="muted num mono">${fmtTs(e.ts)}</span><span>${pill(e.level, e.level === 'alert' ? 'bad' : e.level === 'warning' ? 'warn' : e.level === 'notice' ? 'info' : 'mute')} ${esc(e.msg)}</span>`).join('')}</div></section>
+      <section class="card widget" style="grid-column:1/-1"><h2>Recent System Events</h2><div class="evt">${S.logs.event.slice(0, 7).map(e => `<span class="muted num mono"${rk(e, 't')}>${fmtTs(e.ts)}</span><span${rk(e, 'm')}>${pill(e.level, e.level === 'alert' ? 'bad' : e.level === 'warning' ? 'warn' : e.level === 'notice' ? 'info' : 'mute')} ${esc(e.msg)}</span>`).join('')}</div></section>
     </div>`;
   };
 
@@ -4934,7 +5033,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
   };
   function ifRow(i, r, sub) {
     return `<tr class="${sub ? 'sub' : ''}"><td class="mono">${sub ? '└ ' : ''}${esc(i.name)}</td><td>${esc(i.alias)}</td><td>${esc(i.type === 'vlan' ? 'VLAN ' + i.vlanid : i.type === 'tunnel' ? 'IPsec tunnel' : 'Physical')}</td><td>${esc(i.role === 'undefined' ? '' : i.role.toUpperCase())}</td>
-    <td class="mono num">${i.ip === '0.0.0.0' ? '<span class="muted">0.0.0.0/0</span>' : esc(i.ip + '/' + i.bits)}${i.type === 'tunnel' && i.remoteIp ? `<div class="help">remote ${esc(i.remoteIp)}</div>` : ''}</td><td>${chips(i.allowaccess.map(a => a.toUpperCase()), '')}</td>
+    <td class="mono num">${i.ip === '0.0.0.0' ? '<span class="muted">0.0.0.0/0</span>' : cv(i.ip + '/' + i.bits, i.name + ' address')}${i.type === 'tunnel' && i.remoteIp ? `<div class="help">remote ${esc(i.remoteIp)}</div>` : ''}</td><td>${chips(i.allowaccess.map(a => a.toUpperCase()), '')}</td>
     <td>${pill(i.status === 'up' ? 'Up' : 'Down', i.status === 'up' ? 'ok' : 'mute')}</td><td class="num">${(c => c ? `${fmtBytes(c.rx)} / ${fmtBytes(c.tx)}<div>${spark(c.hist, 'sm', i.name + ' bandwidth')} <span class="help">${fmtRate(c.rate)}</span></div>` : '<span class="muted">-</span>')(TELE.iface(i.name))}</td><td class="num">${r}</td>
     <td class="acts">${actBtn('if-edit', i.name, I.edit, 'Edit ' + i.name)}${i.type === 'vlan' ? actBtn('if-del', i.name, I.del, 'Delete ' + i.name) : ''}</td></tr>`;
   }
@@ -4956,20 +5055,26 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     const list = S.policies;
     const prof = p => p.utm ? [p.prof.av && 'AV:' + p.prof.av, p.prof.webfilter && 'WEB:' + p.prof.webfilter, p.prof.ips && 'IPS:' + p.prof.ips, p.prof.app && 'APP:' + p.prof.app, p.prof.ssl && 'SSL:' + p.prof.ssl].filter(Boolean) : [];
     const logTxt = { all: 'All', utm: 'Security Events', disable: 'Disabled' };
-    const rows = list.map((p, i) => `<tr class="${p.status === 'disable' ? 'off' : ''}">
-      <td class="acts" style="text-align:left">${i > 0 ? actBtn('pol-up', p.id, I.up, 'Move up') : '<span class="ibtn"></span>'}${i < list.length - 1 ? actBtn('pol-down', p.id, I.down, 'Move down') : ''}</td>
-      <td class="num muted">${i + 1}</td><td class="num"><b>${esc(p.id)}</b></td><td class="pname">${esc(p.name)}${p.comments ? `<div class="help">${esc(p.comments)}</div>` : ''}</td>
-      <td>${chips(p.srcintf)}</td><td>${chips(p.dstintf)}</td><td>${chips(p.srcaddr)}</td><td>${chips(p.dstaddr)}</td><td>${chips(p.service)}</td>
+    /* Fits the pane: arrows share the Seq cell, chips truncate with a tooltip, and as the table's own width shrinks the
+       Log, Security Profiles, NAT and Hits columns fold into a line under the policy name (container queries, fit-css). */
+    const meta = p => {
+      const pr = prof(p);
+      return `<div class="pmeta">${p.action === 'accept' && p.nat ? `<span class="m-nat">${pill('NAT', 'info')}</span>` : ''}${pr.length ? `<span class="m-prof">${chips(pr, '')}</span>` : ''}<span class="m-log chip" title="Log: ${esc(logTxt[p.logtraffic] || '')}">${esc({ all: 'Log all', utm: 'Log UTM', disable: 'No log' }[p.logtraffic] || '')}</span><span class="m-hits chip num" title="Hits">${esc(Number(p.hits || 0).toLocaleString())} hits</span></div>`;
+    };
+    const rows = list.map((p, i) => `<tr class="${p.status === 'disable' ? 'off' : ''}" data-k="pol${esc(p.id)}">
+      <td class="seq c-seq"><span class="mv">${i > 0 ? actBtn('pol-up', p.id, I.up, 'Move up') : '<span class="ibtn" aria-hidden="true"></span>'}${i < list.length - 1 ? actBtn('pol-down', p.id, I.down, 'Move down') : '<span class="ibtn" aria-hidden="true"></span>'}</span><span class="num">${i + 1}</span></td>
+      <td class="num">${cv(p.id, 'policy ID ' + p.id, 'b')}</td><td class="pname">${esc(p.name)}${p.comments ? `<div class="help">${esc(p.comments)}</div>` : ''}${meta(p)}</td>
+      <td>${chips(p.srcintf)}<div class="m-to">→ ${chips(p.dstintf)}</div></td><td class="c-to">${chips(p.dstintf)}</td><td>${chips(p.srcaddr)}</td><td>${chips(p.dstaddr)}</td><td>${chips(p.service)}</td>
       <td>${pill(p.action === 'accept' ? 'ACCEPT' : 'DENY', p.action === 'accept' ? 'ok' : 'bad')}</td>
-      <td>${p.action === 'accept' ? (p.nat ? pill('NAT', 'info') : '<span class="muted">Off</span>') : ''}</td>
-      <td>${chips(prof(p), '')}</td><td>${logTxt[p.logtraffic]}</td><td class="num">${esc(Number(p.hits || 0).toLocaleString())}</td>
-      <td><button class="btn" style="height:26px" data-act="pol-toggle" data-id="${esc(p.id)}">${p.status === 'enable' ? 'Enabled' : 'Disabled'}</button></td>
+      <td class="c-nat">${p.action === 'accept' ? (p.nat ? pill('NAT', 'info') : '<span class="muted">Off</span>') : ''}</td>
+      <td class="c-prof">${chips(prof(p), '')}</td><td class="c-log">${logTxt[p.logtraffic]}</td><td class="num c-hits">${esc(Number(p.hits || 0).toLocaleString())}</td>
+      <td><button class="st-sw" role="switch" aria-checked="${p.status === 'enable'}" data-act="pol-toggle" data-id="${esc(p.id)}" title="${p.status === 'enable' ? 'Enabled: click to disable' : 'Disabled: click to enable'}" aria-label="Policy ${esc(p.id)} ${p.status === 'enable' ? 'enabled' : 'disabled'}"><i></i></button></td>
       <td class="acts">${actBtn('pol-edit', p.id, I.edit, 'Edit policy ' + p.id)}${actBtn('pol-clone', p.id, I.copy, 'Clone policy ' + p.id)}${actBtn('pol-del', p.id, I.del, 'Delete policy ' + p.id)}</td></tr>`).join('');
     return head('Policies are checked from the top down. The first one that matches decides what happens. Anything that matches nothing is dropped by the implicit deny.') +
       lookupCard() +
       `<div class="toolbar"><button class="btn primary" data-act="pol-new">${I.plus} Create New</button><span class="help">Sequence order is what matters, not the ID number. Use the arrows to reorder.</span></div>
-      <div class="tablewrap"><table class="grid"><thead><tr><th></th><th>Seq</th><th>ID</th><th>Name</th><th>From</th><th>To</th><th>Source</th><th>Destination</th><th>Service</th><th>Action</th><th>NAT</th><th>Security Profiles</th><th>Log</th><th>Hits</th><th>Status</th><th></th></tr></thead><tbody>${rows}
-      <tr class="off"><td></td><td></td><td class="num"><b>0</b></td><td>Implicit Deny</td><td>${chips(['any'])}</td><td>${chips(['any'])}</td><td>${chips(['all'])}</td><td>${chips(['all'])}</td><td>${chips(['ALL'])}</td><td>${pill('DENY', 'bad')}</td><td></td><td></td><td>Disabled</td><td></td><td></td><td></td></tr></tbody></table></div>`;
+      <div class="tablewrap pol"><table class="grid pol"><thead><tr><th class="c-seq">Seq</th><th>ID</th><th>Name</th><th>From</th><th class="c-to">To</th><th>Source</th><th>Destination</th><th>Service</th><th>Action</th><th class="c-nat">NAT</th><th class="c-prof">Security Profiles</th><th class="c-log">Log</th><th class="c-hits">Hits</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody>${rows}
+      <tr class="off" data-k="pol-implicit"><td class="c-seq"></td><td class="num"><b>0</b></td><td class="pname">Implicit Deny</td><td>${chips(['any'])}<div class="m-to">→ ${chips(['any'])}</div></td><td class="c-to">${chips(['any'])}</td><td>${chips(['all'])}</td><td>${chips(['all'])}</td><td>${chips(['ALL'])}</td><td>${pill('DENY', 'bad')}</td><td class="c-nat"></td><td class="c-prof"></td><td class="c-log">Disabled</td><td class="c-hits"></td><td></td><td></td></tr></tbody></table></div>`;
   };
   function lookupCard() {
     const f = UI.lookupForm, R = UI.lookup;
@@ -5025,8 +5130,8 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
   P.webfilter = () => head('Web filter profiles block sites by category. Apply a profile on a policy (with an SSL inspection profile) for it to take effect.') + `<div class="toolbar"><button class="btn primary" data-act="wf-new">${I.plus} Create New</button></div><div class="tablewrap"><table class="grid"><thead><tr><th>Name</th><th>Blocked categories</th><th>Ref.</th><th>Comments</th><th></th></tr></thead><tbody>${S.profiles.webfilter.map(w => `<tr><td class="mono">${esc(w.name)}</td><td>${SIM.wfBlocked(w).length ? chips(SIM.wfBlocked(w).map(c => `${c} (${SIM.CAT_ID[c]})`), '') : '<span class="muted">None (monitor only)</span>'}${w.urlfilterTable ? `<div class="help">URL filter: ${esc(((S.urlfilters || []).find(u => u.id === w.urlfilterTable) || {}).name || w.urlfilterTable)}</div>` : ''}</td><td class="num">${SIM.usedBy(S, 'wf', w.name).length}</td><td>${esc(w.comment)}</td><td class="acts">${actBtn('wf-edit', w.name, I.edit, 'Edit')}${w.builtin ? '' : actBtn('wf-del', w.name, I.del, 'Delete')}</td></tr>`).join('')}</tbody></table></div>`;
 
   P.profiles = () => {
-    const sec = (title, list, field, note) => `<section class="card widget"><h2>${esc(title)}</h2><p class="help" style="margin:0 0 8px">${note}</p><div class="tablewrap" style="border:0"><table class="grid"><thead><tr><th>Profile</th><th>Description</th><th>Used by</th></tr></thead><tbody>${list.map(x => { const n = S.policies.filter(p => p.utm && p.prof[field] === x.name).map(p => p.id); return `<tr><td class="mono">${esc(x.name)}</td><td>${esc(x.comment)}</td><td>${n.length ? chips(n.map(i => 'policy ' + i), '') : '<span class="muted">-</span>'}</td></tr>`; }).join('')}</tbody></table></div></section>`;
-    return head('Built-in security profiles. Attach them to accept policies under Security Profiles.') + `<div class="dash">${sec('AntiVirus', S.profiles.av, 'av', 'Scans files in allowed sessions.')}${sec('Intrusion Prevention (IPS)', S.profiles.ips, 'ips', 'Matches traffic against attack signatures. Put one in front of anything internet-facing.')}${sec('Application Control', S.profiles.app, 'app', 'Identifies applications regardless of port.')}${sec('SSL/SSH Inspection', S.profiles.ssl, 'ssl', 'Required whenever any other profile is applied. Certificate inspection reads the site name without decrypting.')}</div>`;
+    const sec = (title, list, field, note) => `<section class="card widget"><h2>${esc(title)}</h2><p class="help" style="margin:0 0 8px">${note}</p><div class="tablewrap"><table class="grid"><thead><tr><th>Profile</th><th>Description</th><th>Used by</th></tr></thead><tbody>${list.map(x => { const n = S.policies.filter(p => p.utm && p.prof[field] === x.name).map(p => p.id); return `<tr><td class="mono">${esc(x.name)}</td><td>${esc(x.comment)}</td><td>${n.length ? chips(n.map(i => 'policy ' + i), '') : '<span class="muted">-</span>'}</td></tr>`; }).join('')}</tbody></table></div></section>`;
+    return head('Built-in security profiles. Attach them to accept policies under Security Profiles.') + `<div class="prof-grid">${sec('AntiVirus', S.profiles.av, 'av', 'Scans files in allowed sessions.')}${sec('Intrusion Prevention (IPS)', S.profiles.ips, 'ips', 'Matches traffic against attack signatures. Put one in front of anything internet-facing.')}${sec('Application Control', S.profiles.app, 'app', 'Identifies applications regardless of port.')}${sec('SSL/SSH Inspection', S.profiles.ssl, 'ssl', 'Required whenever any other profile is applied. Certificate inspection reads the site name without decrypting.')}</div>`;
   };
 
   P.ipsec = () => head('Site-to-site IPsec tunnels. Each tunnel becomes an interface you can route to and write policies for.') + `<div class="toolbar"><button class="btn primary" data-act="vpn-new">${I.plus} Create New Tunnel</button><span class="help">Azure side: gateway 198.51.100.25 · IKEv2 · route-based · ${S.azure.policy === 'custom' ? '<b>custom IPsec/IKE policy</b> (IKE AES256/SHA256/DH14, IPsec AES256GCM, PFS 14)' : 'default IPsec/IKE policy'}</span></div>
@@ -5050,7 +5155,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
 
   P.accprofiles = () => head('Admin profiles define what an administrator account can see and change. Create one per job, not one per person.') +
     `<div class="toolbar"><button class="btn primary" data-act="ap-new">${I.plus} Create New</button></div>
-    <div class="tablewrap"><table class="grid"><thead><tr><th>Name</th><th>System</th><th>Network</th><th>Firewall</th><th>Log & Report</th><th>Security Profiles</th><th>VPN</th><th>Used by</th><th></th></tr></thead><tbody>${(S.accprofiles || []).map(a => { const lv = v => v === 'read-write' ? pill('Read/Write', 'ok') : v === 'read' ? pill('Read', 'info') : pill('None', 'mute'); return `<tr><td class="mono">${esc(a.name)}${a.builtin ? '' : ' ' + pill('custom', 'info')}<div class="help">${esc(a.comment)}</div></td><td>${lv(a.sysgrp)}</td><td>${lv(a.netgrp)}</td><td>${lv(a.fwgrp)}</td><td>${lv(a.loggrp)}</td><td>${lv(a.utmgrp)}</td><td>${lv(a.vpngrp)}</td><td class="num">${SIM.usedBy(S, 'accprofile', a.name).length}</td><td class="acts">${a.builtin ? '' : actBtn('ap-edit', a.name, I.edit, 'Edit') + actBtn('ap-del', a.name, I.del, 'Delete')}</td></tr>`; }).join('')}</tbody></table></div>`;
+    <div class="tablewrap"><table class="grid"><thead><tr><th>Name</th><th>System</th><th>Network</th><th>Firewall</th><th>Log & Report</th><th>Security Profiles</th><th>VPN</th><th>Used by</th><th></th></tr></thead><tbody>${(S.accprofiles || []).map(a => { const lv = v => v === 'read-write' ? pill('Read/\u200bWrite', 'ok') : v === 'read' ? pill('Read', 'info') : pill('None', 'mute'); return `<tr><td class="mono">${esc(a.name)}${a.builtin ? '' : ' ' + pill('custom', 'info')}<div class="help">${esc(a.comment)}</div></td><td>${lv(a.sysgrp)}</td><td>${lv(a.netgrp)}</td><td>${lv(a.fwgrp)}</td><td>${lv(a.loggrp)}</td><td>${lv(a.utmgrp)}</td><td>${lv(a.vpngrp)}</td><td class="num">${SIM.usedBy(S, 'accprofile', a.name).length}</td><td class="acts">${a.builtin ? '' : actBtn('ap-edit', a.name, I.edit, 'Edit') + actBtn('ap-del', a.name, I.del, 'Delete')}</td></tr>`; }).join('')}</tbody></table></div>`;
 
   P.logsettings = () => {
     const y = S.logset.syslog; const r = y.server && SIM.isIp(y.server) ? SIM.routeLookup(S, y.server) : null;
@@ -5094,7 +5199,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     const top = Object.entries(bySrc).sort((a, b) => b[1] - a[1]).slice(0, 5);
     return head('Sessions the firewall is forwarding right now. Killing a session ends it; if the host is still allowed by policy, it can start a new one.') +
       `<div class="toolbar"><input class="search" id="sessFilter" placeholder="Filter (IP, interface, app, policy)…" value="${esc(UI.filter)}" aria-label="Filter sessions"><span class="help num">${S.sessions.length} active · refreshes live</span><span class="grow"></span><span class="help">Top talkers: ${top.map(([ip, n]) => `<span class="chip ref">${esc(ip)} ×${n}</span>`).join(' ') || '-'}</span></div>
-      <div class="tablewrap"><table class="grid"><thead><tr><th>Source</th><th>Src Intf</th><th>Destination</th><th>Dst Intf</th><th>Application</th><th>Policy</th><th>NAT</th><th>Duration</th><th>Bytes</th><th></th></tr></thead><tbody>${rows.map(x => `<tr><td class="mono">${esc(x.srcip)}${SIM.HOSTS[x.srcip] ? `<div class="help">${esc(SIM.HOSTS[x.srcip])}</div>` : ''}</td><td class="mono">${esc(x.srcintf)}</td><td class="mono">${esc(x.dstip)}:${x.port}${SIM.HOSTS[x.dstip] ? `<div class="help">${esc(SIM.HOSTS[x.dstip])}</div>` : ''}</td><td class="mono">${esc(x.dstintf)}</td><td>${esc(x.app)}</td><td class="num">${esc(x.policyid)}</td><td class="mono">${esc(x.nat)}</td><td class="num">${fmtElapsed(now - x.ts)}</td><td class="num">${esc(TELE.sessBytes(x, now).toLocaleString())}</td><td class="acts"><button class="btn danger" style="height:26px" data-act="sess-kill" data-id="${esc(x.id)}">Kill</button></td></tr>`).join('') || '<tr><td colspan="10" class="empty">No active sessions match.</td></tr>'}</tbody></table></div>`;
+      <div class="tablewrap"><table class="grid"><thead><tr><th>Source</th><th>Src Intf</th><th>Destination</th><th>Dst Intf</th><th>Application</th><th>Policy</th><th>NAT</th><th>Duration</th><th>Bytes</th><th></th></tr></thead><tbody>${rows.map(x => `<tr data-k="s${esc(x.id)}"><td class="mono">${cv(x.srcip, 'source IP')}${SIM.HOSTS[x.srcip] ? `<div class="help">${esc(SIM.HOSTS[x.srcip])}</div>` : ''}</td><td class="mono">${esc(x.srcintf)}</td><td class="mono">${cv(x.dstip + ':' + x.port, 'destination')}${SIM.HOSTS[x.dstip] ? `<div class="help">${esc(SIM.HOSTS[x.dstip])}</div>` : ''}</td><td class="mono">${esc(x.dstintf)}</td><td>${esc(x.app)}</td><td class="num">${cv(x.policyid, 'policy ID')}</td><td class="mono">${esc(x.nat)}</td><td class="num">${fmtElapsed(now - x.ts)}</td><td class="num">${esc(TELE.sessBytes(x, now).toLocaleString())}</td><td class="acts"><button class="btn danger" style="height:26px" data-act="sess-kill" data-id="${esc(x.id)}">Kill</button></td></tr>`).join('') || '<tr><td colspan="10" class="empty">No active sessions match.</td></tr>'}</tbody></table></div>`;
   };
   P.logs = () => {
     const t = curTab('logs', 'traffic');
@@ -5103,13 +5208,13 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     let body;
     if (t === 'traffic') {
       const rows = S.logs.traffic.filter(match).slice(0, 250);
-      body = `<div class="tablewrap"><table class="grid"><thead><tr><th>Date/Time</th><th>Src Intf</th><th>Source</th><th>Dst Intf</th><th>Destination</th><th>Service</th><th>Policy</th><th>Action</th><th>NAT IP</th><th>Message</th></tr></thead><tbody>${rows.map(l => `<tr><td class="mono num">${fmtTs(l.ts)}</td><td class="mono">${esc(l.srcintf)}</td><td class="mono">${esc(l.srcip)}</td><td class="mono">${esc(l.dstintf)}</td><td class="mono">${esc(l.dstip)}</td><td class="mono">${esc(l.proto.toUpperCase() + (l.proto === 'icmp' ? '' : '/' + l.port))}</td><td class="num">${esc(l.policyid)}</td><td>${pill(l.action, l.action === 'accept' ? 'ok' : 'bad')}</td><td class="mono">${esc(l.nat)}</td><td>${esc(l.msg)}</td></tr>`).join('') || '<tr><td colspan="10" class="empty">No matching log entries.</td></tr>'}</tbody></table></div>`;
+      body = `<div class="tablewrap"><table class="grid"><thead><tr><th>Date/Time</th><th>Src Intf</th><th>Source</th><th>Dst Intf</th><th>Destination</th><th>Service</th><th>Policy</th><th>Action</th><th>NAT IP</th><th>Message</th></tr></thead><tbody>${rows.map(l => `<tr${rk(l)}><td class="mono num">${fmtTs(l.ts)}</td><td class="mono">${esc(l.srcintf)}</td><td class="mono">${cv(l.srcip, 'source IP')}</td><td class="mono">${esc(l.dstintf)}</td><td class="mono">${cv(l.dstip, 'destination IP')}</td><td class="mono">${esc(l.proto.toUpperCase() + (l.proto === 'icmp' ? '' : '/' + l.port))}</td><td class="num">${cv(l.policyid, 'policy ID')}</td><td>${pill(l.action, l.action === 'accept' ? 'ok' : 'bad')}</td><td class="mono">${esc(l.nat)}</td><td>${esc(l.msg)}</td></tr>`).join('') || '<tr><td colspan="10" class="empty">No matching log entries.</td></tr>'}</tbody></table></div>`;
     } else if (t === 'local') {
       const rows = S.logs.local.filter(match).slice(0, 200);
-      body = `<p class="help">Traffic addressed to the firewall itself (management access, ping).</p><div class="tablewrap"><table class="grid"><thead><tr><th>Date/Time</th><th>Interface</th><th>Source</th><th>Destination</th><th>Service</th><th>Action</th><th>Message</th></tr></thead><tbody>${rows.map(l => `<tr><td class="mono num">${fmtTs(l.ts)}</td><td class="mono">${esc(l.srcintf)}</td><td class="mono">${esc(l.srcip)}</td><td class="mono">${esc(l.dstip)}</td><td class="mono">${esc(String(l.proto).toUpperCase() + '/' + l.port)}</td><td>${pill(l.action, l.action === 'accept' ? 'ok' : 'bad')}</td><td>${esc(l.msg)}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">No matching log entries.</td></tr>'}</tbody></table></div>`;
+      body = `<p class="help">Traffic addressed to the firewall itself (management access, ping).</p><div class="tablewrap"><table class="grid"><thead><tr><th>Date/Time</th><th>Interface</th><th>Source</th><th>Destination</th><th>Service</th><th>Action</th><th>Message</th></tr></thead><tbody>${rows.map(l => `<tr${rk(l)}><td class="mono num">${fmtTs(l.ts)}</td><td class="mono">${esc(l.srcintf)}</td><td class="mono">${cv(l.srcip, 'source IP')}</td><td class="mono">${cv(l.dstip, 'destination IP')}</td><td class="mono">${esc(String(l.proto).toUpperCase() + '/' + l.port)}</td><td>${pill(l.action, l.action === 'accept' ? 'ok' : 'bad')}</td><td>${esc(l.msg)}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">No matching log entries.</td></tr>'}</tbody></table></div>`;
     } else {
       const rows = S.logs.event.filter(match).slice(0, 200);
-      body = `<div class="tablewrap"><table class="grid"><thead><tr><th>Date/Time</th><th>Level</th><th>Message</th></tr></thead><tbody>${rows.map(e => `<tr><td class="mono num">${fmtTs(e.ts)}</td><td>${pill(e.level, e.level === 'alert' ? 'bad' : e.level === 'warning' ? 'warn' : e.level === 'notice' ? 'info' : 'mute')}</td><td>${esc(e.msg)}</td></tr>`).join('') || '<tr><td colspan="3" class="empty">No matching events.</td></tr>'}</tbody></table></div>`;
+      body = `<div class="tablewrap"><table class="grid"><thead><tr><th>Date/Time</th><th>Level</th><th>Message</th></tr></thead><tbody>${rows.map(e => `<tr${rk(e)}><td class="mono num">${fmtTs(e.ts)}</td><td>${pill(e.level, e.level === 'alert' ? 'bad' : e.level === 'warning' ? 'warn' : e.level === 'notice' ? 'info' : 'mute')}</td><td>${cv(e.msg, 'event message')}</td></tr>`).join('') || '<tr><td colspan="3" class="empty">No matching events.</td></tr>'}</tbody></table></div>`;
     }
     return head('Forward traffic, local traffic and system events. Newest first.') + tabs('logs', [['traffic', 'Forward Traffic'], ['local', 'Local Traffic'], ['event', 'System Events']]) +
       `<div class="toolbar"><input class="search" id="logFilter" placeholder="Filter (IP, policy, text)…" value="${esc(UI.filter)}" aria-label="Filter logs"></div>` + body;
@@ -5145,7 +5250,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
       <section class="card widget" style="grid-column:1/-1"><h2>Recent activity</h2>${azActivityTable(z.activity.slice(0, 6))}</section>
     </div>`;
   };
-  const azActivityTable = rows => `<div class="tablewrap"><table class="grid"><thead><tr><th>Operation name</th><th>Status</th><th>Time</th><th>Resource</th><th>Resource group</th><th>Event initiated by</th></tr></thead><tbody>${rows.map(a => `<tr><td>${esc(a.op)}</td><td>${pill(a.status, a.status === 'Succeeded' || a.status === 'Resolved' ? 'ok' : a.status === 'Active' ? 'warn' : 'bad')}</td><td class="mono num">${fmtTs(a.ts)}</td><td class="mono">${esc(a.resource)}</td><td class="mono">${esc(a.rg)}</td><td class="mono">${esc(a.by)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">No activity.</td></tr>'}</tbody></table></div>`;
+  const azActivityTable = rows => `<div class="tablewrap"><table class="grid"><thead><tr><th>Operation name</th><th>Status</th><th>Time</th><th>Resource</th><th>Resource group</th><th>Event initiated by</th></tr></thead><tbody>${rows.map(a => `<tr${rk(a)}><td>${esc(a.op)}</td><td>${pill(a.status, a.status === 'Succeeded' || a.status === 'Resolved' ? 'ok' : a.status === 'Active' ? 'warn' : 'bad')}</td><td class="mono num">${fmtTs(a.ts)}</td><td class="mono">${esc(a.resource)}</td><td class="mono">${esc(a.rg)}</td><td class="mono">${esc(a.by)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">No activity.</td></tr>'}</tbody></table></div>`;
 
   P['az-resources'] = () => {
     const z = S.azure, rgf = UI.azRg;
@@ -5198,7 +5303,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
       body = `<div class="toolbar"><button class="btn primary" data-act="az-sub-new" data-id="${esc(id)}">${I.plus} Subnet</button><span class="help">Azure reserves 5 addresses in every subnet: the first four and the last.</span></div>
         <div class="tablewrap"><table class="grid"><thead><tr><th>Name</th><th>IPv4</th><th>Usable range</th><th>Available IPs</th><th>Devices</th><th></th></tr></thead><tbody>${v.subnets.map(s => { const i = AZ.subnetInfo(s), u = AZ.usage(S, v, s); return `<tr><td class="mono">${esc(s.name)}${AZ.SPECIAL[s.name] ? `<div class="help">reserved for ${esc(AZ.SPECIAL[s.name].purpose)}</div>` : ''}</td><td class="mono">${esc(AZ.fmt(s))}</td><td class="mono">${esc(i.first)} - ${esc(i.last)}</td><td class="num">${u.available}</td><td class="num">${u.used}</td><td class="acts">${actBtn('az-sub-del', `${id}/${s.name}`, I.del, 'Delete subnet')}</td></tr>`; }).join('') || '<tr><td colspan="6" class="empty">No subnets yet.</td></tr>'}</tbody></table></div>`;
     } else {
-      body = `<div class="tablewrap"><table class="grid"><thead><tr><th>Device</th><th>Type</th><th>IP address</th><th>Subnet</th><th>Attached to</th></tr></thead><tbody>${vms.map(m => `<tr><td class="mono">${esc(m.name)}-nic</td><td>Network interface</td><td class="mono">${esc(m.privateIp)} <span class="help">(${esc(m.ipAlloc)})</span></td><td class="mono">${esc(m.subnet)}</td><td class="mono">${esc(m.name)}</td></tr>`).join('') || '<tr><td colspan="5" class="empty">Nothing is connected to this virtual network.</td></tr>'}</tbody></table></div>`;
+      body = `<div class="tablewrap"><table class="grid"><thead><tr><th>Device</th><th>Type</th><th>IP address</th><th>Subnet</th><th>Attached to</th></tr></thead><tbody>${vms.map(m => `<tr><td class="mono">${esc(m.name)}-nic</td><td>Network interface</td><td class="mono">${cv(m.privateIp, m.name + ' private IP')} <span class="help">(${esc(m.ipAlloc)})</span></td><td class="mono">${esc(m.subnet)}</td><td class="mono">${esc(m.name)}</td></tr>`).join('') || '<tr><td colspan="5" class="empty">Nothing is connected to this virtual network.</td></tr>'}</tbody></table></div>`;
     }
     return `<div class="crumb">Azure › Networking › Virtual networks</div><h1>${esc(v.name)}</h1><p class="lede">Virtual network · ${esc(v.rg)} · ${azRegion(v.location)}</p>
       <div class="toolbar"><button class="btn" data-act="nav" data-id="az-vnets">← All virtual networks</button><span class="grow"></span><button class="btn danger" data-act="az-vnet-del" data-id="${esc(id)}">${I.del} Delete</button></div>` +
@@ -5210,7 +5315,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     const rows = z.vms.filter(m => fmatch(m.name, m.rg, m.privateIp, m.vnet, m.subnet, m.location));
     return head('Virtual machines and the private IP their NIC holds. Stopping (deallocating) a VM stops compute billing; its private IP stays reserved.') +
       `<div class="toolbar"><button class="btn primary" data-act="az-vm-new">${I.plus} Create</button>${azFilter('Filter virtual machines…')}</div>
-      <div class="tablewrap"><table class="grid"><thead><tr><th>Name</th><th>Status</th><th>Resource group</th><th>Location</th><th>Image</th><th>Size</th><th>CPU (avg)</th><th>Network in / out</th><th>Private IP</th><th>Virtual network / subnet</th><th></th></tr></thead><tbody>${rows.map(m => { const img = AZ.image(m.image); const id = `${m.rg}/${m.name}`; return `<tr><td class="mono">${esc(m.name)}</td><td>${vmStatus(m)}</td><td class="mono">${esc(m.rg)}</td><td>${azRegion(m.location)}</td><td>${esc(img ? img.label : m.image)}</td><td class="mono">${esc(m.size)}</td>${(v => m.power === 'running' && v && TELE.started() ? `<td class="num">${v.cpu.toFixed(0)}%${spark(v.cpuHist, 'sm', m.name + ' CPU')}</td><td class="num">${fmtBytes(v.inB)} / ${fmtBytes(v.outB)}</td>` : `<td class="muted">-</td><td class="${v && v.inB ? 'num' : 'muted'}">${v && v.inB ? fmtBytes(v.inB) + ' / ' + fmtBytes(v.outB) : '-'}</td>`)(TELE.vm(m.rg, m.name))}<td class="mono">${esc(m.privateIp)} <span class="help">(${esc(m.ipAlloc)})</span></td><td class="mono">${esc(m.vnet)} / ${esc(m.subnet)}</td><td class="acts">${m.power === 'running' ? `<button class="ibtn" data-act="az-vm-power" data-id="${esc(id)}" data-name="deallocated" title="Stop" aria-label="Stop ${esc(m.name)}">${I.stop}</button>` : `<button class="ibtn" data-act="az-vm-power" data-id="${esc(id)}" data-name="running" title="Start" aria-label="Start ${esc(m.name)}">${I.play}</button>`}${actBtn('az-vm-del', id, I.del, 'Delete virtual machine')}</td></tr>`; }).join('') || '<tr><td colspan="11" class="empty">No virtual machines.</td></tr>'}</tbody></table></div>`;
+      <div class="tablewrap"><table class="grid"><thead><tr><th>Name</th><th>Status</th><th>Resource group</th><th>Location</th><th>Image</th><th>Size</th><th>CPU (avg)</th><th>Network in / out</th><th>Private IP</th><th>Virtual network / subnet</th><th></th></tr></thead><tbody>${rows.map(m => { const img = AZ.image(m.image); const id = `${m.rg}/${m.name}`; return `<tr><td class="mono">${esc(m.name)}</td><td>${vmStatus(m)}</td><td class="mono">${esc(m.rg)}</td><td>${azRegion(m.location)}</td><td>${esc(img ? img.label : m.image)}</td><td class="mono">${esc(m.size)}</td>${(v => m.power === 'running' && v && TELE.started() ? `<td class="num">${v.cpu.toFixed(0)}%${spark(v.cpuHist, 'sm', m.name + ' CPU')}</td><td class="num">${fmtBytes(v.inB)} / ${fmtBytes(v.outB)}</td>` : `<td class="muted">-</td><td class="${v && v.inB ? 'num' : 'muted'}">${v && v.inB ? fmtBytes(v.inB) + ' / ' + fmtBytes(v.outB) : '-'}</td>`)(TELE.vm(m.rg, m.name))}<td class="mono">${cv(m.privateIp, m.name + ' private IP')} <span class="help">(${esc(m.ipAlloc)})</span></td><td class="mono">${esc(m.vnet)} / ${esc(m.subnet)}</td><td class="acts">${m.power === 'running' ? `<button class="ibtn" data-act="az-vm-power" data-id="${esc(id)}" data-name="deallocated" title="Stop" aria-label="Stop ${esc(m.name)}">${I.stop}</button>` : `<button class="ibtn" data-act="az-vm-power" data-id="${esc(id)}" data-name="running" title="Start" aria-label="Start ${esc(m.name)}">${I.play}</button>`}${actBtn('az-vm-del', id, I.del, 'Delete virtual machine')}</td></tr>`; }).join('') || '<tr><td colspan="11" class="empty">No virtual machines.</td></tr>'}</tbody></table></div>`;
   };
 
   P['az-vpn'] = () => {
@@ -5771,7 +5876,14 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     'bk-copycli': () => copyText($('#fullCfg').textContent, 'CLI configuration copied'),
     'bk-restore': () => { NMS.on = false; NMS.inc = null; let o; try { o = JSON.parse($('#bkIn').value); } catch (e) { toast('Restore failed', 'That is not valid backup JSON.', 'bad'); return; } SIM.AZ.migrate(o); if (!valid(o)) { toast('Restore failed', 'That backup is not from this lab.', 'bad'); return; } learnFix(o); S = o; S.sessions = []; S.threats = S.threats || {}; LIVE.setState(S); evaluate(true); commit('configuration restored from backup'); toast('Restored', 'Backup loaded.', 'ok'); },
     'bk-reset': () => confirmBox('Reset the lab?', 'This puts the firewall back to its starting state and clears all mission progress. It cannot be undone unless you copied a backup.', 'Reset lab', () => { NMS.on = false; NMS.inc = null; const keep = learnOf(); S = SIM.seed(); S.learn = Object.assign({}, keep, { pending: false }); LIVE.setState(S); UI.lookup = null; evaluate(true); setTimeout(() => toast('Lab reset', 'Back to how the old IT guy left it.'), 50); }),
-    'mis-open': d => { UI.open = UI.open === d.id ? null : d.id; if (UI.open) UI.openedAt = { id: d.id, t: Date.now() }; renderDrawer(); },
+    /* several cards can stay open; the card you clicked stays where it was on screen */
+    'mis-open': d => {
+      const was = misOpen(d.id), sel = `#drawer .mis > button.head[data-id="${CSS.escape(d.id)}"]`, h0 = document.querySelector(sel), y0 = h0 ? h0.getBoundingClientRect().top : null;
+      if (was) { UI.opens.delete(d.id); if (UI.open === d.id) UI.open = null; } else { UI.opens.add(d.id); UI.openedAt = { id: d.id, t: Date.now() }; }
+      renderDrawer();
+      const h1 = document.querySelector(sel), sc = document.querySelector('#drawer .scroll');
+      if (h1 && sc && y0 != null) sc.scrollTop += h1.getBoundingClientRect().top - y0;
+    },
     'mis-hint': d => { const m = MISSIONS.find(x => x.id === d.id); if (!m) return; learnAsk(m); scheduleSave(); renderDrawer(); },
     'learn-yes': () => { learnSetMode('guided', 'offer'); scheduleSave(); renderDrawer(); },
     'learn-no': () => { learnSetMode('standard', 'offer'); scheduleSave(); renderDrawer(); toast('Short hints it is', 'Switch to Guided at the top of the missions panel any time.'); },
@@ -5975,6 +6087,8 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     tfKeep(() => commit());
   }, 1000);
 
+  /* click-to-copy buttons win over any clickable row they sit in */
+  document.addEventListener('click', e => { const c = e.target.closest && e.target.closest('.cpy'); if (!c) return; e.preventDefault(); e.stopPropagation(); copyVal(c); }, true);
   /* ---------- delegated events (main + drawer) ---------- */
   document.addEventListener('click', e => {
     const b = e.target.closest('[data-act]'); if (!b || b.closest('#modalRoot')) return;
@@ -6300,7 +6414,28 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     return html;
   }
 
-  function renderDrawer() { if (UI.drawerMode === 'nm') return renderNmDrawer(); return renderMissionDrawer(); }
+  /* The drawer renderers (missions, sections, Nightmare, and wrappers added by other features) all write to #drawer with
+     innerHTML. paintDrawer lets them do that into an off-screen stand-in that briefly owns the #drawer id, then morphs the
+     real panel to match. So the panel keeps its scroll position (top and left), open cards and any highlight across every
+     live check, while none of the renderers had to change. Switching section or mode still starts at the top. */
+  const ghostHost = document.createElement('div'); ghostHost.hidden = true; ghostHost.setAttribute('aria-hidden', 'true'); document.body.appendChild(ghostHost);
+  function paintDrawer(fn) {
+    const real = document.getElementById('drawer'); if (!real) return fn();
+    const ghost = document.createElement('aside'); ghost.className = real.className; ghost.hidden = real.hidden;
+    Object.assign(ghost.dataset, real.dataset);
+    const before = (UI.drawerMode || '') + '|' + (real.dataset.sec || '');
+    real.removeAttribute('id'); ghost.id = 'drawer'; ghostHost.appendChild(ghost);
+    try { fn(); } finally { ghost.removeAttribute('id'); real.id = 'drawer'; }
+    real.hidden = ghost.hidden;
+    for (const k of Object.keys(real.dataset)) if (!(k in ghost.dataset)) delete real.dataset[k];
+    Object.assign(real.dataset, ghost.dataset);
+    if (!ghost.hidden && ghost.childNodes.length) {
+      morph(real, ghost.innerHTML);
+      if (before !== (UI.drawerMode || '') + '|' + (real.dataset.sec || '')) { const s = real.querySelector('.scroll'); if (s) { s.scrollTop = 0; s.scrollLeft = 0; } }
+    }
+    ghost.remove();
+  }
+  function renderDrawer() { paintDrawer(() => UI.drawerMode === 'nm' ? renderNmDrawer() : renderMissionDrawer()); }
   function renderMissionDrawer() {
     const d = $('#drawer'); d.hidden = !UI.drawer; if (!UI.drawer) return;
     const sc = d.querySelector('.scroll') ? d.querySelector('.scroll').scrollTop : 0;
@@ -6313,7 +6448,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
       html += `<div class="tier"><span>${esc(tier)}</span><span class="num">${td}/${ms.length}</span></div>${MISSIONS.TIER_NOTES[tier] ? `<p class="tier-note">${esc(MISSIONS.TIER_NOTES[tier])}</p>` : ''}`;
       for (const m of ms) {
         const st = UI.status[m.id] || []; const ok = isDone(m); const part = !ok && st.some(x => x.ok) && m.type === 'config';
-        const rec = S.missions[m.id] || { hints: 0 }; const open = UI.open === m.id;
+        const rec = S.missions[m.id] || { hints: 0 }; const open = misOpen(m.id);
         const hot = m.type === 'threat' && (S.threats[m.id] || {}).lastAccepted && Date.now() - S.threats[m.id].lastAccepted < 45000;
         html += `<div class="mis ${ok ? 'done' : hot ? 'hot' : part ? 'part' : ''} ${m.followup ? 'fu' : ''}"><button class="head" data-act="mis-open" data-id="${m.id}" aria-expanded="${open}"><span class="badge">${ok ? '✓' : ''}</span><span>${m.followup ? '<span class="fu-tag">follow-up</span> ' : ''}${m.view === 'azure' ? '<span class="fu-tag">Azure</span> ' : ''}<b>${esc(m.title)}</b><br><small>${m.type === 'answer' ? 'find & answer' : m.type === 'threat' && !(S.threats[m.id] || {}).active ? 'locked' : m.type === 'threat' ? ((S.threats[m.id] || {}).lastAccepted && Date.now() - S.threats[m.id].lastAccepted < 45000 ? 'ACTIVE · succeeding' : 'active') : st.filter(x => x.ok).length + '/' + st.length + ' checks'}</small></span><span class="muted">${open ? '−' : '+'}</span></button>`;
         if (open) {
@@ -6581,7 +6716,73 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     const d = doneCount(); $('#progTxt').textContent = `${d}/${MISSIONS.length}`; $('#progBar').style.width = Math.round(d / MISSIONS.length * 100) + '%';
     $('#misBtn').classList.toggle('on', UI.drawer && UI.drawerMode !== 'nm'); $('#nmBtn').classList.toggle('nm-on', NMS.on || (UI.drawer && UI.drawerMode === 'nm')); $('#lookupBtn').classList.toggle('on', UI.page === 'policy');
   }
-  function renderMain() { const m = $('#main'); const sc = m.scrollTop; m.innerHTML = (P[UI.page] || P.dashboard)(); m.scrollTop = sc; }
+  /* ---------- in-place updates (Phase 1) ----------
+     Re-rendering used to replace #main and the drawer wholesale with innerHTML every live tick. That destroyed the nodes
+     a highlight lived in, reset sideways scroll, and closed whatever the user had open. morph() builds the new markup
+     off-screen and changes only what differs: a text node whose value changed, an attribute, a row that appeared.
+     Everything else (and so any selection, scroll offset, focus or caret in it) stays the same DOM node.
+     Rows carrying data-k are matched by key, so a log row keeps its node when newer rows are added above it. */
+  const morphTpl = document.createElement('template');
+  const keyOf = n => n.nodeType === 1 ? n.getAttribute('data-k') : null;
+  function morphAttrs(o, n) {
+    const oa = o.attributes, na = n.attributes;
+    for (let i = oa.length - 1; i >= 0; i--) { const a = oa[i]; if (!n.hasAttribute(a.name)) o.removeAttribute(a.name); }
+    for (let i = 0; i < na.length; i++) { const a = na[i]; if (o.getAttribute(a.name) !== a.value) o.setAttribute(a.name, a.value); }
+  }
+  function morphNode(o, n) {
+    if (o.nodeType !== 1) { if (o.nodeValue !== n.nodeValue) o.nodeValue = n.nodeValue; return; }
+    morphAttrs(o, n);
+    const tag = o.tagName, focused = o === document.activeElement;
+    if (tag === 'TEXTAREA') { if (!focused && o.defaultValue !== n.defaultValue) { o.defaultValue = n.defaultValue; o.value = n.defaultValue; } return; }
+    morphKids(o, n);
+    if (tag === 'INPUT') {
+      if (o.type === 'checkbox' || o.type === 'radio') { if (o.checked !== n.hasAttribute('checked')) o.checked = n.hasAttribute('checked'); }
+      else if (!focused && o.value !== (n.getAttribute('value') || '')) o.value = n.getAttribute('value') || '';
+    } else if (tag === 'SELECT' && !focused) {
+      const want = Array.from(n.options).findIndex(x => x.hasAttribute('selected'));
+      const idx = want < 0 ? 0 : want; if (o.selectedIndex !== idx) o.selectedIndex = idx;
+    } else if (tag === 'DETAILS') { /* keep the user's open/closed choice */ }
+  }
+  function morphKids(o, n) {
+    const kids = Array.from(n.childNodes);
+    let keyed = null;
+    for (const c of o.childNodes) { const k = keyOf(c); if (k != null) (keyed || (keyed = new Map())).set(k, c); }
+    let cur = o.firstChild;
+    for (const nc of kids) {
+      const k = keyOf(nc);
+      let match = null;
+      if (k != null && keyed && keyed.has(k)) { match = keyed.get(k); keyed.delete(k); }
+      else if (k == null && cur && keyOf(cur) == null && cur.nodeType === nc.nodeType && (cur.nodeType !== 1 || cur.tagName === nc.tagName)) match = cur;
+      if (match) {
+        if (match !== cur) o.insertBefore(match, cur);
+        else cur = cur.nextSibling;
+        morphNode(match, nc);
+      } else {
+        o.insertBefore(nc, cur); // move the freshly parsed node in as-is
+      }
+    }
+    while (cur) { const nx = cur.nextSibling; o.removeChild(cur); cur = nx; }
+  }
+  function morph(el, html) {
+    if (!el) return;
+    morphTpl.innerHTML = html;
+    morphKids(el, morphTpl.content);
+    morphTpl.innerHTML = '';
+  }
+  /* rows in logs and sessions get a stable key so a highlighted row keeps its node as newer rows arrive above it */
+  const rowKeys = new WeakMap(); let rowSeq = 0;
+  const rk = (o, pre) => { if (!o || typeof o !== 'object') return ''; let k = rowKeys.get(o); if (!k) { k = 'r' + (++rowSeq); rowKeys.set(o, k); } return ` data-k="${pre || ''}${k}"`; };
+  /* click-to-copy next to the values trainees paste into answers */
+  const cpIc = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg>';
+  const cpBtn = (v, what) => v === '' || v == null ? '' : `<button type="button" class="cpy" data-act="copy-val" data-copy="${esc(v)}" title="Copy ${esc(what || v)}" aria-label="Copy ${esc(what || v)}">${cpIc}</button>`;
+  const cv = (v, what, cls) => `<span class="cv"><span class="v ${cls || ''}">${esc(v)}</span>${cpBtn(v, what)}</span>`;
+  function copyVal(btn) {
+    const v = btn.getAttribute('data-copy') || '';
+    const flash = () => { btn.classList.add('done'); clearTimeout(btn._t); btn._t = setTimeout(() => btn.classList.remove('done'), 1200); };
+    const fallback = () => { try { const t = document.createElement('textarea'); t.value = v; t.setAttribute('readonly', ''); t.style.cssText = 'position:fixed;left:-9999px;top:0'; document.body.appendChild(t); t.select(); const ok = document.execCommand('copy'); t.remove(); if (ok) flash(); else toast('Copy blocked', 'Select the text and copy it manually.', 'bad'); } catch (e) { toast('Copy blocked', 'Select the text and copy it manually.', 'bad'); } };
+    try { if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(v).then(flash, fallback); else fallback(); } catch (e) { fallback(); }
+  }
+  function renderMain() { const m = $('#main'); const sc = m.scrollTop; morph(m, (P[UI.page] || P.dashboard)()); if (m.scrollTop !== sc) m.scrollTop = sc; }
   function renderAll() { renderHeader(); renderRail(); renderMain(); renderDrawer(); termPrompt(); }
   function go(p) {
     if (!PAGES.includes(p)) p = 'dashboard';
@@ -6621,8 +6822,10 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     const d = doneCount();
     const inDrawer = ae && ae.closest && ae.closest('#drawer') && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName);
     const anyThreat = LIVE.THREATS.some(t => (S.threats[t.id] || {}).active);
-    if (UI.drawer && !inDrawer && (d !== lastDone || anyThreat) && !selHeld($('#drawer'))) { renderDrawer(); lastDone = d; }
+    /* the drawer is morphed in place, so its live checks can refresh every tick without moving anything */
+    if (UI.drawer && !inDrawer && !selHeld($('#drawer'))) { renderDrawer(); lastDone = d; }
     else if (!UI.drawer) lastDone = d;
+    void anyThreat;
   }
   function onThreat(t) { toast('New activity in the logs', `${t.name}. A new Live Threats mission is open.`, 'bad'); SIM.event(S, 'system', 'warning', `Anomaly detector: unusual traffic pattern observed (${t.name.toLowerCase()})`); }
   function startLab() {
