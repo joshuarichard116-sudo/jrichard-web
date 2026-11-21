@@ -568,6 +568,30 @@ SIM.seed = () => {
   L.event.push({ ts: t(60 * 24 * 3), sub: 'system', level: 'warning', msg: 'Firmware upgrade available: v7.4.6 (fixes critical SSL-VPN vulnerability)' });
   for (const k2 of ['traffic', 'local', 'event']) L[k2].sort((a, b) => b.ts - a.ts);
   st.policies.find(p => p.id === 1).hits = 0;
+  return SIM.gui74(st);
+};
+/* FortiOS 7.4 pages: DNS, SD-WAN, policy routes, packet capture, HA, certificates, SNMP. Fills in any section an older
+   save or backup lacks, so loading never breaks; called by SIM.seed() and on restore. Nightmare faults can inject here. */
+SIM.gui74 = st => {
+  if (!st || typeof st !== 'object') return st;
+  const day = 86400000, now = Date.now();
+  const obj = (k, v) => { if (!st[k] || typeof st[k] !== 'object' || Array.isArray(st[k])) st[k] = v; else for (const [kk, vv] of Object.entries(v)) if (st[k][kk] === undefined) st[k][kk] = vv; };
+  const arr = (k, v) => { if (!Array.isArray(st[k])) st[k] = v; };
+  obj('dns', { mode: 'specify', primary: '8.8.8.8', secondary: '1.1.1.1', domain: 'corp.talvex.example', protocol: 'cleartext' });
+  obj('sdwan', { status: 'disable', members: [], healthChecks: [], rules: [] });
+  obj('ha', { mode: 'standalone', group: 'talvex-ha', groupId: 0, priority: 128, override: 'disable', sessionPickup: 'disable', hbdev: ['port3'], monitor: [] });
+  obj('snmp', { status: 'disable', description: '', location: 'Talvex server room', contact: '', communities: [] });
+  for (const k of ['members', 'healthChecks', 'rules']) if (!Array.isArray(st.sdwan[k])) st.sdwan[k] = [];
+  if (!Array.isArray(st.snmp.communities)) st.snmp.communities = [];
+  if (!Array.isArray(st.ha.hbdev)) st.ha.hbdev = []; if (!Array.isArray(st.ha.monitor)) st.ha.monitor = [];
+  arr('pbr', []); arr('pcap', []);
+  arr('certs', [
+    { name: 'Talvex_Factory', type: 'local', builtin: true, subject: 'CN=' + ((st.system && st.system.serial) || 'TLXFW-VM04'), issuer: 'CN=Talvex Lab Root CA', expires: now + 3650 * day, usedBy: 'Admin GUI (HTTPS)' },
+    { name: 'Talvex_CA_SSL', type: 'local-ca', builtin: true, subject: 'CN=Talvex Lab SSL Inspection CA', issuer: 'CN=Talvex Lab SSL Inspection CA', expires: now + 3000 * day, usedBy: 'deep-inspection' },
+    { name: 'Talvex_CA_Untrusted', type: 'local-ca', builtin: true, subject: 'CN=Talvex Untrusted CA', issuer: 'CN=Talvex Untrusted CA', expires: now + 3000 * day, usedBy: 'deep-inspection (untrusted sites)' },
+    { name: 'portal_talvex', type: 'local', subject: 'CN=portal.talvex.example', issuer: 'CN=Talvex Issuing CA', expires: now + 12 * day, usedBy: '' },
+    { name: 'Talvex_Issuing_CA', type: 'remote-ca', subject: 'CN=Talvex Issuing CA', issuer: 'CN=Talvex Lab Root CA', expires: now + 1400 * day, usedBy: '' }
+  ]);
   return st;
 };
 
@@ -4020,6 +4044,69 @@ button.sec-card:hover, button.sec-card:focus-visible { border-color: var(--accen
 .sec-nav { display: flex; align-items: center; gap: 10px; padding: 6px 2px 0; font-size: 12px; }
 .sec-fin { display: grid; gap: 8px; margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: var(--ok-soft); border: 1px solid color-mix(in srgb, var(--ok) 45%, var(--line)); font-size: 13px; }
 </style>
+<style id="g74-css">
+/* ---------- FortiOS 7.4 layout: collapsible menu, split buttons, policy view, wizard, new pages ---------- */
+.rail .g74-grpbtn { width: 100%; border: 0; background: transparent; cursor: pointer; text-align: left; font: inherit; font-family: var(--f-head); font-size: 11.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--rail-dim); border-radius: 5px; }
+.rail .g74-grpbtn span:first-of-type { flex: 1; min-width: 0; }
+.rail .g74-grpbtn:hover { color: #fff; background: var(--rail-hi); }
+.rail .g74-grpbtn.has { color: var(--rail-ink); }
+.g74-tw { display: inline-flex; width: 14px; height: 14px; flex: none; transform: rotate(-90deg); transition: transform .15s; }
+.g74-tw svg { width: 14px; height: 14px; }
+.g74-tw.open { transform: none; }
+@media (prefers-reduced-motion: reduce) { .g74-tw { transition: none; } }
+.g74-split { position: relative; display: inline-flex; }
+.g74-split > .btn:first-child { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.g74-split > .g74-caret { border-top-left-radius: 0; border-bottom-left-radius: 0; padding: 0 7px; margin-left: 1px; }
+.g74-menu { position: absolute; top: calc(100% + 4px); left: 0; z-index: 30; min-width: 170px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); padding: 4px; display: grid; }
+.g74-menu button { border: 0; background: transparent; text-align: left; padding: 8px 10px; border-radius: 5px; cursor: pointer; font: inherit; font-size: 13px; color: var(--ink); }
+.g74-menu button:hover, .g74-menu button:focus-visible { background: var(--accent-soft); }
+.g74-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.g74-seg button { border: 0; background: var(--panel); padding: 0 11px; height: 30px; cursor: pointer; font: inherit; font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+.g74-seg button + button { border-left: 1px solid var(--line); }
+.g74-seg button.on { background: var(--accent-soft); color: var(--ink); font-weight: 600; }
+tr.g74-sec td, tr.g74-grp td { background: var(--panel-2); font-weight: 600; font-size: 12.5px; padding-top: 6px; padding-bottom: 6px; }
+tr.g74-grp { cursor: pointer; }
+tr.g74-grp td { display: table-cell; }
+tr.g74-grp .g74-tw { vertical-align: -2px; margin-right: 6px; }
+.g74-sec-a { float: right; display: inline-flex; gap: 2px; }
+.g74-pis { display: flex; flex-wrap: wrap; gap: 3px; }
+.g74-pi { display: inline-grid; place-items: center; min-width: 30px; height: 18px; padding: 0 4px; border-radius: 4px; font: 600 10px/1 var(--f-mono); letter-spacing: .03em; color: #fff; background: #5b6b78; }
+.g74-pi-av { background: #8a3b2e; } .g74-pi-webfilter { background: #2f6f4f; } .g74-pi-ips { background: #7a4f9a; } .g74-pi-app { background: #2d5f8a; } .g74-pi-ssl { background: #6b6b2f; }
+.g74-lk { width: min(980px, 100%); }
+.g74-lk .body { overflow: auto; padding: 0; }
+.g74-lk .lookup { border: 0; box-shadow: none; }
+.g74-lk .lookup > div:first-child h2 { display: none; }
+.g74-wh { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.g74-wh h2 { margin: 0; }
+.g74-wh .grow { flex: 1; }
+.g74-form { display: grid; gap: 10px; max-width: 640px; }
+.g74-form .f, .g74-wiz .f { display: grid; gap: 4px; min-width: 0; }
+.g74-form .f > span, .g74-wiz .f > span { font-size: 12.5px; color: var(--muted); font-weight: 500; }
+.g74-form .inp, .g74-wiz .inp { max-width: 100%; }
+.g74-fa { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
+.g74-fa .grow { flex: 1; }
+.g74-inline { display: flex; gap: 8px; flex-wrap: wrap; }
+.g74-inline .inp { flex: 1; min-width: 0; max-width: 360px; }
+.g74-note { margin-top: 14px; }
+.g74-pre { margin: 0; max-height: 360px; overflow: auto; font: 12px/1.5 var(--f-mono); background: var(--panel-2); border-radius: 6px; padding: 10px; white-space: pre; }
+.g74-log tbody tr { cursor: pointer; }
+.g74-log tbody tr.sel td { background: var(--accent-soft); }
+.g74-logdet { margin-top: 14px; }
+.g74-logdet .kv dd { overflow-wrap: anywhere; }
+.g74-steps { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 14px; }
+.g74-steps span { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px 6px 6px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+.g74-steps b { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--panel-2); font: 600 11px var(--f-mono); }
+.g74-steps span.on { border-color: var(--accent); color: var(--ink); font-weight: 600; }
+.g74-steps span.on b { background: var(--accent); color: var(--accent-ink); }
+.g74-steps span.done b { background: var(--ok); color: #fff; }
+.g74-wiz { max-width: 760px; }
+.g74-wiz form { display: grid; gap: 12px; }
+.g74-radios { display: grid; gap: 6px; }
+.g74-radio { display: flex; gap: 8px; align-items: center; font-size: 13.5px; }
+.g74-radio.dis { color: var(--muted); }
+.g74-wiz .err { color: var(--bad); margin: 0; }
+.g74-review { grid-template-columns: minmax(120px, max-content) minmax(0, 1fr); }
+</style>
 <style id="nm-css">
 /* ---------- Nightmare mode ---------- */
 .tbtn.nm-on { background: #B43A2C; border-color: #B43A2C; color: #FFFFFF; }
@@ -4245,7 +4332,7 @@ end`;
       inject: (st, lvl) => { const bad = typo(PSK); p1(st).psk = bad; fgLog(st, lvl, 'vpn.ipsec.phase1-interface To-Azure'); return { bad }; },
       ticket: () => 'A contractor tidied up the firewall last night. This morning the Azure app server is unreachable.',
       hints: () => ['Is the tunnel up? VPN → IPsec Tunnels on the FortiGate.', 'AUTHENTICATION_FAILED: the keys differ. Check the System Events log for who changed what.', 'The Azure connection still has the original key. The FortiGate tunnel key was edited.'],
-      steps: p => ['FortiGate: VPN → IPsec Tunnels. To-Azure is down with AUTHENTICATION_FAILED.', 'Log & Report → Logs → System Events shows a change to the To-Azure tunnel.', `The tunnel key is now "${p.bad}". Azure still expects "${PSK}".`, `CLI: config vpn ipsec phase1-interface → edit To-Azure → set psksecret ${PSK} → next → end.`],
+      steps: p => ['FortiGate: VPN → IPsec Tunnels. To-Azure is down with AUTHENTICATION_FAILED.', 'Log & Report → System Events shows a change to the To-Azure tunnel.', `The tunnel key is now "${p.bad}". Azure still expects "${PSK}".`, `CLI: config vpn ipsec phase1-interface → edit To-Azure → set psksecret ${PSK} → next → end.`],
       fix: st => { p1(st).psk = PSK; },
       why: 'Unreviewed "cleanup" changes are one of the top causes of outages. Change control and a config diff would have caught this.' },
     { id: 'vm-off', level: 1, side: 'Azure', slot: 'vm', title: 'AZ-VM-APP01 was stopped (deallocated)',
@@ -4829,15 +4916,29 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     vm: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="12" rx="1"/><path d="M8 20h8M12 16v4"/></svg>',
     list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>'
   };
+  Object.assign(I, {
+    user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>',
+    wifi: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 9a15 15 0 0120 0M5 12.5a10 10 0 0114 0M8.5 16a5 5 0 017 0"/><circle cx="12" cy="19.5" r="1"/></svg>',
+    fabric: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="18" r="2.5"/><path d="M12 7.5v4M12 11.5L6.8 16.2M12 11.5l5.2 4.7"/></svg>',
+    caret: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>',
+    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>'
+  });
+  /* FortiOS 7.4 menu order. Groups collapse like the real GUI; the one holding the open page stays expanded. */
   const NAV = [
-    { items: [['dashboard', 'Dashboard', I.dash]] },
-    { grp: 'Network', icon: I.net, items: [['interfaces', 'Interfaces'], ['routes', 'Static Routes'], ['bgp', 'BGP']] },
+    { grp: 'Dashboard', icon: I.dash, items: [['dashboard', 'Status'], ['route-monitor', 'Network'], ['sessions', 'Sessions']] },
+    { grp: 'Network', icon: I.net, items: [['interfaces', 'Interfaces'], ['dns', 'DNS'], ['pcap', 'Packet Capture'], ['sdwan', 'SD-WAN'], ['routes', 'Static Routes'], ['pbr', 'Policy Routes'], ['bgp', 'BGP']] },
     { grp: 'Policy & Objects', icon: I.pol, items: [['policy', 'Firewall Policy'], ['localin', 'Local-In Policy'], ['addresses', 'Addresses'], ['services', 'Services'], ['schedules', 'Schedules'], ['vips', 'Virtual IPs']] },
-    { grp: 'Security Profiles', icon: I.shield, items: [['webfilter', 'Web Filter'], ['profiles', 'AV, IPS, App & SSL']] },
-    { grp: 'VPN', icon: I.vpn, items: [['ipsec', 'IPsec Tunnels']] },
-    { grp: 'System', icon: I.sys, items: [['settings', 'Settings'], ['admins', 'Administrators'], ['accprofiles', 'Admin Profiles'], ['backup', 'Backup & Reset']] },
-    { grp: 'Log & Report', icon: I.log, items: [['sessions', 'Sessions (live)'], ['logs', 'Logs'], ['logsettings', 'Log Settings']] }
+    { grp: 'Security Profiles', icon: I.shield, items: [['prof-av', 'AntiVirus'], ['webfilter', 'Web Filter'], ['prof-app', 'Application Control'], ['prof-ips', 'Intrusion Prevention'], ['prof-ssl', 'SSL/SSH Inspection']] },
+    { grp: 'VPN', icon: I.vpn, items: [['ipsec', 'IPsec Tunnels'], ['vpn-wizard', 'IPsec Wizard']] },
+    { grp: 'User & Authentication', icon: I.user, items: [['users', 'User Definition']] },
+    { grp: 'WiFi & Switch Controller', icon: I.wifi, items: [['wifi', 'Managed Devices']] },
+    { grp: 'System', icon: I.sys, items: [['admins', 'Administrators'], ['accprofiles', 'Admin Profiles'], ['firmware', 'Firmware & Registration'], ['settings', 'Settings'], ['ha', 'HA'], ['snmp', 'SNMP'], ['certs', 'Certificates'], ['backup', 'Backup & Reset']] },
+    { grp: 'Security Fabric', icon: I.fabric, items: [['fabric', 'Fabric Connectors']] },
+    { grp: 'Log & Report', icon: I.log, items: [['log-forward', 'Forward Traffic'], ['log-local', 'Local Traffic'], ['log-event', 'System Events'], ['log-security', 'Security Events'], ['logsettings', 'Log Settings']] }
   ];
+  /* old page ids from earlier versions, hint links and bookmarks */
+  const PAGE_ALIAS = { logs: () => ({ local: 'log-local', event: 'log-event' })[UI.tab.logs] || 'log-forward', profiles: () => 'prof-av' };
+  const unalias = p => PAGE_ALIAS[p] ? PAGE_ALIAS[p]() : p;
   const AZNAV = [
     { items: [['az-home', 'Home', I.dash], ['az-resources', 'All resources', I.list]] },
     { grp: 'Management', icon: I.sys, items: [['az-rgs', 'Resource groups'], ['az-activity', 'Activity log']] },
@@ -4905,71 +5006,94 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
         <dt>Hostname</dt><dd class="mono">${esc(S.system.hostname)}</dd>
         <dt>Serial number</dt><dd class="mono">${esc(S.system.serial)}</dd>
         <dt>Model</dt><dd>${esc(S.system.model)}</dd>
-        <dt>Firmware</dt><dd>${esc(S.system.osver)} ${pill('Update available', 'warn')}</dd>
+        <dt>Firmware</dt><dd>${esc(S.system.osver)} ${fwNewer().length ? `<button class="linkbtn" data-act="nav" data-id="firmware">${pill('Update available', 'warn')}</button>` : ''}</dd>
         <dt>Mode</dt><dd>NAT</dd>
         <dt>System time</dt><dd class="num">${fmtTs(Date.now())} (${esc(S.system.timezone)})</dd>
         <dt>Uptime</dt><dd class="num">${Math.floor(up / 86400)} days ${Math.floor(up % 86400 / 3600)} hours</dd>
       </dl></section>
       <section class="card widget"><h2>Network Ports</h2><div class="ports">${S.interfaces.filter(i => i.type === 'physical').map(i => `<div class="port ${i.status === 'up' ? 'up' : ''}"><div class="jack"></div><b class="mono">${esc(i.name)}</b><div class="muted">${esc(i.alias || i.role)}</div></div>`).join('')}</div>
         <p class="help" style="margin:10px 0 0">${ifs.filter(i => i.type === 'vlan').length} VLAN interface(s), ${ifs.filter(i => i.type === 'tunnel').length} tunnel interface(s)</p></section>
-      ${resourcesCard()}${bandwidthCard()}
+      ${licensesCard()}${resourcesCard()}${bandwidthCard()}
       <section class="card widget"><h2>IPsec</h2>${tunnels.length ? tunnels.map(({ p, t }) => `<div style="display:flex;gap:8px;align-items:center;justify-content:space-between"><span class="mono">${esc(p.name)} → ${esc(p.remoteGw)}</span>${pill(t.up ? 'Up' : 'Down', t.up ? 'ok' : 'bad')}</div>${tunStats(p.name)}`).join('') : '<p class="muted" style="margin:0">No tunnels configured.</p>'}</section>
-      <section class="card widget"><h2>Live Traffic</h2><dl class="kv"><dt>Active sessions</dt><dd class="num">${S.sessions.length}</dd><dt>Flows since start</dt><dd class="num">${LIVE.flows().toLocaleString()}</dd><dt>Lab time</dt><dd class="num">${fmtElapsed(LIVE.elapsed())}</dd><dt>Active threats</dt><dd class="num">${LIVE.THREATS.filter(t => (S.threats[t.id] || {}).active).length} of ${LIVE.THREATS.length} unlocked</dd></dl><p style="margin:10px 0 0"><button class="btn" data-act="nav" data-id="sessions">View sessions</button></p></section>
+      <section class="card widget"><h2>Sessions</h2><dl class="kv"><dt>Active sessions</dt><dd class="num">${S.sessions.length}</dd><dt>Flows since start</dt><dd class="num">${LIVE.flows().toLocaleString()}</dd><dt>Lab time</dt><dd class="num">${fmtElapsed(LIVE.elapsed())}</dd><dt>Active threats</dt><dd class="num">${LIVE.THREATS.filter(t => (S.threats[t.id] || {}).active).length} of ${LIVE.THREATS.length} unlocked</dd></dl><p style="margin:10px 0 0"><button class="btn" data-act="nav" data-id="sessions">View sessions</button></p></section>
       <section class="card widget"><h2>Scavenger Hunt</h2><p style="margin:0 0 8px"><b class="num" style="font-size:22px">${done}</b> <span class="muted">of ${MISSIONS.length} missions complete</span></p><div class="meter"><i style="width:${Math.round(done / MISSIONS.length * 100)}%;background:var(--ok)"></i></div><p style="margin:12px 0 0"><button class="btn primary" data-act="open-missions">${I.flag} Open missions</button></p></section>
       <section class="card widget" style="grid-column:1/-1"><h2>Recent System Events</h2><div class="evt">${S.logs.event.slice(0, 7).map(e => `<span class="muted num mono">${fmtTs(e.ts)}</span><span>${pill(e.level, e.level === 'alert' ? 'bad' : e.level === 'warning' ? 'warn' : e.level === 'notice' ? 'info' : 'mute')} ${esc(e.msg)}</span>`).join('')}</div></section>
     </div>`;
   };
 
+  function licensesCard() {
+    const ago = m => { const t = Date.now() - m * 60000; return fmtTs(t).slice(0, 16); };
+    const L = [['Support contract', 'Registered (lab)', 'ok'], ['Firmware & General Updates', 'Licensed', 'ok'], ['IPS', `Licensed · updated ${ago(47)}`, 'ok'], ['AntiVirus', `Licensed · updated ${ago(47)}`, 'ok'], ['Web Filtering', 'Licensed', 'ok'], ['Virtual machine', `${S.system.model} · 4 vCPU`, 'info']];
+    return `<section class="card widget"><h2>Licenses</h2><dl class="kv">${L.map(([k, v, c]) => `<dt>${esc(k)}</dt><dd>${pill(v, c)}</dd>`).join('')}</dl></section>`;
+  }
   P.interfaces = () => {
-    const rows = [];
-    const ref = n => SIM.usedBy(S, 'iface', n).length;
-    for (const i of S.interfaces.filter(x => x.type === 'physical')) {
-      rows.push(ifRow(i, ref(i.name)));
-      for (const v of S.interfaces.filter(x => x.type === 'vlan' && x.parent === i.name)) rows.push(ifRow(v, ref(v.name), true));
-    }
-    for (const t of SIM.allIfaces(S).filter(x => x.type === 'tunnel')) rows.push(ifRow(t, ref(t.name)));
-    return head('Physical ports, VLAN subinterfaces and tunnel interfaces. Administrative Access controls which management protocols the firewall answers on each interface.') +
-      `<div class="toolbar"><button class="btn primary" data-act="if-new">${I.plus} Create New VLAN</button></div>
-      <div class="tablewrap"><table class="grid"><thead><tr><th>Name</th><th>Alias</th><th>Type</th><th>Role</th><th>IP/Netmask</th><th>Administrative Access</th><th>Status</th><th>Traffic (Rx / Tx)</th><th>Ref.</th><th></th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+    const ref = n => SIM.usedBy(S, 'iface', n).length, all = SIM.allIfaces(S), closed = UI.ifClosed || {};
+    const G = [['physical', 'Physical Interface'], ['vlan', 'VLAN'], ['tunnel', 'Tunnel Interface']];
+    for (const t of new Set(all.map(i => i.type))) if (!G.some(g => g[0] === t)) G.push([t, t]);
+    const rows = G.map(([t, l]) => { const xs = all.filter(i => i.type === t); if (!xs.length) return ''; const c = !!closed[t];
+      return `<tr class="g74-grp" data-act="if-grp" data-id="${esc(t)}" tabindex="0" aria-expanded="${!c}"><td colspan="10"><span class="g74-tw ${c ? '' : 'open'}">${I.caret}</span>${esc(l)} <span class="muted">(${xs.length})</span></td></tr>` + (c ? '' : xs.map(i => ifRow(i, ref(i.name))).join('')); }).join('');
+    return head('Physical ports, VLAN subinterfaces and tunnel interfaces, grouped by type. Administrative Access controls which management protocols the firewall answers on each interface.') +
+      `<div class="toolbar">${menuBtn('if-new', 'Create New', [['if-new', 'Interface'], ['if-new', 'VLAN']], true)}<span class="help">This VM has four fixed ports; new interfaces are VLAN subinterfaces. IPsec tunnels appear here once created under VPN.</span></div>
+      <div class="tablewrap"><table class="grid"><thead><tr><th>Name</th><th>Alias</th><th>Type</th><th>Role</th><th>IP/Netmask</th><th>Administrative Access</th><th>Status</th><th>Traffic (Rx / Tx)</th><th>Ref.</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
   };
   function ifRow(i, r, sub) {
-    return `<tr class="${sub ? 'sub' : ''}"><td class="mono">${sub ? '└ ' : ''}${esc(i.name)}</td><td>${esc(i.alias)}</td><td>${esc(i.type === 'vlan' ? 'VLAN ' + i.vlanid : i.type === 'tunnel' ? 'IPsec tunnel' : 'Physical')}</td><td>${esc(i.role === 'undefined' ? '' : i.role.toUpperCase())}</td>
+    return `<tr class="${sub ? 'sub' : ''}"><td class="mono">${sub ? '└ ' : ''}${esc(i.name)}</td><td>${esc(i.alias)}</td><td>${esc(i.type === 'vlan' ? `VLAN ${i.vlanid}${i.parent ? ' on ' + i.parent : ''}` : i.type === 'tunnel' ? 'IPsec tunnel' : 'Physical')}</td><td>${esc(i.role === 'undefined' ? '' : i.role.toUpperCase())}</td>
     <td class="mono num">${i.ip === '0.0.0.0' ? '<span class="muted">0.0.0.0/0</span>' : esc(i.ip + '/' + i.bits)}${i.type === 'tunnel' && i.remoteIp ? `<div class="help">remote ${esc(i.remoteIp)}</div>` : ''}</td><td>${chips(i.allowaccess.map(a => a.toUpperCase()), '')}</td>
     <td>${pill(i.status === 'up' ? 'Up' : 'Down', i.status === 'up' ? 'ok' : 'mute')}</td><td class="num">${(c => c ? `${fmtBytes(c.rx)} / ${fmtBytes(c.tx)}<div>${spark(c.hist, 'sm', i.name + ' bandwidth')} <span class="help">${fmtRate(c.rate)}</span></div>` : '<span class="muted">-</span>')(TELE.iface(i.name))}</td><td class="num">${r}</td>
     <td class="acts">${actBtn('if-edit', i.name, I.edit, 'Edit ' + i.name)}${i.type === 'vlan' ? actBtn('if-del', i.name, I.del, 'Delete ' + i.name) : ''}</td></tr>`;
   }
 
   P.routes = () => {
-    const t = curTab('routes', 'static');
+    const t = 'static'; // Routing Monitor moved to Dashboard > Network (route-monitor)
     let body;
     if (t === 'static') {
       const rt = SIM.routeTable(S).filter(r => r.type === 'S');
-      body = `<div class="toolbar"><button class="btn primary" data-act="rt-new">${I.plus} Create New</button></div><div class="tablewrap"><table class="grid"><thead><tr><th>Seq</th><th>Destination</th><th>Gateway</th><th>Interface</th><th>Distance</th><th>Status</th><th>Comments</th><th></th></tr></thead><tbody>${S.routes.map(r => { const x = rt.find(y => y.seq === r.seq) || {}; const tun = (SIM.iface(S, r.device) || {}).type === 'tunnel'; return `<tr class="${r.status === 'disable' ? 'off' : ''}"><td class="num">${esc(r.seq)}</td><td class="mono">${esc(cidr(r.dst, r.bits))}</td><td class="mono">${tun ? '<span class="muted">tunnel</span>' : esc(r.gateway || '')}</td><td class="mono">${esc(r.device)}</td><td class="num">${esc(r.distance)}</td><td>${x.active ? pill('Active', 'ok') : pill('Inactive', 'bad') + `<div class="help">${esc(x.why || '')}</div>`}</td><td>${esc(r.comment)}</td><td class="acts">${actBtn('rt-edit', r.seq, I.edit, 'Edit route')}${actBtn('rt-del', r.seq, I.del, 'Delete route')}</td></tr>`; }).join('') || '<tr><td colspan="8" class="empty">No static routes.</td></tr>'}</tbody></table></div>`;
+      body = `<div class="toolbar"><button class="btn primary" data-act="rt-new">${I.plus} Create New</button><span class="grow"></span><button class="btn" data-act="nav" data-id="route-monitor">Routing Monitor</button><button class="btn" data-act="nav" data-id="pbr">Policy Routes</button></div><div class="tablewrap"><table class="grid"><thead><tr><th>Seq</th><th>Destination</th><th>Gateway</th><th>Interface</th><th>Distance</th><th>Status</th><th>Comments</th><th></th></tr></thead><tbody>${S.routes.map(r => { const x = rt.find(y => y.seq === r.seq) || {}; const tun = (SIM.iface(S, r.device) || {}).type === 'tunnel'; return `<tr class="${r.status === 'disable' ? 'off' : ''}"><td class="num">${esc(r.seq)}</td><td class="mono">${esc(cidr(r.dst, r.bits))}</td><td class="mono">${tun ? '<span class="muted">tunnel</span>' : esc(r.gateway || '')}</td><td class="mono">${esc(r.device)}</td><td class="num">${esc(r.distance)}</td><td>${x.active ? pill('Active', 'ok') : pill('Inactive', 'bad') + `<div class="help">${esc(x.why || '')}</div>`}</td><td>${esc(r.comment)}</td><td class="acts">${actBtn('rt-edit', r.seq, I.edit, 'Edit route')}${actBtn('rt-del', r.seq, I.del, 'Delete route')}</td></tr>`; }).join('') || '<tr><td colspan="8" class="empty">No static routes.</td></tr>'}</tbody></table></div>`;
     } else {
       const rt = SIM.routeTable(S).sort((a, b) => SIM.ip2n(a.dst) - SIM.ip2n(b.dst) || a.bits - b.bits);
       body = `<p class="help">The routing table the firewall actually uses: connected networks plus active static routes. Longest prefix wins, then lowest distance.</p><div class="tablewrap"><table class="grid"><thead><tr><th>Type</th><th>Network</th><th>Gateway</th><th>Interface</th><th>Distance</th><th>In table</th></tr></thead><tbody>${rt.map(r => `<tr class="${r.active ? '' : 'off'}"><td>${r.type === 'C' ? 'Connected' : r.type === 'B' ? 'BGP' : 'Static'}</td><td class="mono">${esc(r.dst + '/' + r.bits)}</td><td class="mono">${esc(r.gateway || '0.0.0.0')}</td><td class="mono">${esc(r.device)}</td><td class="num">${esc(r.distance)}</td><td>${r.active ? pill('Yes', 'ok') : pill('No: ' + r.why, 'bad')}</td></tr>`).join('')}</tbody></table></div>`;
     }
-    return head('Static routes tell the firewall where to send traffic that is not on a directly connected network.') + tabs('routes', [['static', 'Static Routes'], ['monitor', 'Routing Monitor']]) + body;
+    return head('Static routes tell the firewall where to send traffic that is not on a directly connected network.') + body;
   };
 
   P.policy = () => {
-    const list = S.policies;
-    const prof = p => p.utm ? [p.prof.av && 'AV:' + p.prof.av, p.prof.webfilter && 'WEB:' + p.prof.webfilter, p.prof.ips && 'IPS:' + p.prof.ips, p.prof.app && 'APP:' + p.prof.app, p.prof.ssl && 'SSL:' + p.prof.ssl].filter(Boolean) : [];
+    const list = S.policies, view = UI.polView === 'pair' ? 'pair' : 'seq';
+    const PI = { av: ['AV', 'AntiVirus'], webfilter: ['WEB', 'Web Filter'], app: ['APP', 'Application Control'], ips: ['IPS', 'Intrusion Prevention'], ssl: ['SSL', 'SSL/SSH Inspection'] };
+    const prof = p => p.utm ? `<div class="g74-pis">${Object.keys(PI).filter(k => p.prof && p.prof[k]).map(k => `<span class="g74-pi g74-pi-${k}" title="${esc(PI[k][1] + ': ' + p.prof[k])}" aria-label="${esc(PI[k][1] + ': ' + p.prof[k])}">${PI[k][0]}</span>`).join('')}</div>` : '';
     const logTxt = { all: 'All', utm: 'Security Events', disable: 'Disabled' };
-    const rows = list.map((p, i) => `<tr class="${p.status === 'disable' ? 'off' : ''}">
-      <td class="acts" style="text-align:left">${i > 0 ? actBtn('pol-up', p.id, I.up, 'Move up') : '<span class="ibtn"></span>'}${i < list.length - 1 ? actBtn('pol-down', p.id, I.down, 'Move down') : ''}</td>
+    const row = (p, i) => `<tr class="${p.status === 'disable' ? 'off' : ''}">
+      <td class="acts" style="text-align:left">${view !== 'seq' ? '' : (i > 0 ? actBtn('pol-up', p.id, I.up, 'Move up') : '<span class="ibtn"></span>') + (i < list.length - 1 ? actBtn('pol-down', p.id, I.down, 'Move down') : '')}</td>
       <td class="num muted">${i + 1}</td><td class="num"><b>${esc(p.id)}</b></td><td class="pname">${esc(p.name)}${p.comments ? `<div class="help">${esc(p.comments)}</div>` : ''}</td>
-      <td>${chips(p.srcintf)}</td><td>${chips(p.dstintf)}</td><td>${chips(p.srcaddr)}</td><td>${chips(p.dstaddr)}</td><td>${chips(p.service)}</td>
+      <td>${chips(p.srcintf)}</td><td>${chips(p.dstintf)}</td><td>${chips(p.srcaddr)}</td><td>${chips(p.dstaddr)}</td><td>${chips(p.service)}</td><td class="mono">${esc(p.schedule || 'always')}</td>
       <td>${pill(p.action === 'accept' ? 'ACCEPT' : 'DENY', p.action === 'accept' ? 'ok' : 'bad')}</td>
       <td>${p.action === 'accept' ? (p.nat ? pill('NAT', 'info') : '<span class="muted">Off</span>') : ''}</td>
-      <td>${chips(prof(p), '')}</td><td>${logTxt[p.logtraffic]}</td><td class="num">${esc(Number(p.hits || 0).toLocaleString())}</td>
+      <td>${prof(p)}</td><td>${logTxt[p.logtraffic]}</td><td class="num">${esc(Number(p.hits || 0).toLocaleString())}</td>
       <td><button class="btn" style="height:26px" data-act="pol-toggle" data-id="${esc(p.id)}">${p.status === 'enable' ? 'Enabled' : 'Disabled'}</button></td>
-      <td class="acts">${actBtn('pol-edit', p.id, I.edit, 'Edit policy ' + p.id)}${actBtn('pol-clone', p.id, I.copy, 'Clone policy ' + p.id)}${actBtn('pol-del', p.id, I.del, 'Delete policy ' + p.id)}</td></tr>`).join('');
+      <td class="acts">${actBtn('pol-edit', p.id, I.edit, 'Edit policy ' + p.id)}${actBtn('pol-clone', p.id, I.copy, 'Clone policy ' + p.id)}${actBtn('pol-del', p.id, I.del, 'Delete policy ' + p.id)}</td></tr>`;
+    const COLS = 17;
+    const grpRow = (label, n, extra) => `<tr class="g74-sec"><td colspan="${COLS}"><span class="g74-sec-l">${label}</span> <span class="muted">(${n})</span>${extra || ''}</td></tr>`;
+    let rows = '';
+    if (view === 'seq') {
+      let cur = null;
+      list.forEach((p, i) => {
+        if (p.label && p.label !== cur) {
+          cur = p.label; let n = 0; for (let j = i; j < list.length && (j === i || !list[j].label || list[j].label === cur); j++) n++;
+          rows += grpRow(esc(cur), n, `<span class="g74-sec-a">${actBtn('sec-edit', p.id, I.edit, 'Edit section')}${actBtn('sec-del', p.id, I.del, 'Delete section')}</span>`);
+        }
+        rows += row(p, i);
+      });
+    } else {
+      const groups = new Map();
+      list.forEach((p, i) => { const k = `${p.srcintf.join(', ')} → ${p.dstintf.join(', ')}`; if (!groups.has(k)) groups.set(k, []); groups.get(k).push([p, i]); });
+      for (const [k, xs] of groups) rows += grpRow(esc(k), xs.length) + xs.map(([p, i]) => row(p, i)).join('');
+    }
+    const dlg = UI.lkOpen ? `<div class="modal-back g74-lkback"><div class="modal wide g74-lk" role="dialog" aria-modal="true" aria-label="Policy Lookup"><header><h2>Policy Lookup</h2><button class="ibtn" data-act="lk-close" aria-label="Close">✕</button></header><div class="body">${lookupCard()}</div></div></div>` : '';
     return head('Policies are checked from the top down. The first one that matches decides what happens. Anything that matches nothing is dropped by the implicit deny.') +
-      lookupCard() +
-      `<div class="toolbar"><button class="btn primary" data-act="pol-new">${I.plus} Create New</button><span class="help">Sequence order is what matters, not the ID number. Use the arrows to reorder.</span></div>
-      <div class="tablewrap"><table class="grid"><thead><tr><th></th><th>Seq</th><th>ID</th><th>Name</th><th>From</th><th>To</th><th>Source</th><th>Destination</th><th>Service</th><th>Action</th><th>NAT</th><th>Security Profiles</th><th>Log</th><th>Hits</th><th>Status</th><th></th></tr></thead><tbody>${rows}
-      <tr class="off"><td></td><td></td><td class="num"><b>0</b></td><td>Implicit Deny</td><td>${chips(['any'])}</td><td>${chips(['any'])}</td><td>${chips(['all'])}</td><td>${chips(['all'])}</td><td>${chips(['ALL'])}</td><td>${pill('DENY', 'bad')}</td><td></td><td></td><td>Disabled</td><td></td><td></td><td></td></tr></tbody></table></div>`;
+      `<div class="toolbar">${menuBtn('pol-new', 'Create New', [['pol-new', 'Policy'], ['sec-new', 'Section']], true)}<button class="btn" data-act="lk-open">${I.search} Policy Lookup</button>
+      <div class="g74-seg" role="group" aria-label="Table view"><button class="${view === 'pair' ? 'on' : ''}" data-act="pol-view" data-id="pair" aria-pressed="${view === 'pair'}">Interface Pair View</button><button class="${view === 'seq' ? 'on' : ''}" data-act="pol-view" data-id="seq" aria-pressed="${view === 'seq'}">Sequence View</button></div>
+      <span class="help">${view === 'seq' ? 'Sequence order is what matters, not the ID number. Use the arrows to reorder.' : 'Grouped by incoming → outgoing interface. Switch to Sequence View to reorder.'}</span></div>
+      <div class="tablewrap"><table class="grid g74-pol"><thead><tr><th></th><th>Seq</th><th>ID</th><th>Name</th><th>From</th><th>To</th><th>Source</th><th>Destination</th><th>Service</th><th>Schedule</th><th>Action</th><th>NAT</th><th>Security Profiles</th><th>Log</th><th>Hits</th><th>Status</th><th></th></tr></thead><tbody>${rows}
+      ${grpRow('Implicit', 1)}<tr class="off"><td></td><td></td><td class="num"><b>0</b></td><td>Implicit Deny</td><td>${chips(['any'])}</td><td>${chips(['any'])}</td><td>${chips(['all'])}</td><td>${chips(['all'])}</td><td>${chips(['ALL'])}</td><td class="mono">always</td><td>${pill('DENY', 'bad')}</td><td></td><td></td><td>Disabled</td><td></td><td></td><td></td></tr></tbody></table></div>${dlg}`;
   };
   function lookupCard() {
     const f = UI.lookupForm, R = UI.lookup;
@@ -5029,7 +5153,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     return head('Built-in security profiles. Attach them to accept policies under Security Profiles.') + `<div class="dash">${sec('AntiVirus', S.profiles.av, 'av', 'Scans files in allowed sessions.')}${sec('Intrusion Prevention (IPS)', S.profiles.ips, 'ips', 'Matches traffic against attack signatures. Put one in front of anything internet-facing.')}${sec('Application Control', S.profiles.app, 'app', 'Identifies applications regardless of port.')}${sec('SSL/SSH Inspection', S.profiles.ssl, 'ssl', 'Required whenever any other profile is applied. Certificate inspection reads the site name without decrypting.')}</div>`;
   };
 
-  P.ipsec = () => head('Site-to-site IPsec tunnels. Each tunnel becomes an interface you can route to and write policies for.') + `<div class="toolbar"><button class="btn primary" data-act="vpn-new">${I.plus} Create New Tunnel</button><span class="help">Azure side: gateway 198.51.100.25 · IKEv2 · route-based · ${S.azure.policy === 'custom' ? '<b>custom IPsec/IKE policy</b> (IKE AES256/SHA256/DH14, IPsec AES256GCM, PFS 14)' : 'default IPsec/IKE policy'}</span></div>
+  P.ipsec = () => head('Site-to-site IPsec tunnels. Each tunnel becomes an interface you can route to and write policies for.') + `<div class="toolbar"><button class="btn primary" data-act="vpn-new">${I.plus} Create New Tunnel</button><button class="btn" data-act="nav" data-id="vpn-wizard">IPsec Wizard</button><span class="help">Azure side: gateway 198.51.100.25 · IKEv2 · route-based · ${S.azure.policy === 'custom' ? '<b>custom IPsec/IKE policy</b> (IKE AES256/SHA256/DH14, IPsec AES256GCM, PFS 14)' : 'default IPsec/IKE policy'}</span></div>
     <div class="tablewrap"><table class="grid"><thead><tr><th>Name</th><th>Remote Gateway</th><th>Interface</th><th>IKE</th><th>Phase 1 / Phase 2</th><th>Status</th><th></th></tr></thead><tbody>${S.vpn.phase1.map(p => { const t = SIM.tunnel(S, p.name); const p2 = S.vpn.phase2.filter(q => q.phase1 === p.name); return `<tr><td class="mono">${esc(p.name)}</td><td class="mono">${esc(p.remoteGw)}</td><td class="mono">${esc(p.interface)}</td><td>v${esc(p.ike)}</td><td class="mono" style="font-size:12px">${esc(p.proposals.join(' '))} · DH ${esc(p.dhgrp.join(','))}<br>${p2.map(q => esc(`${q.name}: ${q.proposals.join(' ')} · PFS ${q.pfs}`)).join('<br>') || '<span class="muted">no phase 2</span>'}</td><td>${pill(t.up ? 'Up' : 'Down', t.up ? 'ok' : 'bad')}${tunStats(p.name)}<div class="help" style="max-width:340px">${esc(t.reason)}</div></td><td class="acts">${actBtn('vpn-up', p.name, I.play, 'Bring up')}${actBtn('vpn-edit', p.name, I.edit, 'Edit')}${actBtn('vpn-del', p.name, I.del, 'Delete')}</td></tr>`; }).join('') || '<tr><td colspan="7" class="empty">No tunnels yet.</td></tr>'}</tbody></table></div>`;
 
   P.localin = () => head('Local-in policies control traffic addressed to the firewall itself (management, ping). They are checked after Administrative Access and let you deny explicitly, with a log entry.') +
@@ -5096,24 +5220,269 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
       `<div class="toolbar"><input class="search" id="sessFilter" placeholder="Filter (IP, interface, app, policy)…" value="${esc(UI.filter)}" aria-label="Filter sessions"><span class="help num">${S.sessions.length} active · refreshes live</span><span class="grow"></span><span class="help">Top talkers: ${top.map(([ip, n]) => `<span class="chip ref">${esc(ip)} ×${n}</span>`).join(' ') || '-'}</span></div>
       <div class="tablewrap"><table class="grid"><thead><tr><th>Source</th><th>Src Intf</th><th>Destination</th><th>Dst Intf</th><th>Application</th><th>Policy</th><th>NAT</th><th>Duration</th><th>Bytes</th><th></th></tr></thead><tbody>${rows.map(x => `<tr><td class="mono">${esc(x.srcip)}${SIM.HOSTS[x.srcip] ? `<div class="help">${esc(SIM.HOSTS[x.srcip])}</div>` : ''}</td><td class="mono">${esc(x.srcintf)}</td><td class="mono">${esc(x.dstip)}:${x.port}${SIM.HOSTS[x.dstip] ? `<div class="help">${esc(SIM.HOSTS[x.dstip])}</div>` : ''}</td><td class="mono">${esc(x.dstintf)}</td><td>${esc(x.app)}</td><td class="num">${esc(x.policyid)}</td><td class="mono">${esc(x.nat)}</td><td class="num">${fmtElapsed(now - x.ts)}</td><td class="num">${esc(TELE.sessBytes(x, now).toLocaleString())}</td><td class="acts"><button class="btn danger" style="height:26px" data-act="sess-kill" data-id="${esc(x.id)}">Kill</button></td></tr>`).join('') || '<tr><td colspan="10" class="empty">No active sessions match.</td></tr>'}</tbody></table></div>`;
   };
-  P.logs = () => {
-    const t = curTab('logs', 'traffic');
-    const f = (UI.filter || '').toLowerCase();
-    const match = o => !f || JSON.stringify(o).toLowerCase().includes(f);
-    let body;
-    if (t === 'traffic') {
-      const rows = S.logs.traffic.filter(match).slice(0, 250);
-      body = `<div class="tablewrap"><table class="grid"><thead><tr><th>Date/Time</th><th>Src Intf</th><th>Source</th><th>Dst Intf</th><th>Destination</th><th>Service</th><th>Policy</th><th>Action</th><th>NAT IP</th><th>Message</th></tr></thead><tbody>${rows.map(l => `<tr><td class="mono num">${fmtTs(l.ts)}</td><td class="mono">${esc(l.srcintf)}</td><td class="mono">${esc(l.srcip)}</td><td class="mono">${esc(l.dstintf)}</td><td class="mono">${esc(l.dstip)}</td><td class="mono">${esc(l.proto.toUpperCase() + (l.proto === 'icmp' ? '' : '/' + l.port))}</td><td class="num">${esc(l.policyid)}</td><td>${pill(l.action, l.action === 'accept' ? 'ok' : 'bad')}</td><td class="mono">${esc(l.nat)}</td><td>${esc(l.msg)}</td></tr>`).join('') || '<tr><td colspan="10" class="empty">No matching log entries.</td></tr>'}</tbody></table></div>`;
-    } else if (t === 'local') {
-      const rows = S.logs.local.filter(match).slice(0, 200);
-      body = `<p class="help">Traffic addressed to the firewall itself (management access, ping).</p><div class="tablewrap"><table class="grid"><thead><tr><th>Date/Time</th><th>Interface</th><th>Source</th><th>Destination</th><th>Service</th><th>Action</th><th>Message</th></tr></thead><tbody>${rows.map(l => `<tr><td class="mono num">${fmtTs(l.ts)}</td><td class="mono">${esc(l.srcintf)}</td><td class="mono">${esc(l.srcip)}</td><td class="mono">${esc(l.dstip)}</td><td class="mono">${esc(String(l.proto).toUpperCase() + '/' + l.port)}</td><td>${pill(l.action, l.action === 'accept' ? 'ok' : 'bad')}</td><td>${esc(l.msg)}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">No matching log entries.</td></tr>'}</tbody></table></div>`;
-    } else {
-      const rows = S.logs.event.filter(match).slice(0, 200);
-      body = `<div class="tablewrap"><table class="grid"><thead><tr><th>Date/Time</th><th>Level</th><th>Message</th></tr></thead><tbody>${rows.map(e => `<tr><td class="mono num">${fmtTs(e.ts)}</td><td>${pill(e.level, e.level === 'alert' ? 'bad' : e.level === 'warning' ? 'warn' : e.level === 'notice' ? 'info' : 'mute')}</td><td>${esc(e.msg)}</td></tr>`).join('') || '<tr><td colspan="3" class="empty">No matching events.</td></tr>'}</tbody></table></div>`;
-    }
-    return head('Forward traffic, local traffic and system events. Newest first.') + tabs('logs', [['traffic', 'Forward Traffic'], ['local', 'Local Traffic'], ['event', 'System Events']]) +
-      `<div class="toolbar"><input class="search" id="logFilter" placeholder="Filter (IP, policy, text)…" value="${esc(UI.filter)}" aria-label="Filter logs"></div>` + body;
+  /* ================= FortiOS 7.4 layout: split pages, new Network / System pages, IPsec wizard =================
+     Every page below reads and writes S (defaults come from SIM.gui74), so Nightmare faults and mission checks see the same
+     values the GUI shows. Old page ids (#logs, #profiles) still work through PAGE_ALIAS. */
+  const g74Note = t => `<div class="banner info g74-note" role="note">${esc(t)}</div>`;
+  const ipOk = s => SIM.isIp(String(s || '').trim());
+  const routeFor = ip => { try { return SIM.routeLookup(S, ip); } catch (e) { return null; } };
+  const ifUp = n => { const i = SIM.iface(S, n); return !!i && i.status === 'up' && i.ip && i.ip !== '0.0.0.0'; };
+  const menuBtn = (id, label, items, primary) => `<div class="g74-split ${UI.menu === id ? 'open' : ''}" data-menu="${id}"><button class="btn ${primary ? 'primary' : ''}" data-act="${items[0][0]}" ${items[0][2] ? `data-id="${esc(items[0][2])}"` : ''}>${I.plus} ${esc(label)}</button><button class="btn ${primary ? 'primary' : ''} g74-caret" data-act="menu" data-id="${id}" aria-haspopup="menu" aria-expanded="${UI.menu === id}" aria-label="${esc(label)} options">${I.caret}</button>${UI.menu === id ? `<div class="g74-menu" role="menu">${items.map(([act, l, id2]) => `<button role="menuitem" data-act="${act}" ${id2 ? `data-id="${esc(id2)}"` : ''}>${esc(l)}</button>`).join('')}</div>` : ''}</div>`;
+
+  /* ---------- Dashboard > Network (Routing Monitor lives here, like FortiOS 7.4) ---------- */
+  P['route-monitor'] = () => {
+    const rt = SIM.routeTable(S).sort((a, b) => SIM.ip2n(a.dst) - SIM.ip2n(b.dst) || a.bits - b.bits);
+    const ifs = SIM.allIfaces(S).filter(i => i.type !== 'vlan' || i.status === 'up');
+    return head('Live network view: the routing table the firewall is using right now, and the state of every interface.') +
+      `<div class="dash"><section class="card widget" style="grid-column:1/-1"><div class="g74-wh"><h2>Routing Monitor</h2><span class="grow"></span><button class="btn" data-act="nav" data-id="routes">Static Routes</button><button class="btn" data-act="nav" data-id="pbr">Policy Routes</button></div>
+      <p class="help" style="margin:0 0 8px">Connected networks plus active static and BGP routes. Longest prefix wins, then lowest distance. CLI: <span class="mono">get router info routing-table all</span></p>
+      <div class="tablewrap" style="border:0"><table class="grid"><thead><tr><th>Type</th><th>Network</th><th>Gateway</th><th>Interface</th><th>Distance</th><th>In table</th></tr></thead><tbody>${rt.map(r => `<tr class="${r.active ? '' : 'off'}"><td>${r.type === 'C' ? 'Connected' : r.type === 'B' ? 'BGP' : 'Static'}</td><td class="mono">${esc(r.dst + '/' + r.bits)}</td><td class="mono">${esc(r.gateway || '0.0.0.0')}</td><td class="mono">${esc(r.device)}</td><td class="num">${esc(r.distance)}</td><td>${r.active ? pill('Yes', 'ok') : pill('No: ' + r.why, 'bad')}</td></tr>`).join('')}</tbody></table></div></section>
+      <section class="card widget" style="grid-column:1/-1"><h2>Interfaces</h2><div class="tablewrap" style="border:0"><table class="grid"><thead><tr><th>Interface</th><th>IP</th><th>Status</th><th>Rate</th></tr></thead><tbody>${ifs.map(i => { const c = TELE.iface(i.name); return `<tr><td class="mono">${esc(i.name)}${i.alias ? ` <span class="muted">(${esc(i.alias)})</span>` : ''}</td><td class="mono">${i.ip && i.ip !== '0.0.0.0' ? esc(i.ip + '/' + i.bits) : '<span class="muted">-</span>'}</td><td>${pill(i.status === 'up' ? 'Up' : 'Down', i.status === 'up' ? 'ok' : 'mute')}</td><td class="num">${c ? esc(fmtRate(c.rate)) : '-'}</td></tr>`; }).join('')}</tbody></table></div></section></div>`;
   };
+
+  /* ---------- Network > DNS ---------- */
+  P.dns = () => {
+    const d = S.dns, R = UI.dnsTest;
+    const srv = d.mode === 'fortiguard' ? ['96.45.45.45 (FortiGuard)'] : [d.primary, d.secondary].filter(Boolean);
+    return head('The DNS servers the firewall itself uses. FQDN address objects, update checks, NTP and email alerts all depend on them. Clients on the LAN use whatever DHCP hands them.') +
+      `<form class="card widget g74-form" id="g74dns" data-g74="dns">
+        <label class="f"><span>DNS servers</span><select class="inp" name="mode"><option value="specify" ${d.mode !== 'fortiguard' ? 'selected' : ''}>Specify</option><option value="fortiguard" ${d.mode === 'fortiguard' ? 'selected' : ''}>Use FortiGuard servers</option></select></label>
+        <label class="f"><span>Primary DNS server</span><input class="inp mono" name="primary" value="${esc(d.primary)}" autocomplete="off"></label>
+        <label class="f"><span>Secondary DNS server</span><input class="inp mono" name="secondary" value="${esc(d.secondary)}" autocomplete="off"></label>
+        <label class="f"><span>Local domain name</span><input class="inp mono" name="domain" value="${esc(d.domain)}" autocomplete="off"></label>
+        <label class="f"><span>DNS protocol</span><select class="inp" name="protocol">${[['cleartext', 'DNS (UDP/53)'], ['dot', 'TLS (TCP/853)'], ['doh', 'HTTPS (TCP/443)']].map(([v, l]) => `<option value="${v}" ${d.protocol === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+        <div class="g74-fa"><button class="btn primary" type="submit">Apply</button><span class="help">CLI: <span class="mono">config system dns</span></span></div>
+      </form>
+      <section class="card widget"><h2>DNS lookup test</h2><p class="help" style="margin:0 0 8px">Ask the configured servers from the firewall, like <span class="mono">execute ping</span> on a hostname would. Lab names that resolve: login.microsoftonline.com, updates.talvex.com.</p>
+        <form class="g74-inline" data-g74="dnstest"><input class="inp mono" name="q" value="${esc((R && R.q) || 'login.microsoftonline.com')}" aria-label="Hostname" autocomplete="off"><button class="btn" type="submit">${I.play} Resolve</button></form>
+        ${R ? `<div class="trace" style="margin-top:10px">${R.steps.map(s => `<div class="row ${s[1] ? 'ok' : 'bad'}"><span class="ic">${s[1] ? '✓' : '✕'}</span><span>${esc(s[0])}</span></div>`).join('')}</div>` : ''}
+        <p class="help" style="margin:10px 0 0">Servers in use: <span class="mono">${esc(srv.join(', ') || 'none')}</span></p></section>`;
+  };
+  function dnsTest(q) {
+    q = String(q || '').trim().toLowerCase(); const steps = []; const d = S.dns;
+    const servers = d.mode === 'fortiguard' ? ['96.45.45.45'] : [d.primary, d.secondary].filter(ipOk);
+    if (!servers.length) { steps.push(['No DNS server configured', false]); return { q, steps }; }
+    let ok = null;
+    for (const s of servers) {
+      const r = routeFor(s);
+      if (!r) { steps.push([`${s}: no route to the server (nothing in the routing table covers it)`, false]); continue; }
+      if (!ifUp(r.device)) { steps.push([`${s}: route via ${r.device}, but ${r.device} is down`, false]); continue; }
+      if (s === '0.0.0.0' || SIM.inNet(s, '127.0.0.0', 8)) { steps.push([`${s}: not a usable DNS server`, false]); continue; }
+      steps.push([`${s}: reachable via ${r.device}${r.gateway && r.gateway !== '0.0.0.0' ? ' gateway ' + r.gateway : ''} (${d.protocol === 'cleartext' ? 'UDP/53' : d.protocol === 'dot' ? 'TCP/853' : 'TCP/443'})`, true]); ok = s; break;
+    }
+    if (!ok) { steps.push([`${q}: lookup timed out`, false]); return { q, steps }; }
+    const ans = SIM.DNS[q] || (d.domain && SIM.DNS[q + '.' + d.domain]);
+    steps.push(ans ? [`${q} → ${ans.join(', ')}`, true] : [`${q}: NXDOMAIN (only lab names resolve here)`, false]);
+    return { q, steps };
+  }
+
+  /* ---------- Network > Packet Capture ---------- */
+  P.pcap = () => {
+    const open = UI.pcapOpen;
+    return head('Capture packets on an interface, like diagnose sniffer packet. A capture takes a snapshot of the traffic crossing that interface right now.') +
+      `<div class="toolbar"><button class="btn primary" data-act="pc-new">${I.plus} Create New</button><span class="help">CLI equivalent: <span class="mono">diagnose sniffer packet port2 'host 10.10.10.20' 4</span></span></div>
+      <div class="tablewrap"><table class="grid"><thead><tr><th>Interface</th><th>Filter</th><th>Max packets</th><th>Status</th><th>Packets</th><th></th></tr></thead><tbody>${S.pcap.map(c => `<tr><td class="mono">${esc(c.iface)}</td><td class="mono">${esc(c.filter || 'none')}</td><td class="num">${esc(c.max)}</td><td>${c.status === 'done' ? pill('Complete', 'ok') : pill('Not running', 'mute')}</td><td class="num">${(c.packets || []).length}</td><td class="acts">${actBtn('pc-run', c.id, I.play, 'Start capture')}${c.packets && c.packets.length ? actBtn('pc-view', c.id, I.list, 'View packets') : ''}${actBtn('pc-del', c.id, I.del, 'Delete capture')}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">No packet captures. Create one, then press Start.</td></tr>'}</tbody></table></div>
+      ${(c => c ? `<section class="card widget" style="margin-top:14px"><div class="g74-wh"><h2>Capture on ${esc(c.iface)}</h2><span class="grow"></span><button class="ibtn" data-act="pc-view" data-id="" aria-label="Close packets">✕</button></div><pre class="g74-pre">${esc(c.packets.join('\n'))}</pre></section>` : '')(S.pcap.find(c => c.id === open && c.packets && c.packets.length))}`;
+  };
+  function pcapRun(c) {
+    const f = String(c.filter || '').toLowerCase().trim();
+    const host = (/host\s+([\d.]+)/.exec(f) || [])[1], port = +((/port\s+(\d+)/.exec(f) || [])[1] || 0);
+    const icmp = /\bicmp\b/.test(f);
+    const hit = x => (x.srcintf === c.iface || x.dstintf === c.iface) && (!host || x.srcip === host || x.dstip === host) && (!port || +x.port === port) && (!icmp || x.proto === 'icmp');
+    const pool = S.sessions.filter(hit).map(s => Object.assign({ live: true }, s)).concat(S.logs.traffic.filter(hit).slice(0, 40));
+    const out = []; const t0 = Date.now(); let n = 0;
+    const flags = ['syn', 'syn ack', 'ack', 'psh ack', 'ack', 'fin ack'];
+    for (const x of pool) {
+      if (n >= c.max) break;
+      const sp = 49152 + ((SIM.ip2n(x.srcip) || 1) * 7 + (x.port || 1)) % 16000;
+      const count = x.action === 'deny' ? 1 : Math.min(4, c.max - n);
+      for (let k = 0; k < count && n < c.max; k++, n++) {
+        const ts = ((Date.now() - t0) / 1000 + n * 0.0137).toFixed(6);
+        const back = k % 2 === 1 && x.action !== 'deny';
+        const a = back ? `${x.dstip}.${x.port}` : `${x.srcip}.${sp}`, b = back ? `${x.srcip}.${sp}` : `${x.dstip}.${x.port}`;
+        out.push(x.proto === 'icmp' ? `${ts} ${c.iface} ${back ? 'out' : 'in'} ${back ? x.dstip : x.srcip} -> ${back ? x.srcip : x.dstip}: icmp: echo ${back ? 'reply' : 'request'}` : `${ts} ${c.iface} ${back ? 'out' : 'in'} ${a} -> ${b}: ${x.proto === 'udp' ? 'udp ' + (64 + n % 400) : flags[k % flags.length] + ' ' + (1000000000 + n * 7919)}`);
+      }
+    }
+    if (!out.length) out.push(`(no packets matched on ${c.iface}${f ? ` with filter '${f}'` : ''}. Is the interface up and is traffic flowing?)`);
+    c.packets = out; c.status = 'done'; c.ranAt = Date.now();
+  }
+
+  /* ---------- Network > SD-WAN ---------- */
+  P.sdwan = () => {
+    const W = S.sdwan, on = W.status === 'enable';
+    const mState = m => { const i = SIM.iface(S, m.iface); return !i ? ['missing', 'bad'] : i.status !== 'up' || !i.ip || i.ip === '0.0.0.0' ? ['down', 'bad'] : !ipOk(m.gateway) ? ['no gateway', 'warn'] : ['up', 'ok']; };
+    const hc = h => (h.members || []).map(id => { const m = W.members.find(x => x.id === +id); if (!m) return null; const s = mState(m); return `<span class="chip ${s[1] === 'ok' ? '' : 'ref'}">${esc(m.iface)}: ${s[1] === 'ok' ? 'alive' : 'dead'}</span>`; }).filter(Boolean).join(' ');
+    return head('SD-WAN bundles internet links into one virtual-wan-link zone. Health checks probe each link, and rules steer traffic to the best one.') +
+      `<div class="toolbar"><label class="switch"><input type="checkbox" data-act-change="sd-status" ${on ? 'checked' : ''}><i></i>SD-WAN ${on ? 'enabled' : 'disabled'}</label><span class="help">CLI: <span class="mono">config system sdwan</span></span></div>
+      <section class="card widget"><div class="g74-wh"><h2>SD-WAN Zones · virtual-wan-link</h2><span class="grow"></span><button class="btn" data-act="sd-mem-new">${I.plus} Member</button></div>
+      <div class="tablewrap" style="border:0"><table class="grid"><thead><tr><th>ID</th><th>Interface</th><th>Gateway</th><th>Cost</th><th>Status</th><th></th></tr></thead><tbody>${W.members.map(m => { const s = mState(m); return `<tr><td class="num">${m.id}</td><td class="mono">${esc(m.iface)}</td><td class="mono">${esc(m.gateway || '')}</td><td class="num">${esc(m.cost)}</td><td>${pill(s[0], s[1])}</td><td class="acts">${actBtn('sd-mem-del', m.id, I.del, 'Remove member')}</td></tr>`; }).join('') || '<tr><td colspan="6" class="empty">No members. An interface can only join once nothing else (routes, policies) references it.</td></tr>'}</tbody></table></div></section>
+      <section class="card widget" style="margin-top:14px"><div class="g74-wh"><h2>Performance SLAs</h2><span class="grow"></span><button class="btn" data-act="sd-hc-new">${I.plus} Create New</button></div>
+      <div class="tablewrap" style="border:0"><table class="grid"><thead><tr><th>Name</th><th>Server</th><th>Protocol</th><th>Members</th><th></th></tr></thead><tbody>${W.healthChecks.map(h => `<tr><td class="mono">${esc(h.name)}</td><td class="mono">${esc(h.server)}</td><td>${esc(h.protocol.toUpperCase())}</td><td>${hc(h) || '<span class="muted">none</span>'}</td><td class="acts">${actBtn('sd-hc-del', h.name, I.del, 'Delete')}</td></tr>`).join('') || '<tr><td colspan="5" class="empty">No performance SLAs.</td></tr>'}</tbody></table></div></section>
+      <section class="card widget" style="margin-top:14px"><div class="g74-wh"><h2>SD-WAN Rules</h2><span class="grow"></span><button class="btn" data-act="sd-rule-new">${I.plus} Create New</button></div>
+      <div class="tablewrap" style="border:0"><table class="grid"><thead><tr><th>ID</th><th>Name</th><th>Destination</th><th>Strategy</th><th>Interfaces</th><th></th></tr></thead><tbody>${W.rules.map(r => `<tr><td class="num">${r.id}</td><td class="mono">${esc(r.name)}</td><td class="mono">${esc(r.dst)}</td><td>${esc({ manual: 'Manual', 'best-quality': 'Best Quality', 'lowest-cost': 'Lowest Cost (SLA)' }[r.mode] || r.mode)}</td><td>${chips((r.members || []).map(id => (W.members.find(m => m.id === +id) || {}).iface || '?'))}</td><td class="acts">${actBtn('sd-rule-del', r.id, I.del, 'Delete rule')}</td></tr>`).join('')}<tr class="off"><td></td><td>sd-wan (implicit)</td><td class="mono">all</td><td>Source-Destination IP</td><td>${chips(W.members.map(m => m.iface))}</td><td></td></tr></tbody></table></div></section>
+      ${g74Note('Simplified in this lab: SD-WAN settings are stored and checked, but the Policy Lookup still forwards by the routing table.')}`;
+  };
+
+  /* ---------- Network > Policy Routes ---------- */
+  P.pbr = () => head('Policy routes are checked before the routing table. They can send matching traffic out a specific interface, or "Stop Policy Routing" to fall back to normal routing.') +
+    `<div class="toolbar"><button class="btn primary" data-act="pbr-new">${I.plus} Create New</button><span class="help">CLI: <span class="mono">config router policy</span></span><span class="grow"></span><button class="btn" data-act="nav" data-id="route-monitor">Routing Monitor</button></div>
+    <div class="tablewrap"><table class="grid"><thead><tr><th>Seq</th><th>Incoming</th><th>Source</th><th>Destination</th><th>Protocol</th><th>Action</th><th>Outgoing</th><th>Gateway</th><th>Status</th><th></th></tr></thead><tbody>${S.pbr.map((r, i) => `<tr class="${r.status === 'disable' ? 'off' : ''}"><td class="num">${i + 1}</td><td class="mono">${esc(r.srcintf)}</td><td class="mono">${esc(r.src)}</td><td class="mono">${esc(r.dst)}</td><td class="mono">${esc(r.proto === 0 ? 'any' : r.proto === 6 ? 'TCP' : r.proto === 17 ? 'UDP' : r.proto === 1 ? 'ICMP' : r.proto)}${r.port ? '/' + esc(r.port) : ''}</td><td>${r.action === 'deny' ? pill('Stop Policy Routing', 'warn') : pill('Forward', 'ok')}</td><td class="mono">${esc(r.action === 'deny' ? '' : r.outdev)}</td><td class="mono">${esc(r.action === 'deny' ? '' : r.gateway)}</td><td>${pill(r.status === 'disable' ? 'Disabled' : 'Enabled', r.status === 'disable' ? 'mute' : 'ok')}</td><td class="acts">${actBtn('pbr-edit', r.id, I.edit, 'Edit')}${actBtn('pbr-del', r.id, I.del, 'Delete')}</td></tr>`).join('') || '<tr><td colspan="10" class="empty">No policy routes. Traffic follows the routing table.</td></tr>'}</tbody></table></div>
+    ${g74Note('Simplified in this lab: policy routes are stored and shown, but the Policy Lookup still forwards by the routing table.')}`;
+
+  /* ---------- Security Profiles: one page each ---------- */
+  const PROF = {
+    'prof-av': ['av', 'AntiVirus', 'AntiVirus profiles scan files moving through allowed sessions (HTTP, FTP, SMTP, SMB and more) and block known malware.', 'CLI: config antivirus profile', 'Feature set: flow-based. Scans HTTP, HTTPS (with deep inspection), FTP, IMAP, POP3, SMTP, CIFS.'],
+    'prof-ips': ['ips', 'Intrusion Prevention', 'IPS sensors match traffic against attack signatures. Put one in front of anything reachable from the internet, especially VIPs.', 'CLI: config ips sensor', 'Signatures are grouped by severity (critical, high, medium, low, info) and by target (server or client).'],
+    'prof-app': ['app', 'Application Control', 'Application control identifies applications by behaviour, not by port, so P2P or proxy tools cannot hide on 443.', 'CLI: config application list', 'Categories can be set to monitor, allow, block or quarantine.'],
+    'prof-ssl': ['ssl', 'SSL/SSH Inspection', 'Every other profile needs an SSL/SSH inspection profile on the policy. Certificate inspection reads the site name (SNI) without decrypting; deep inspection decrypts.', 'CLI: config firewall ssl-ssh-profile', 'Deep inspection needs the firewall CA certificate trusted on every client, or users get certificate warnings.']
+  };
+  for (const [pid, [field, , lede, cli, note]] of Object.entries(PROF)) {
+    P[pid] = () => head(lede) + `<div class="toolbar"><span class="help">${esc(cli)}. This lab ships the built-in profiles; attach them on a policy under Security Profiles.</span></div>
+      <div class="tablewrap"><table class="grid"><thead><tr><th>Name</th><th>Comments</th><th>Used by</th><th>Ref.</th></tr></thead><tbody>${(S.profiles[field] || []).map(x => { const n = S.policies.filter(p => (p.utm || field === 'ssl') && p.prof && p.prof[field] === x.name).map(p => p.id); return `<tr><td class="mono">${esc(x.name)}</td><td>${esc(x.comment)}</td><td>${n.length ? n.map(i => `<button class="linkbtn" data-act="pol-edit" data-id="${i}">policy ${i}</button>`).join(', ') : '<span class="muted">-</span>'}</td><td class="num">${n.length}</td></tr>`; }).join('')}</tbody></table></div>
+      <p class="help">${esc(note)}</p>`;
+  }
+
+  /* ---------- Log & Report: one shared viewer, four pages ---------- */
+  const LOGV = {
+    'log-forward': { src: () => S.logs.traffic, lede: 'Traffic the firewall forwarded or dropped between interfaces. Newest first. A policy only logs here when its Log Allowed Traffic setting says so.', cli: 'execute log filter category 0',
+      cols: [['Date/Time', l => `<span class="mono num">${fmtTs(l.ts)}</span>`], ['Src Intf', l => `<span class="mono">${esc(l.srcintf)}</span>`], ['Source', l => `<span class="mono">${esc(l.srcip)}</span>`], ['Dst Intf', l => `<span class="mono">${esc(l.dstintf)}</span>`], ['Destination', l => `<span class="mono">${esc(l.dstip)}</span>`], ['Service', l => `<span class="mono">${esc(String(l.proto).toUpperCase() + (l.proto === 'icmp' ? '' : '/' + l.port))}</span>`], ['Policy', l => `<span class="num">${esc(l.policyid)}</span>`], ['Action', l => pill(l.action, l.action === 'accept' ? 'ok' : 'bad')], ['NAT IP', l => `<span class="mono">${esc(l.nat)}</span>`], ['Message', l => esc(l.msg)]] },
+    'log-local': { src: () => S.logs.local, lede: 'Traffic addressed to the firewall itself: management logins, ping, BGP, IKE. Local-in policies and Administrative Access decide these.', cli: 'execute log filter category 0 (subtype local)',
+      cols: [['Date/Time', l => `<span class="mono num">${fmtTs(l.ts)}</span>`], ['Interface', l => `<span class="mono">${esc(l.srcintf)}</span>`], ['Source', l => `<span class="mono">${esc(l.srcip)}</span>`], ['Destination', l => `<span class="mono">${esc(l.dstip)}</span>`], ['Service', l => `<span class="mono">${esc(String(l.proto).toUpperCase() + '/' + l.port)}</span>`], ['Action', l => pill(l.action, l.action === 'accept' ? 'ok' : 'bad')], ['Message', l => esc(l.msg)]] },
+    'log-event': { src: () => S.logs.event.filter(e => !UI.evSub || (e.sub || 'system') === UI.evSub), lede: 'System events: admin logins, configuration changes, VPN negotiation, HA, routing. Filter by subtype to narrow it down.', cli: 'execute log filter category 1', sub: true,
+      cols: [['Date/Time', e => `<span class="mono num">${fmtTs(e.ts)}</span>`], ['Subtype', e => esc(e.sub || 'system')], ['Level', e => pill(e.level, e.level === 'alert' ? 'bad' : e.level === 'warning' ? 'warn' : e.level === 'notice' ? 'info' : 'mute')], ['Message', e => esc(e.msg)]] },
+    'log-security': { src: () => S.logs.traffic.filter(l => l.action === 'blocked'), lede: 'Security events: what a security profile (web filter, URL filter, application control, IPS, antivirus) blocked. Empty until a profile on a policy actually blocks something.', cli: 'execute log filter category 3 (webfilter)',
+      cols: [['Date/Time', l => `<span class="mono num">${fmtTs(l.ts)}</span>`], ['Profile', l => esc(/url filter|category|web/i.test(l.msg || '') ? 'Web Filter' : /app/i.test(l.msg || '') ? 'Application Control' : /ips|signature/i.test(l.msg || '') ? 'IPS' : 'Security profile')], ['Source', l => `<span class="mono">${esc(l.srcip)}</span>`], ['Destination', l => `<span class="mono">${esc(l.dstip)}</span>`], ['Policy', l => `<span class="num">${esc(l.policyid)}</span>`], ['Action', l => pill('blocked', 'bad')], ['Message', l => esc(l.msg)]] }
+  };
+  const logKey = l => `${l.ts}|${l.srcip || ''}|${l.msg || ''}`.slice(0, 160);
+  function logViewer(pid) {
+    const V = LOGV[pid], f = (UI.filter || '').toLowerCase();
+    const all = V.src(), rows = all.filter(o => !f || JSON.stringify(o).toLowerCase().includes(f)), shown = rows.slice(0, 250);
+    const sel = UI.logSel && all.find(l => logKey(l) === UI.logSel);
+    const subs = V.sub ? [...new Set(S.logs.event.map(e => e.sub || 'system'))] : [];
+    return head(V.lede) + `<div class="toolbar"><input class="search" id="logFilter" placeholder="Filter (IP, policy, text)…" value="${esc(UI.filter)}" aria-label="Filter logs">${V.sub ? `<select class="inp" style="width:auto" data-act-change="ev-sub" aria-label="Subtype"><option value="">All subtypes</option>${subs.map(s => `<option value="${esc(s)}" ${UI.evSub === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>` : ''}<span class="help num">${rows.length === all.length ? `${all.length} entries` : `${rows.length} of ${all.length} match`}${rows.length > 250 ? ', showing newest 250' : ''}</span><span class="grow"></span><span class="help">CLI: <span class="mono">${esc(V.cli)}</span></span></div>
+      <div class="tablewrap"><table class="grid g74-log"><thead><tr>${V.cols.map(c => `<th>${c[0]}</th>`).join('')}</tr></thead><tbody>${shown.map(l => { const k = logKey(l); return `<tr class="${UI.logSel === k ? 'sel' : ''}" data-act="log-sel" data-id="${esc(k)}" tabindex="0">${V.cols.map(c => `<td>${c[1](l)}</td>`).join('')}</tr>`; }).join('') || `<tr><td colspan="${V.cols.length}" class="empty">No matching log entries.</td></tr>`}</tbody></table></div>
+      ${sel ? `<section class="card widget g74-logdet"><div class="g74-wh"><h2>Log details</h2><span class="grow"></span><button class="ibtn" data-act="log-sel" data-id="" aria-label="Close details">✕</button></div><dl class="kv">${Object.entries(sel).map(([k, v]) => `<dt>${esc(k)}</dt><dd class="mono">${esc(k === 'ts' ? fmtTs(v) : typeof v === 'object' ? JSON.stringify(v) : v)}</dd>`).join('')}</dl></section>` : ''}`;
+  }
+  for (const pid of Object.keys(LOGV)) P[pid] = () => logViewer(pid);
+  P.logs = () => logViewer('log-forward'); // legacy id
+
+  /* ---------- VPN > IPsec Wizard ---------- */
+  const wiz = () => UI.wiz || (UI.wiz = { step: 1, name: '', tmpl: 'site', remote: 'other', nat: 'none', remoteGw: '', iface: 'port1', psk: '', localIf: 'port2', localSub: '10.10.10.0/24', remoteSub: '10.100.0.0/16' });
+  P['vpn-wizard'] = () => {
+    const W = wiz(), st = W.step;
+    const steps = ['VPN Setup', 'Authentication', 'Policy & Routing', 'Review Settings'];
+    const opt = (k, v, l, dis) => `<label class="g74-radio ${dis ? 'dis' : ''}"><input type="radio" name="wz_${k}" data-wz="${k}" value="${v}" ${W[k] === v ? 'checked' : ''} ${dis ? 'disabled' : ''}>${esc(l)}</label>`;
+    const inp = (k, l, help, type) => `<label class="f"><span>${esc(l)}</span><input class="inp mono" data-wz="${k}" type="${type || 'text'}" value="${esc(W[k])}" autocomplete="off" spellcheck="false">${help ? `<small class="help">${esc(help)}</small>` : ''}</label>`;
+    const sel = (k, l, opts) => `<label class="f"><span>${esc(l)}</span><select class="inp" data-wz="${k}">${opts.map(o => `<option ${W[k] === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select></label>`;
+    let body = '';
+    if (st === 1) body = `${inp('name', 'Name', 'Up to 13 characters. The wizard prefixes objects with it.')}
+      <div class="f"><span>Template type</span><div class="g74-radios">${opt('tmpl', 'site', 'Site to Site')}${opt('tmpl', 'hub', 'Hub-and-Spoke (not in this lab)', true)}${opt('tmpl', 'ra', 'Remote Access (not in this lab)', true)}${opt('tmpl', 'custom', 'Custom')}</div></div>
+      ${W.tmpl === 'site' ? `<div class="f"><span>NAT configuration</span><div class="g74-radios">${opt('nat', 'none', 'No NAT between sites')}${opt('nat', 'local', 'This site is behind NAT')}</div></div><div class="f"><span>Remote device type</span><div class="g74-radios">${opt('remote', 'fortigate', 'FortiGate')}${opt('remote', 'other', 'Another vendor (third-party gateway)')}</div><small class="help">For an Azure VPN gateway pick the non-FortiGate option.</small></div>` : `<p class="help">Custom skips the wizard and opens the full tunnel editor: every phase 1 and phase 2 setting, nothing created for you.</p>`}`;
+    else if (st === 2) body = `${inp('remoteGw', 'Remote IP address', 'Public IP of the other side')}${sel('iface', 'Outgoing interface', S.interfaces.map(i => i.name))}<label class="f"><span>Authentication method</span><select class="inp" disabled><option>Pre-shared Key</option></select></label>${inp('psk', 'Pre-shared key', 'Must match the other side exactly', 'password')}`;
+    else if (st === 3) body = `${sel('localIf', 'Local interface', SIM.ifaceNames(S).filter(n => n !== W.name))}${inp('localSub', 'Local subnets', 'The LAN behind this firewall')}${inp('remoteSub', 'Remote subnets', 'The network behind the other side')}<label class="f"><span>Internet access</span><select class="inp" disabled><option>None</option></select></label>`;
+    else body = `<dl class="kv g74-review">${wizPlan(W).map(([k, v]) => `<dt>${esc(k)}</dt><dd class="mono">${esc(v)}</dd>`).join('')}</dl>
+      <div class="banner warn" role="note">The wizard builds an <b>IKEv1</b> tunnel with phase 2 selectors set to your two subnets. That is fine between two FortiGates, but an Azure route-based gateway wants <b>IKEv2</b> and any-to-any (0.0.0.0/0) selectors. After you create it, open the tunnel, press <b>Convert to Custom Tunnel</b> (Edit) and change both, exactly as you would on a real box.</div>`;
+    const err = UI.wizErr;
+    return head('Builds a tunnel and everything it needs (address objects, a static route, two policies) in four steps. Pick Custom for the full editor.') +
+      `<div class="g74-steps">${steps.map((s, i) => `<span class="${i + 1 === st ? 'on' : i + 1 < st ? 'done' : ''}"><b>${i + 1}</b>${esc(s)}</span>`).join('')}</div>
+      <section class="card widget g74-wiz"><form data-g74="wizard">${body}${err ? `<p class="err" role="alert">${esc(err)}</p>` : ''}
+      <div class="g74-fa">${st > 1 ? '<button class="btn" type="button" data-act="wz-back">&lt; Back</button>' : ''}<span class="grow"></span><button class="btn" type="button" data-act="wz-cancel">Cancel</button><button class="btn primary" type="submit">${st === 4 ? 'Create' : 'Next &gt;'}</button></div></form></section>`;
+  };
+  function wizPlan(W) {
+    const n = W.name;
+    return [['Tunnel interface', n], ['Remote gateway', W.remoteGw], ['Outgoing interface', W.iface], ['IKE version', '1 (wizard default)'], ['Phase 1 proposal', 'aes128-sha256 aes256-sha256 aes128-sha1 aes256-sha1, DH 14 5'], ['Phase 2 selectors', `${W.localSub} ↔ ${W.remoteSub}`],
+      ['Address objects', `${n}_local_subnet_1, ${n}_remote_subnet_1`], ['Address groups', `${n}_local, ${n}_remote`], ['Static route', `${W.remoteSub} via ${n}`], ['Policies', `vpn_${n}_local (${W.localIf} → ${n}), vpn_${n}_remote (${n} → ${W.localIf})`]];
+  }
+  function wizCheck(W, step) {
+    if (step === 1) { if (!nameOk(W.name, 13)) return 'Name: 1 to 13 characters, letters, numbers, dot, dash or underscore.'; if (SIM.iface(S, W.name) || S.vpn.phase1.some(p => p.name === W.name)) return 'An interface or tunnel with that name already exists.'; }
+    if (step === 2) { if (!ipOk(W.remoteGw)) return 'Enter the remote public IP address.'; if (!W.psk) return 'Enter the pre-shared key.'; if (W.psk.length < 6) return 'The pre-shared key must be at least 6 characters.'; }
+    if (step === 3) { if (!SIM.parseIpMask(W.localSub)) return 'Local subnet must look like 10.10.10.0/24.'; if (!SIM.parseIpMask(W.remoteSub)) return 'Remote subnet must look like 10.100.0.0/16.'; }
+    return '';
+  }
+  function wizCreate(W) {
+    const n = W.name, L = SIM.parseIpMask(W.localSub), R = SIM.parseIpMask(W.remoteSub);
+    const net = r => ({ ip: SIM.n2ip(SIM.netOf(r.ip, r.bits)), bits: r.bits });
+    const taken = x => S.addresses.some(a => a.name === x) || S.addrgrps.some(a => a.name === x);
+    for (const x of [`${n}_local_subnet_1`, `${n}_remote_subnet_1`, `${n}_local`, `${n}_remote`]) if (taken(x)) return `An address object named ${x} already exists.`;
+    S.vpn.phase1.push({ name: n, interface: W.iface, remoteGw: W.remoteGw, ike: 1, psk: W.psk, proposals: ['aes128-sha256', 'aes256-sha256', 'aes128-sha1', 'aes256-sha1'], dhgrp: [14, 5], keylife: 86400, dpd: 'on-idle', nattraversal: 'enable', status: 'enable', comments: `VPN: ${n} (Created by VPN wizard)` });
+    S.vpn.phase2.push({ name: n, phase1: n, proposals: ['aes128-sha1', 'aes256-sha1', 'aes128-sha256', 'aes256-sha256', 'aes128gcm', 'aes256gcm'], pfs: 'enable', dhgrp: [14, 5], srcIp: net(L).ip, srcBits: L.bits, dstIp: net(R).ip, dstBits: R.bits });
+    S.addresses.push({ name: `${n}_local_subnet_1`, type: 'subnet', ip: net(L).ip, bits: L.bits, iface: 'any', comment: 'Created by VPN wizard' }, { name: `${n}_remote_subnet_1`, type: 'subnet', ip: net(R).ip, bits: R.bits, iface: 'any', comment: 'Created by VPN wizard' });
+    S.addrgrps.push({ name: `${n}_local`, members: [`${n}_local_subnet_1`], comment: 'Created by VPN wizard' }, { name: `${n}_remote`, members: [`${n}_remote_subnet_1`], comment: 'Created by VPN wizard' });
+    const seq = Math.max(0, ...S.routes.map(r => r.seq)) + 1;
+    S.routes.push({ seq, dst: net(R).ip, bits: R.bits, gateway: '', device: n, distance: 10, status: 'enable', comment: `VPN: ${n} (Created by VPN wizard)` });
+    const pol = (name, si, di, sa, da) => { const id = S.nextPolicyId++; S.policies.push({ id, name, srcintf: [si], dstintf: [di], srcaddr: [sa], dstaddr: [da], service: ['ALL'], schedule: 'always', action: 'accept', nat: false, logtraffic: 'all', status: 'enable', utm: false, prof: {}, comments: `VPN: ${n} (Created by VPN wizard)`, hits: 0, lastHit: 0 }); return id; };
+    const a = pol(`vpn_${n}_local`, W.localIf, n, `${n}_local`, `${n}_remote`), b = pol(`vpn_${n}_remote`, n, W.localIf, `${n}_remote`, `${n}_local`);
+    const t = SIM.tunnel(S, n);
+    SIM.event(S, 'vpn', t.up ? 'information' : 'warning', `IPsec ${n}: created by VPN wizard (policies ${a}, ${b}); ${t.up ? 'tunnel up' : 'negotiation failed: ' + t.reason}`);
+    return '';
+  }
+
+  /* ---------- User & Authentication, WiFi & Switch Controller, Security Fabric (stubs) ---------- */
+  P.users = () => head('Local users and groups for firewall authentication (captive portal, SSL-VPN, explicit proxy).') + `<div class="tablewrap"><table class="grid"><thead><tr><th>User Name</th><th>Type</th><th>Two-factor</th><th>Ref.</th></tr></thead><tbody><tr><td colspan="4" class="empty">No local users. Firewall administrators live under System → Administrators.</td></tr></tbody></table></div>` + g74Note('Not simulated in this lab: user authentication. The menu is here so the layout matches FortiOS.');
+  P.wifi = () => head('Access points and switches that this firewall manages over FortiLink.') + `<div class="tablewrap"><table class="grid"><thead><tr><th>Name</th><th>Serial</th><th>Status</th><th>Clients</th></tr></thead><tbody><tr><td colspan="4" class="empty">No managed access points or switches. Talvex runs on unmanaged switches for now.</td></tr></tbody></table></div>` + g74Note('Not simulated in this lab: wireless and switch control.');
+  P.fabric = () => { const P2 = SIM.peer(S); return head('Fabric connectors link the firewall to other systems: clouds, identity sources, threat feeds.') + `<div class="dash">${[['Security Fabric Setup', 'Root', 'Standalone. No downstream devices.', 'mute'], ['Microsoft Azure (SDN connector)', 'Cloud', P2.live ? `Not configured. The IPsec tunnel to ${P2.gw.name} works without it.` : 'Not configured.', 'mute'], ['Threat feeds', 'External', 'None configured.', 'mute']].map(([t, k, d, s]) => `<section class="card widget"><h2>${esc(t)}</h2><p class="help" style="margin:0 0 8px">${esc(k)}</p><p style="margin:0">${esc(d)}</p><p style="margin:10px 0 0">${pill('Not connected', s)}</p></section>`).join('')}</div>` + g74Note('Not simulated in this lab: fabric connectors. The menu is here so the layout matches FortiOS.'); };
+
+  /* ---------- System > HA ---------- */
+  P.ha = () => {
+    const H = S.ha, solo = H.mode === 'standalone';
+    const hb = (H.hbdev || []).map(n => [n, SIM.iface(S, n)]);
+    const hbOk = hb.some(([, i]) => i && i.status === 'up');
+    const peer = H.peer;
+    const me = { hostname: S.system.hostname, serial: S.system.serial, priority: H.priority, role: 'Primary', sync: 'In sync' };
+    let peerRow = '';
+    if (!solo) peerRow = peer ? `<tr><td class="mono">${esc(peer.hostname)}</td><td class="mono">${esc(peer.serial)}</td><td class="num">${esc(peer.priority)}</td><td>${esc(peer.role || 'Secondary')}</td><td>${peer.sync === 'out-of-sync' ? pill('Not synchronized', 'bad') : pill('Synchronized', 'ok')}</td></tr>`
+      : `<tr class="off"><td colspan="5">${pill('No peer', 'warn')} ${esc(!hb.length ? 'No heartbeat interface selected.' : hbOk ? `Heartbeat on ${hb.filter(([, i]) => i && i.status === 'up').map(([n]) => n).join(', ')} is up, but no second unit is answering (this lab has one VM).` : `No heartbeat: ${hb.map(([n, i]) => `${n} ${i ? 'is down' : 'does not exist'}`).join(', ')}.`)}</td></tr>`;
+    return head('High availability pairs two identical firewalls. The primary handles traffic and syncs its configuration; the secondary takes over if the primary or a monitored interface fails.') +
+      `<div class="dash"><form class="card widget g74-form" data-g74="ha"><h2>Settings</h2>
+        <label class="f"><span>Mode</span><select class="inp" name="mode">${[['standalone', 'Standalone'], ['a-p', 'Active-Passive'], ['a-a', 'Active-Active']].map(([v, l]) => `<option value="${v}" ${H.mode === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+        <label class="f"><span>Device priority</span><input class="inp mono" name="priority" value="${esc(H.priority)}" inputmode="numeric"></label>
+        <label class="f"><span>Group name</span><input class="inp mono" name="group" value="${esc(H.group)}"></label>
+        <label class="f"><span>Group ID</span><input class="inp mono" name="groupId" value="${esc(H.groupId)}" inputmode="numeric"></label>
+        <label class="f"><span>Override</span><select class="inp" name="override"><option value="disable" ${H.override !== 'enable' ? 'selected' : ''}>Disable</option><option value="enable" ${H.override === 'enable' ? 'selected' : ''}>Enable</option></select></label>
+        <label class="f"><span>Session pickup</span><select class="inp" name="sessionPickup"><option value="disable" ${H.sessionPickup !== 'enable' ? 'selected' : ''}>Disable</option><option value="enable" ${H.sessionPickup === 'enable' ? 'selected' : ''}>Enable</option></select></label>
+        <div class="f"><span>Heartbeat interfaces</span><div class="checks">${S.interfaces.filter(i => i.type === 'physical').map(i => `<label><input type="checkbox" name="hbdev" value="${esc(i.name)}" ${(H.hbdev || []).includes(i.name) ? 'checked' : ''}>${esc(i.name)}</label>`).join('')}</div></div>
+        <div class="f"><span>Monitor interfaces</span><div class="checks">${S.interfaces.filter(i => i.type === 'physical').map(i => `<label><input type="checkbox" name="monitor" value="${esc(i.name)}" ${(H.monitor || []).includes(i.name) ? 'checked' : ''}>${esc(i.name)}</label>`).join('')}</div></div>
+        <div class="g74-fa"><button class="btn primary" type="submit">Apply</button><span class="help">CLI: <span class="mono">config system ha</span></span></div></form>
+      <section class="card widget"><h2>Cluster members</h2><div class="tablewrap" style="border:0"><table class="grid"><thead><tr><th>Hostname</th><th>Serial</th><th>Priority</th><th>Role</th><th>Sync</th></tr></thead><tbody><tr><td class="mono">${esc(me.hostname)}</td><td class="mono">${esc(me.serial)}</td><td class="num">${esc(me.priority)}</td><td>${solo ? 'Standalone' : 'Primary'}</td><td>${solo ? '<span class="muted">-</span>' : pill('Synchronized', 'ok')}</td></tr>${peerRow}</tbody></table></div>
+      <p class="help" style="margin:10px 0 0">Check from the CLI with <span class="mono">get system ha status</span> and <span class="mono">diagnose sys ha checksum cluster</span>. On real gear, keep console access and a config backup before changing HA.</p></section></div>`;
+  };
+
+  /* ---------- System > Certificates ---------- */
+  P.certs = () => {
+    const now = Date.now(), day = 86400000;
+    const st = c => c.expires < now ? pill('Expired', 'bad') : c.expires - now < 30 * day ? pill(`Expires in ${Math.ceil((c.expires - now) / day)} days`, 'warn') : pill('Valid', 'ok');
+    const grp = [['local', 'Local Certificate'], ['local-ca', 'Local CA Certificate'], ['remote-ca', 'Remote CA Certificate']];
+    return head('Certificates the firewall presents (admin GUI, SSL inspection, VPN) and the CAs it trusts. An expired certificate breaks whatever uses it.') +
+      `<div class="toolbar">${menuBtn('cert-new', 'Create/Import', [['cert-new', 'Certificate', 'local'], ['cert-new', 'CA Certificate', 'remote-ca']], true)}<span class="help">CLI: <span class="mono">config vpn certificate local</span></span></div>
+      <div class="tablewrap"><table class="grid"><thead><tr><th>Name</th><th>Subject</th><th>Issuer</th><th>Expires</th><th>Status</th><th>Used by</th><th></th></tr></thead><tbody>${grp.map(([t, l]) => { const list = S.certs.filter(c => c.type === t); return `<tr class="g74-grp"><td colspan="7">${esc(l)} <span class="muted">(${list.length})</span></td></tr>` + list.map(c => `<tr><td class="mono">${esc(c.name)}</td><td class="mono">${esc(c.subject)}</td><td class="mono">${esc(c.issuer)}</td><td class="mono num">${fmtTs(c.expires).slice(0, 10)}</td><td>${st(c)}</td><td>${esc(c.usedBy || '')}</td><td class="acts">${c.builtin ? '' : actBtn('cert-del', c.name, I.del, 'Delete')}</td></tr>`).join(''); }).join('')}</tbody></table></div>`;
+  };
+
+  /* ---------- System > SNMP ---------- */
+  P.snmp = () => {
+    const N = S.snmp, on = N.status === 'enable';
+    const ifs = S.interfaces.filter(i => i.allowaccess.includes('snmp')).map(i => i.name);
+    return head('SNMP lets a monitoring server poll the firewall (CPU, interfaces, sessions) and receive traps.') +
+      `<div class="dash"><form class="card widget g74-form" data-g74="snmp"><h2>System Information</h2>
+        <label class="switch" style="margin-bottom:8px"><input type="checkbox" name="status" ${on ? 'checked' : ''}><i></i>SNMP agent</label>
+        <label class="f"><span>Description</span><input class="inp" name="description" value="${esc(N.description)}"></label>
+        <label class="f"><span>Location</span><input class="inp" name="location" value="${esc(N.location)}"></label>
+        <label class="f"><span>Contact info</span><input class="inp" name="contact" value="${esc(N.contact)}"></label>
+        <div class="g74-fa"><button class="btn primary" type="submit">Apply</button><span class="help">CLI: <span class="mono">config system snmp sysinfo</span></span></div></form>
+      <section class="card widget"><h2>Reachability</h2><p style="margin:0 0 8px">${on ? (ifs.length ? pill('Answering on ' + ifs.join(', '), 'ok') : pill('Agent on, but no interface allows SNMP', 'warn')) : pill('Agent disabled', 'mute')}</p><p class="help" style="margin:0">Polling also needs SNMP under the interface's Administrative Access, and the poller's IP in the community's hosts. Never allow SNMP on the WAN.</p></section></div>
+      <div class="toolbar"><button class="btn primary" data-act="snmp-new">${I.plus} Create New</button><span class="help">SNMP v1/v2c communities</span></div>
+      <div class="tablewrap"><table class="grid"><thead><tr><th>Community</th><th>Hosts</th><th>Queries</th><th>Traps</th><th>Status</th><th></th></tr></thead><tbody>${N.communities.map(c => `<tr><td class="mono">${esc(c.name)}</td><td>${chips(c.hosts)}</td><td>${c.queries ? 'v1, v2c' : '<span class="muted">off</span>'}</td><td>${c.traps ? 'v1, v2c' : '<span class="muted">off</span>'}</td><td>${pill(c.status === 'disable' ? 'Disabled' : 'Enabled', c.status === 'disable' ? 'mute' : 'ok')}</td><td class="acts">${actBtn('snmp-edit', c.id, I.edit, 'Edit')}${actBtn('snmp-del', c.id, I.del, 'Delete')}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">No communities.</td></tr>'}</tbody></table></div>`;
+  };
+
+  /* ---------- System > Firmware & Registration ---------- */
+  SIM.FIRMWARE = [['7.4.6', 2726, 'Patch. Fixes a critical SSL-VPN heap overflow (lab advisory).'], ['7.4.7', 2731, 'Patch. Bug fixes, recommended for 7.4.'], ['7.6.0', 3401, 'Feature release. Read the upgrade path and release notes before a major jump.']];
+  const fwVer = () => { const m = /v(\d+\.\d+\.\d+)/.exec(S.system.osver || ''); return m ? m[1] : '0.0.0'; };
+  const verN = v => v.split('.').reduce((a, x) => a * 1000 + +x, 0);
+  const fwNewer = () => SIM.FIRMWARE.filter(([v]) => verN(v) > verN(fwVer()));
+  P.firmware = () => head('Current firmware, available upgrades and registration. Back up the configuration before every upgrade.') +
+    `<div class="dash"><section class="card widget"><h2>Firmware</h2><dl class="kv"><dt>Current version</dt><dd class="mono">${esc(S.system.osver)}</dd><dt>Model</dt><dd>${esc(S.system.model)}</dd><dt>Status</dt><dd>${fwNewer().length ? pill('Upgrade available', 'warn') : pill('Up to date', 'ok')}</dd></dl></section>
+    <section class="card widget"><h2>Registration</h2><dl class="kv"><dt>Serial number</dt><dd class="mono">${esc(S.system.serial)}</dd><dt>Account</dt><dd>Lab registration</dd><dt>Support</dt><dd>${pill('Licensed (lab)', 'ok')}</dd></dl></section></div>
+    <div class="toolbar"><span class="help">Upgrading reboots the firewall: sessions drop and the uptime resets. CLI: <span class="mono">execute restore image</span></span><span class="grow"></span><button class="btn" data-act="nav" data-id="backup">Backup config first</button></div>
+    <div class="tablewrap"><table class="grid"><thead><tr><th>Version</th><th>Build</th><th>Notes</th><th></th></tr></thead><tbody>${SIM.FIRMWARE.map(([v, b, n]) => { const newer = verN(v) > verN(fwVer()), cur = v === fwVer(); return `<tr class="${newer ? '' : 'off'}"><td class="mono">v${esc(v)}</td><td class="num">${b}</td><td>${esc(n)}</td><td class="acts">${cur ? pill('Current', 'info') : newer ? `<button class="btn" style="height:26px" data-act="fw-up" data-id="${esc(v)}">Upgrade</button>` : ''}</td></tr>`; }).join('')}</tbody></table></div>`;
 
   /* ================= AZURE PAGES ================= */
   /* Every value from st.azure is passed through esc(); ids for data-* attributes are "rg/name" (no Azure name can contain "/"). */
@@ -5769,14 +6138,14 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     'adm-del': d => del('system admin', d.id, () => { const a = S.admins.find(x => x.name === d.id); if (a.profile === 'super_admin' && S.admins.filter(x => x.profile === 'super_admin').length <= 1) return 'Cannot delete the last super_admin account.'; S.admins = S.admins.filter(x => x.name !== d.id); }),
     'bk-copy': () => copyText(JSON.stringify(S), 'Configuration copied'),
     'bk-copycli': () => copyText($('#fullCfg').textContent, 'CLI configuration copied'),
-    'bk-restore': () => { NMS.on = false; NMS.inc = null; let o; try { o = JSON.parse($('#bkIn').value); } catch (e) { toast('Restore failed', 'That is not valid backup JSON.', 'bad'); return; } SIM.AZ.migrate(o); if (!valid(o)) { toast('Restore failed', 'That backup is not from this lab.', 'bad'); return; } learnFix(o); S = o; S.sessions = []; S.threats = S.threats || {}; LIVE.setState(S); evaluate(true); commit('configuration restored from backup'); toast('Restored', 'Backup loaded.', 'ok'); },
+    'bk-restore': () => { NMS.on = false; NMS.inc = null; let o; try { o = JSON.parse($('#bkIn').value); } catch (e) { toast('Restore failed', 'That is not valid backup JSON.', 'bad'); return; } SIM.AZ.migrate(o); if (!valid(o)) { toast('Restore failed', 'That backup is not from this lab.', 'bad'); return; } learnFix(o); SIM.gui74(o); S = o; S.sessions = []; S.threats = S.threats || {}; LIVE.setState(S); evaluate(true); commit('configuration restored from backup'); toast('Restored', 'Backup loaded.', 'ok'); },
     'bk-reset': () => confirmBox('Reset the lab?', 'This puts the firewall back to its starting state and clears all mission progress. It cannot be undone unless you copied a backup.', 'Reset lab', () => { NMS.on = false; NMS.inc = null; const keep = learnOf(); S = SIM.seed(); S.learn = Object.assign({}, keep, { pending: false }); LIVE.setState(S); UI.lookup = null; evaluate(true); setTimeout(() => toast('Lab reset', 'Back to how the old IT guy left it.'), 50); }),
     'mis-open': d => { UI.open = UI.open === d.id ? null : d.id; if (UI.open) UI.openedAt = { id: d.id, t: Date.now() }; renderDrawer(); },
     'mis-hint': d => { const m = MISSIONS.find(x => x.id === d.id); if (!m) return; learnAsk(m); scheduleSave(); renderDrawer(); },
     'learn-yes': () => { learnSetMode('guided', 'offer'); scheduleSave(); renderDrawer(); },
     'learn-no': () => { learnSetMode('standard', 'offer'); scheduleSave(); renderDrawer(); toast('Short hints it is', 'Switch to Guided at the top of the missions panel any time.'); },
     'learn-mode': d => { learnSetMode(d.id, 'toggle'); scheduleSave(); renderDrawer(); },
-    'learn-go': d => { if (d.id === 'lookup') { $('#lookupBtn').click(); return; } if (d.key && d.tab) UI.tab[d.key] = d.tab; if (PAGES.includes(d.id)) go(d.id); },
+    'learn-go': d => { if (d.id === 'lookup') { A['lk-open'](); return; } if (d.key && d.tab) UI.tab[d.key] = d.tab; if (PAGES.includes(d.id)) go(d.id); },
     'mis-cli': d => { const r = S.missions[d.id] || (S.missions[d.id] = { hints: 0 }); r.showCli = true; scheduleSave(); renderDrawer(); },
     'mis-ans': d => { const inp = document.getElementById('ans_' + d.id); S.answers[d.id] = inp.value; const ok = MISSIONS.find(m => m.id === d.id).check(S).every(x => x.ok); if (!ok) toast('Not quite', 'Check again and resubmit.', 'bad'); commit(); },
     'drawer-close': () => { UI.drawer = false; renderAll(); },
@@ -5975,6 +6344,146 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     tfKeep(() => commit());
   }, 1000);
 
+  /* ---------- FortiOS 7.4 layout: actions, forms and inline-form submits for the pages above ---------- */
+  const nextId = arr => Math.max(0, ...arr.map(x => +x.id || 0)) + 1;
+  const cidrOk = s => { const r = SIM.parseIpMask(String(s || '').trim()); return r ? cidr(SIM.n2ip(SIM.netOf(r.ip, r.bits)), r.bits) : null; };
+  Object.assign(A, {
+    menu: d => { UI.menu = UI.menu === d.id ? null : d.id; renderMain(); },
+    'lk-open': () => { UI.menu = null; UI.lkOpen = true; if (UI.page !== 'policy') go('policy'); else renderMain(); setTimeout(() => { const i = $('#lk_srcip'); if (i) i.focus(); }, 30); },
+    'lk-close': () => { UI.lkOpen = false; renderMain(); },
+    'pol-view': d => { UI.polView = d.id === 'pair' ? 'pair' : 'seq'; renderMain(); },
+    'sec-new': () => { UI.menu = null; ED.section(); }, 'sec-edit': d => ED.section(d.id),
+    'sec-del': d => confirmBox('Delete this section?', 'The policies stay where they are; only the section header goes away.', 'Delete', () => { const p = S.policies.find(x => x.id === +d.id); if (p) delete p.label; commit('firewall policy section removed'); }),
+    'if-grp': d => { UI.ifClosed = UI.ifClosed || {}; UI.ifClosed[d.id] = !UI.ifClosed[d.id]; renderMain(); },
+    'log-sel': d => { UI.logSel = d.id && UI.logSel !== d.id ? d.id : null; renderMain(); },
+    'pc-new': () => openForm({
+      title: 'New Packet Capture', data: { iface: 'port2', filter: '', max: 40 }, msg: x => `packet capture on ${x.iface} created`,
+      fields: [{ key: 'iface', label: 'Interface', type: 'select', options: () => SIM.ifaceNames(S) }, { key: 'filter', label: 'Filter', mono: true, placeholder: "host 10.10.10.20 and port 443", help: 'host <ip>, port <n>, icmp. Blank = everything' }, { key: 'max', label: 'Maximum captured packets', type: 'number' }],
+      onSave: x => { const m = +x.max; if (!(m >= 1 && m <= 500)) return 'Maximum packets: 1 to 500.'; if (/[^a-z0-9 .]/i.test(x.filter || '')) return 'Filter: use host, port, icmp, and, or with IPs and numbers.'; S.pcap.push({ id: nextId(S.pcap), iface: x.iface, filter: (x.filter || '').trim(), max: m, status: 'idle', packets: [] }); }
+    }),
+    'pc-run': d => { const c = S.pcap.find(x => x.id === +d.id); if (!c) return; pcapRun(c); UI.pcapOpen = c.id; commit(); toast('Capture complete', `${c.packets.length} line(s) on ${c.iface}.`); },
+    'pc-view': d => { UI.pcapOpen = +d.id || null; renderMain(); },
+    'pc-del': d => del('packet capture', 'this capture', () => { S.pcap = S.pcap.filter(x => x.id !== +d.id); }),
+    'sd-mem-new': () => openForm({
+      title: 'New SD-WAN Member', data: { iface: '', gateway: '', cost: 0 }, msg: x => `system sdwan member ${x.iface} added`,
+      fields: [{ key: 'iface', label: 'Interface', type: 'select', options: () => [['', 'Select…']].concat(S.interfaces.filter(i => !S.sdwan.members.some(m => m.iface === i.name)).map(i => i.name)) }, { key: 'gateway', label: 'Gateway', mono: true, help: 'Next hop on that link' }, { key: 'cost', label: 'Cost', type: 'number' }],
+      onSave: x => { if (!x.iface) return 'Pick an interface.'; const r = SIM.usedBy(S, 'iface', x.iface); if (r.length) return `${x.iface} is still referenced by ${r.length} object(s) (${r.slice(0, 3).join(', ')}${r.length > 3 ? '…' : ''}). FortiOS only lets an unreferenced interface join SD-WAN: remove those references first.`; if (x.gateway && !ipOk(x.gateway)) return 'Gateway must be an IP address.'; S.sdwan.members.push({ id: nextId(S.sdwan.members), iface: x.iface, gateway: (x.gateway || '').trim(), cost: +x.cost || 0 }); }
+    }),
+    'sd-mem-del': d => del('system sdwan member', 'this SD-WAN member', () => { const id = +d.id; if (S.sdwan.rules.some(r => (r.members || []).map(Number).includes(id)) || S.sdwan.healthChecks.some(h => (h.members || []).map(Number).includes(id))) return 'A rule or performance SLA still uses this member.'; S.sdwan.members = S.sdwan.members.filter(m => m.id !== id); }),
+    'sd-hc-new': () => openForm({
+      title: 'New Performance SLA', data: { name: '', server: '8.8.8.8', protocol: 'ping', members: [] }, msg: x => `system sdwan health-check ${x.name} created`,
+      fields: [{ key: 'name', label: 'Name', mono: true }, { key: 'protocol', label: 'Protocol', type: 'select', options: [['ping', 'Ping'], ['http', 'HTTP'], ['dns', 'DNS']] }, { key: 'server', label: 'Server', mono: true }, { key: 'members', label: 'Participants', type: 'checks', options: () => S.sdwan.members.map(m => [String(m.id), m.iface]) }],
+      onSave: x => { if (!nameOk(x.name)) return nameErr; if (S.sdwan.healthChecks.some(h => h.name === x.name)) return 'That name is taken.'; if (!ipOk(x.server)) return 'Server must be an IP address.'; S.sdwan.healthChecks.push({ name: x.name, server: x.server.trim(), protocol: x.protocol, members: x.members.map(Number) }); }
+    }),
+    'sd-hc-del': d => del('system sdwan health-check', d.id, () => { S.sdwan.healthChecks = S.sdwan.healthChecks.filter(h => h.name !== d.id); }),
+    'sd-rule-new': () => openForm({
+      title: 'New SD-WAN Rule', data: { name: '', dst: '0.0.0.0/0', mode: 'manual', members: [] }, msg: x => `system sdwan service ${x.name} created`,
+      fields: [{ key: 'name', label: 'Name', mono: true }, { key: 'dst', label: 'Destination', mono: true }, { key: 'mode', label: 'Outgoing interfaces strategy', type: 'select', options: [['manual', 'Manual'], ['best-quality', 'Best Quality'], ['lowest-cost', 'Lowest Cost (SLA)']] }, { key: 'members', label: 'Interface preference', type: 'checks', options: () => S.sdwan.members.map(m => [String(m.id), m.iface]) }],
+      onSave: x => { if (!nameOk(x.name)) return nameErr; const dst = cidrOk(x.dst); if (!dst) return 'Destination must be a subnet like 0.0.0.0/0.'; if (!x.members.length) return 'Pick at least one member.'; S.sdwan.rules.push({ id: nextId(S.sdwan.rules), name: x.name, dst, mode: x.mode, members: x.members.map(Number) }); }
+    }),
+    'sd-rule-del': d => del('system sdwan service', 'this SD-WAN rule', () => { S.sdwan.rules = S.sdwan.rules.filter(r => r.id !== +d.id); }),
+    'pbr-new': () => ED.pbr(), 'pbr-edit': d => ED.pbr(+d.id),
+    'pbr-del': d => del('router policy', 'this policy route', () => { S.pbr = S.pbr.filter(r => r.id !== +d.id); }),
+    'wz-back': () => { const W = wiz(); UI.wizErr = ''; W.step = Math.max(1, W.step - 1); renderMain(); },
+    'wz-cancel': () => { UI.wiz = null; UI.wizErr = ''; go('ipsec'); },
+    'cert-new': d => { UI.menu = null; const ca = d.id === 'remote-ca'; openForm({
+      title: ca ? 'Import CA Certificate' : 'Import Certificate', data: { name: '', cn: '', days: 365 }, msg: x => `vpn certificate ${ca ? 'ca' : 'local'} ${x.name} imported`,
+      fields: [{ key: 'name', label: 'Certificate name', mono: true }, { key: 'cn', label: 'Subject (CN)', mono: true, placeholder: ca ? 'Talvex Issuing CA' : 'fw.corp.talvex.example' }, { key: 'days', label: 'Valid for (days)', type: 'number', help: 'Lab shortcut: sets the expiry date from today' }],
+      onSave: x => { if (!nameOk(x.name)) return nameErr; if (S.certs.some(c => c.name === x.name)) return 'A certificate with that name exists.'; if (!x.cn) return 'Enter the subject.'; const dd = +x.days; if (!(dd >= -3650 && dd <= 3650)) return 'Days: -3650 to 3650.'; S.certs.push({ name: x.name, type: ca ? 'remote-ca' : 'local', subject: 'CN=' + x.cn, issuer: ca ? 'CN=' + x.cn : 'CN=Talvex Issuing CA', expires: Date.now() + dd * 86400000, usedBy: '' }); }
+    }); },
+    'cert-del': d => del('vpn certificate', d.id, () => { const c = S.certs.find(x => x.name === d.id); if (c && c.usedBy) return `Still used by ${c.usedBy}.`; S.certs = S.certs.filter(x => x.name !== d.id); }),
+    'snmp-new': () => ED.snmp(), 'snmp-edit': d => ED.snmp(+d.id),
+    'snmp-del': d => del('system snmp community', 'this community', () => { S.snmp.communities = S.snmp.communities.filter(c => c.id !== +d.id); }),
+    'fw-up': d => { const f = SIM.FIRMWARE.find(x => x[0] === d.id); if (!f) return; confirmBox(`Upgrade to v${f[0]}?`, `The firewall reboots: every session drops and comes back once traffic resumes. In real life: back up the configuration and read the upgrade path first. ${verN(f[0]) - verN(fwVer()) >= 1000 ? 'This is a major-version jump.' : ''}`, 'Upgrade', () => {
+      S.system.osver = `v${f[0]} build ${f[1]} (lab simulation)`; S.system.bootedAt = Date.now(); S.sessions = [];
+      SIM.event(S, 'system', 'warning', `Firmware upgraded to v${f[0]} build ${f[1]} by admin via GUI. System rebooted`);
+      commit(); toast('Upgrade complete', `Running v${f[0]} build ${f[1]}.`, 'ok');
+    }); }
+  });
+  ED.section = pid => {
+    const p0 = pid ? S.policies.find(p => p.id === +pid) : null;
+    openForm({
+      title: p0 ? 'Edit Section' : 'New Section', data: { name: p0 ? p0.label : '', at: String(p0 ? p0.id : (S.policies[0] || {}).id || '') }, msg: x => `firewall policy section "${x.name}" saved`,
+      fields: [{ key: 'name', label: 'Section name', help: 'Sections are labels in Sequence view. They group rules for people; they do not change matching order.' }, { key: 'at', label: 'Starts at policy', type: 'select', options: () => S.policies.map(p => [String(p.id), `${p.id}${p.name ? ' · ' + p.name : ''}`]), ro: !!p0 }],
+      onSave: x => { const n = String(x.name || '').trim(); if (!n || n.length > 63) return 'Name: 1 to 63 characters.'; const p = S.policies.find(q => q.id === +x.at); if (!p) return 'Pick a policy.'; if (p0 && p0 !== p) delete p0.label; p.label = n; }
+    });
+  };
+  ED.pbr = id => {
+    const o = id ? S.pbr.find(r => r.id === id) : { srcintf: 'port2', src: '0.0.0.0/0', dst: '0.0.0.0/0', proto: 0, port: '', action: 'forward', outdev: 'port1', gateway: '', status: 'enable', comment: '' };
+    openForm({
+      title: id ? 'Edit Policy Route' : 'New Policy Route', data: Object.assign({}, o, { proto: String(o.proto), status: o.status !== 'disable' }), msg: () => `router policy ${id ? 'edited' : 'created'}`,
+      fields: [{ type: 'section', label: 'If incoming traffic matches' }, { key: 'srcintf', label: 'Incoming interface', type: 'select', options: () => SIM.ifaceNames(S) }, { key: 'src', label: 'Source address', mono: true }, { key: 'dst', label: 'Destination address', mono: true }, { key: 'proto', label: 'Protocol', type: 'select', options: [['0', 'ANY'], ['6', 'TCP'], ['17', 'UDP'], ['1', 'ICMP']] }, { key: 'port', label: 'Destination port', mono: true, show: x => x.proto === '6' || x.proto === '17' },
+        { type: 'section', label: 'Then' }, { key: 'action', label: 'Action', type: 'select', options: [['forward', 'Forward Traffic'], ['deny', 'Stop Policy Routing']] }, { key: 'outdev', label: 'Outgoing interface', type: 'select', options: () => SIM.ifaceNames(S), show: x => x.action === 'forward' }, { key: 'gateway', label: 'Gateway address', mono: true, show: x => x.action === 'forward' }, { key: 'status', label: 'Status', type: 'toggle' }, { key: 'comment', label: 'Comments' }],
+      onSave: x => {
+        const src = cidrOk(x.src), dst = cidrOk(x.dst); if (!src || !dst) return 'Source and destination must be subnets like 10.10.10.0/24.';
+        const port = (x.proto === '6' || x.proto === '17') && x.port ? +x.port : 0; if (port && !(port >= 1 && port <= 65535)) return 'Port: 1 to 65535.';
+        if (x.action === 'forward' && x.gateway && !ipOk(x.gateway)) return 'Gateway must be an IP address.';
+        const v = { srcintf: x.srcintf, src, dst, proto: +x.proto, port, action: x.action, outdev: x.action === 'forward' ? x.outdev : '', gateway: x.action === 'forward' ? (x.gateway || '').trim() : '', status: x.status ? 'enable' : 'disable', comment: x.comment || '' };
+        if (id) Object.assign(S.pbr.find(r => r.id === id), v); else S.pbr.push(Object.assign({ id: nextId(S.pbr) }, v));
+      }
+    });
+  };
+  ED.snmp = id => {
+    const o = id ? S.snmp.communities.find(c => c.id === id) : { name: '', hosts: [], queries: true, traps: true, status: 'enable' };
+    openForm({
+      title: id ? 'Edit SNMP Community' : 'New SNMP Community', data: { name: o.name, hosts: (o.hosts || []).join('\n'), queries: !!o.queries, traps: !!o.traps, status: o.status !== 'disable' }, msg: x => `system snmp community ${x.name} saved`,
+      fields: [{ key: 'name', label: 'Community name', mono: true, help: 'Treat it like a password: never "public"' }, { key: 'hosts', label: 'Hosts', type: 'textarea', mono: true, help: 'One IP or subnet per line: the pollers allowed to query' }, { key: 'queries', label: 'v1/v2c queries', type: 'toggle' }, { key: 'traps', label: 'v1/v2c traps', type: 'toggle' }, { key: 'status', label: 'Status', type: 'toggle' }],
+      onSave: x => {
+        if (!nameOk(x.name)) return nameErr; if (S.snmp.communities.some(c => c.name === x.name && c.id !== id)) return 'That community exists.';
+        const hosts = []; for (const l of String(x.hosts || '').split(/\n+/).map(s => s.trim()).filter(Boolean)) { const h = cidrOk(l.includes('/') ? l : l + '/32'); if (!h) return `"${l}" is not an IP or subnet.`; hosts.push(h); }
+        const v = { name: x.name, hosts, queries: !!x.queries, traps: !!x.traps, status: x.status ? 'enable' : 'disable' };
+        if (id) Object.assign(S.snmp.communities.find(c => c.id === id), v); else S.snmp.communities.push(Object.assign({ id: nextId(S.snmp.communities) }, v));
+      }
+    });
+  };
+  document.addEventListener('submit', e => {
+    const f = e.target, k = f && f.dataset && f.dataset.g74; if (!k) return;
+    e.preventDefault();
+    const fd = new FormData(f), g = n => String(fd.get(n) == null ? '' : fd.get(n)).trim();
+    if (k === 'dns') {
+      const mode = g('mode') === 'fortiguard' ? 'fortiguard' : 'specify', p = g('primary'), s = g('secondary');
+      if (mode === 'specify' && !ipOk(p)) { toast('Not saved', 'Primary DNS must be an IP address.', 'bad'); return; }
+      if (s && !ipOk(s)) { toast('Not saved', 'Secondary DNS must be an IP address (or blank).', 'bad'); return; }
+      if (g('domain') && !/^[a-z0-9.-]{1,127}$/i.test(g('domain'))) { toast('Not saved', 'Local domain: letters, numbers, dots and dashes.', 'bad'); return; }
+      Object.assign(S.dns, { mode, primary: p, secondary: s, domain: g('domain'), protocol: ['cleartext', 'dot', 'doh'].includes(g('protocol')) ? g('protocol') : 'cleartext' });
+      UI.dnsTest = null; commit('system dns edited'); toast('DNS settings applied', '');
+    } else if (k === 'dnstest') { UI.dnsTest = dnsTest(g('q')); renderMain(); }
+    else if (k === 'ha') {
+      const pr = +g('priority'), gid = +g('groupId'), mode = ['standalone', 'a-p', 'a-a'].includes(g('mode')) ? g('mode') : 'standalone', hb = fd.getAll('hbdev').map(String);
+      if (!(pr >= 0 && pr <= 255) || g('priority') === '') { toast('Not saved', 'Device priority: 0 to 255.', 'bad'); return; }
+      if (!(gid >= 0 && gid <= 1023) || g('groupId') === '') { toast('Not saved', 'Group ID: 0 to 1023.', 'bad'); return; }
+      if (!nameOk(g('group'), 32)) { toast('Not saved', 'Group name: up to 32 letters, numbers, dot, dash or underscore.', 'bad'); return; }
+      if (mode !== 'standalone' && !hb.length) { toast('Not saved', 'Pick at least one heartbeat interface.', 'bad'); return; }
+      const was = S.ha.mode;
+      Object.assign(S.ha, { mode, priority: pr, groupId: gid, group: g('group'), override: g('override') === 'enable' ? 'enable' : 'disable', sessionPickup: g('sessionPickup') === 'enable' ? 'enable' : 'disable', hbdev: hb, monitor: fd.getAll('monitor').map(String) });
+      if (was !== mode) SIM.event(S, 'ha', 'notice', `HA mode changed from ${was} to ${mode}`);
+      commit('system ha edited'); toast('HA settings applied', mode === 'standalone' ? '' : 'Waiting for a peer on the heartbeat link.');
+    } else if (k === 'snmp') {
+      Object.assign(S.snmp, { status: fd.get('status') ? 'enable' : 'disable', description: g('description').slice(0, 255), location: g('location').slice(0, 255), contact: g('contact').slice(0, 255) });
+      commit('system snmp sysinfo edited'); toast('SNMP settings applied', '');
+    } else if (k === 'wizard') {
+      const W = wiz();
+      if (W.step === 1 && W.tmpl === 'custom') { UI.wiz = null; UI.wizErr = ''; go('ipsec'); A['vpn-new'](); return; }
+      if (W.step < 4) { const err = wizCheck(W, W.step); UI.wizErr = err; if (!err) W.step++; renderMain(); return; }
+      for (const s of [1, 2, 3]) { const err = wizCheck(W, s); if (err) { UI.wizErr = err; W.step = s; renderMain(); return; } }
+      const err = wizCreate(W); if (err) { UI.wizErr = err; renderMain(); return; }
+      const n = W.name; UI.wiz = null; UI.wizErr = ''; commit(`vpn ipsec ${n} created by wizard`); go('ipsec'); toast('VPN created', `${n}: tunnel, objects, route and two policies.`, 'ok');
+    }
+  });
+  document.addEventListener('input', e => { const t = e.target; if (t.dataset && t.dataset.wz && t.type !== 'radio') wiz()[t.dataset.wz] = t.value; });
+  document.addEventListener('change', e => {
+    const t = e.target; if (!t.dataset) return;
+    if (t.dataset.wz) { wiz()[t.dataset.wz] = t.value; if (t.type === 'radio') renderMain(); }
+    if (t.dataset.actChange === 'ev-sub') { UI.evSub = t.value; renderMain(); }
+    if (t.dataset.actChange === 'sd-status') { const on = t.checked; if (on && !S.sdwan.members.length) toast('SD-WAN enabled', 'Add at least one member interface before it can steer anything.'); S.sdwan.status = on ? 'enable' : 'disable'; commit(`system sdwan status ${S.sdwan.status}`); }
+  });
+  document.addEventListener('click', e => {
+    if (e.target && e.target.classList && e.target.classList.contains('g74-lkback')) { UI.lkOpen = false; renderMain(); return; }
+    if (UI.menu && !(e.target.closest && e.target.closest('[data-menu]'))) { UI.menu = null; setTimeout(renderMain, 0); }
+    else if (UI.menu && e.target.closest && e.target.closest('.g74-menu [data-act]')) { UI.menu = null; setTimeout(renderMain, 0); }
+  }, true);
+  document.addEventListener('keydown', e => { if (e.key !== 'Escape' || F) return; if (UI.menu) { UI.menu = null; renderMain(); } else if (UI.lkOpen) { UI.lkOpen = false; renderMain(); } });
+
   /* ---------- delegated events (main + drawer) ---------- */
   document.addEventListener('click', e => {
     const b = e.target.closest('[data-act]'); if (!b || b.closest('#modalRoot')) return;
@@ -6145,7 +6654,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
 
   /* where a hint points: menu labels that can be opened with one click */
   const LEARN_PLACES = [
-    ['Forward Traffic', 'logs', 'logs', 'traffic'], ['Local Traffic', 'logs', 'logs', 'local'], ['System Events', 'logs', 'logs', 'event'],
+    ['Forward Traffic', 'log-forward'], ['Local Traffic', 'log-local'], ['System Events', 'log-event'], ['Security Events', 'log-security'], ['Routing Monitor', 'route-monitor'], ['IPsec Wizard', 'vpn-wizard'],
     ['Address Group', 'addresses', 'addr', 'grp'], ['Policy Lookup', 'lookup'], ['Sessions page', 'sessions'],
     ['Site-to-site VPN', 'az-vpn'], ['Resource groups', 'az-rgs'], ['Virtual networks', 'az-vnets'], ['Virtual machines', 'az-vms'], ['Activity log', 'az-activity'],
     ['System Information', 'dashboard'], ['Administrative Access', 'interfaces'], ['URL Filter', 'webfilter']
@@ -6568,7 +7077,14 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
   /* ================= RENDER ================= */
   function renderRail() {
     const active = k => UI.page === k || (UI.page === 'az-vnet' && k === 'az-vnets');
-    $('#rail').innerHTML = (UI.view === 'azure' ? AZNAV : NAV).map(g => (g.grp ? `<div class="grp">${g.icon}${esc(g.grp)}</div>` : '') + g.items.map(([k, l, ic]) => `<a href="#${k}" class="${active(k) ? 'active' : ''} ${ic ? 'top-link' : ''}" data-page="${k}">${ic || ''}${esc(l)}</a>`).join('')).join('');
+    const az = UI.view === 'azure', open = UI.railOpen || (UI.railOpen = {});
+    const link = ([k, l, ic]) => `<a href="#${k}" class="${active(k) ? 'active' : ''} ${ic ? 'top-link' : ''}" data-page="${k}">${ic || ''}${esc(l)}</a>`;
+    $('#rail').innerHTML = (az ? AZNAV : NAV).map(g => {
+      if (!g.grp) return g.items.map(link).join('');
+      if (az) return `<div class="grp">${g.icon}${esc(g.grp)}</div>` + g.items.map(link).join('');
+      const has = g.items.some(([k]) => active(k)), on = open[g.grp] === undefined ? has : open[g.grp];
+      return `<button type="button" class="grp g74-grpbtn ${has ? 'has' : ''}" data-grp="${esc(g.grp)}" aria-expanded="${on}">${g.icon}<span>${esc(g.grp)}</span><span class="g74-tw ${on ? 'open' : ''}">${I.caret}</span></button>` + (on ? g.items.map(link).join('') : '');
+    }).join('');
   }
   function renderHeader() {
     const az = UI.view === 'azure';
@@ -6579,11 +7095,12 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     $('#lookupBtn').hidden = az;
     $('#saveDot').innerHTML = `<i></i><span class="txt">Not saved · </span><span class="num">${fmtElapsed(LIVE.elapsed())}</span>`;
     const d = doneCount(); $('#progTxt').textContent = `${d}/${MISSIONS.length}`; $('#progBar').style.width = Math.round(d / MISSIONS.length * 100) + '%';
-    $('#misBtn').classList.toggle('on', UI.drawer && UI.drawerMode !== 'nm'); $('#nmBtn').classList.toggle('nm-on', NMS.on || (UI.drawer && UI.drawerMode === 'nm')); $('#lookupBtn').classList.toggle('on', UI.page === 'policy');
+    $('#misBtn').classList.toggle('on', UI.drawer && UI.drawerMode !== 'nm'); $('#nmBtn').classList.toggle('nm-on', NMS.on || (UI.drawer && UI.drawerMode === 'nm')); $('#lookupBtn').classList.toggle('on', !!UI.lkOpen);
   }
   function renderMain() { const m = $('#main'); const sc = m.scrollTop; m.innerHTML = (P[UI.page] || P.dashboard)(); m.scrollTop = sc; }
   function renderAll() { renderHeader(); renderRail(); renderMain(); renderDrawer(); termPrompt(); }
   function go(p) {
+    p = unalias(p); UI.menu = null; UI.lkOpen = false; UI.logSel = null;
     if (!PAGES.includes(p)) p = 'dashboard';
     if (p === 'az-vnet' && !curVnet()) p = 'az-vnets';
     if (location.hash !== '#' + p) { try { history.replaceState(null, '', '#' + p); } catch (e) { } }
@@ -6593,23 +7110,26 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
   function switchView(v) { go(UI.last[v === 'azure' ? 'azure' : 'fg']); }
   $('#vFG').addEventListener('click', () => switchView('fg'));
   $('#vAZ').addEventListener('click', () => switchView('azure'));
-  $('#rail').addEventListener('click', e => { const a = e.target.closest('a[data-page]'); if (!a) return; e.preventDefault(); go(a.dataset.page); });
-  window.addEventListener('hashchange', () => { const p = location.hash.slice(1); if (p && p !== UI.page) go(p); });
+  $('#rail').addEventListener('click', e => {
+    const g = e.target.closest('[data-grp]'); if (g) { const o = UI.railOpen || (UI.railOpen = {}); o[g.dataset.grp] = g.getAttribute('aria-expanded') !== 'true'; renderRail(); return; }
+    const a = e.target.closest('a[data-page]'); if (!a) return; e.preventDefault(); const p = unalias(a.dataset.page); for (const x of NAV) if (x.grp && x.items.some(([k]) => k === p) && UI.railOpen) delete UI.railOpen[x.grp]; go(p);
+  });
+  window.addEventListener('hashchange', () => { const p = unalias(location.hash.slice(1)); if (p && p !== UI.page) go(p); });
   $('#menuBtn').addEventListener('click', () => $('#rail').classList.toggle('open'));
   $('#misBtn').addEventListener('click', () => { const open = UI.drawer && UI.drawerMode !== 'nm'; UI.drawerMode = 'missions'; UI.drawer = !open; renderAll(); });
   $('#nmBtn').addEventListener('click', () => { const open = UI.drawer && UI.drawerMode === 'nm'; UI.drawerMode = 'nm'; UI.drawer = !open; renderAll(); });
-  $('#lookupBtn').addEventListener('click', () => { go('policy'); setTimeout(() => { const c = $('#lookupCard'); if (c) { c.scrollIntoView({ block: 'start' }); const i = $('#lk_srcip'); if (i) i.focus(); } }, 30); });
+  $('#lookupBtn').addEventListener('click', () => A['lk-open']());
 
   // boot
   evaluate(true);
-  UI.page = PAGES.includes(location.hash.slice(1)) && location.hash.slice(1) !== 'az-vnet' ? location.hash.slice(1) : 'dashboard';
+  { const h = unalias(location.hash.slice(1)); UI.page = PAGES.includes(h) && h !== 'az-vnet' ? h : 'dashboard'; }
   UI.view = viewOf(UI.page); UI.last[UI.view] = UI.page;
   UI.drawer = window.innerWidth > 1100;
   { const first = MISSIONS.find(m => !isDone(m)); UI.open = first ? first.id : null; }
   renderAll(); renderTerm();
   $('#saveDot').className = 'save-dot offline';
 
-  const liveSet = new Set(['dashboard', 'logs', 'sessions', 'policy', 'interfaces', 'routes', 'ipsec', 'az-home', 'az-vpn', 'az-vms', 'az-nsgs', 'az-activity']);
+  const liveSet = new Set(['dashboard', 'log-forward', 'log-local', 'log-event', 'log-security', 'route-monitor', 'sessions', 'policy', 'interfaces', 'routes', 'ipsec', 'az-home', 'az-vpn', 'az-vms', 'az-nsgs', 'az-activity']);
   let lastDone = -1;
   function onTick() {
     TELE.tick(S);
