@@ -395,10 +395,15 @@ tr.muted td { color: var(--muted); }
     <div class="viewsw" role="group" aria-label="Portal"><button type="button" id="vFG" aria-pressed="true">FortiGate</button><button type="button" id="vAZ" aria-pressed="false">Azure</button></div>
     <div class="spacer"></div>
     <span class="save-dot" id="saveDot"><i></i><span class="txt">Saved</span></span>
-    <button class="tbtn" id="lookupBtn" title="Policy Lookup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><span class="lbl">Policy Lookup</span></button>
-    <button class="tbtn" id="cliBtn" title="CLI Console"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l6-5-6-5M12 19h8"/></svg><span class="lbl">CLI</span></button>
     <button class="tbtn" id="nmBtn" title="Nightmare mode: random production incidents" aria-label="Nightmare mode"><svg class="nm-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c-4.4 0-8 3.2-8 7.4 0 2.4 1.2 4.4 3 5.7V19a1 1 0 0 0 1 1h1.5v-2h1v2h3v-2h1v2H16a1 1 0 0 0 1-1v-2.9c1.8-1.3 3-3.3 3-5.7C20 6.2 16.4 3 12 3z"/><circle cx="9" cy="11" r="1.6"/><circle cx="15" cy="11" r="1.6"/></svg><span>Nightmare</span></button>
     <button class="tbtn" id="misBtn" title="Missions"><span class="prog"><span class="lbl">Missions</span><span class="bar"><i id="progBar" style="width:0%"></i></span><span id="progTxt" class="num">0/20</span></span></button>
+    <div class="tb-tools" id="tbTools">
+      <div class="tb-search" role="search"><label for="tbSearch" title="Search the menu, policies and objects"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></label><input id="tbSearch" type="search" placeholder="Search" aria-label="Search the menu, policies and objects" autocomplete="off" spellcheck="false" aria-controls="tbSearchRes"><div class="tb-pop tb-res" id="tbSearchRes" role="listbox" hidden></div></div>
+      <button class="tbtn icon" id="bellBtn" title="Notifications" aria-label="Notifications" aria-haspopup="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg><span class="tb-badge" id="bellCount" hidden></span></button>
+      <button class="tbtn icon" id="cliBtn" title="CLI Console" aria-label="CLI Console"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l6-5-6-5M12 19h8"/></svg><span class="tb-gt">&gt;_</span></button>
+      <button class="tbtn" id="userBtn" aria-haspopup="menu" aria-expanded="false" title="Administrator menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg><span class="lbl">admin</span></button>
+      <div class="tb-pop" id="tbPop" hidden></div>
+    </div>
   </header>
   <nav class="rail" id="rail"></nav>
   <main class="main" id="main"></main>
@@ -2668,6 +2673,38 @@ CLI.T = {
       severity: { get: o => o.severity !== 'information' ? o.severity : null, set: (o, v) => { const l = need1(v); if (!['emergency', 'alert', 'critical', 'error', 'warning', 'notification', 'information', 'debug'].includes(l)) throw ERR(`value parse error before '${l}'`); o.severity = l; } }
     }
   },
+  'system dns': {
+    single: true, root: st => (SIM.gui74(st), st.dns),
+    f: {
+      primary: { get: o => o.primary || null, set: (o, v) => { const s = need1(v); if (!SIM.isIp(s)) throw ERR(`value parse error before '${s}'`); o.primary = s; } },
+      secondary: { get: o => o.secondary || null, set: (o, v) => { const s = need1(v); if (!SIM.isIp(s)) throw ERR(`value parse error before '${s}'`); o.secondary = s; } },
+      protocol: { get: o => o.protocol !== 'cleartext' ? o.protocol : null, set: (o, v) => { const m = need1(v); if (!['cleartext', 'dot', 'doh'].includes(m)) throw ERR(`value parse error before '${m}'`); o.protocol = m; } },
+      domain: { get: o => o.domain ? q(o.domain) : null, set: (o, v) => { o.domain = need1(v); } },
+      'server-select-method': { get: () => null, set: () => { } }
+    }
+  },
+  'system ha': {
+    single: true, root: st => (SIM.gui74(st), st.ha),
+    f: {
+      'group-name': { get: o => o.group ? q(o.group) : null, set: (o, v) => { o.group = need1(v); } },
+      'group-id': { get: o => o.groupId ? String(o.groupId) : null, set: (o, v) => { const n = +need1(v); if (!(n >= 0 && n <= 1023)) throw ERR('group-id must be 0-1023'); o.groupId = n; } },
+      mode: { get: o => o.mode !== 'standalone' ? o.mode : null, set: (o, v) => { const m = need1(v); if (!['standalone', 'a-p', 'a-a'].includes(m)) throw ERR(`value parse error before '${m}'`); o.mode = m; } },
+      priority: { get: o => o.priority !== 128 ? String(o.priority) : null, set: (o, v) => { const n = +need1(v); if (!(n >= 0 && n <= 255)) throw ERR('priority must be 0-255'); o.priority = n; } },
+      override: { get: o => o.override === 'enable' ? 'enable' : null, set: (o, v) => { o.override = en(need1(v)) ? 'enable' : 'disable'; } },
+      'session-pickup': { get: o => o.sessionPickup === 'enable' ? 'enable' : null, set: (o, v) => { o.sessionPickup = en(need1(v)) ? 'enable' : 'disable'; } },
+      hbdev: { get: o => (o.hbdev || []).length ? o.hbdev.map(n => `${q(n)} 50`).join(' ') : null, set: (o, v) => { o.hbdev = v.filter(x => !/^\d+$/.test(x)); } },
+      monitor: { get: o => (o.monitor || []).length ? o.monitor.map(q).join(' ') : null, set: (o, v) => { o.monitor = v.slice(); } }
+    }
+  },
+  'system snmp sysinfo': {
+    single: true, root: st => (SIM.gui74(st), st.snmp),
+    f: {
+      status: { get: o => o.status === 'enable' ? 'enable' : null, set: (o, v) => { o.status = en(need1(v)) ? 'enable' : 'disable'; } },
+      description: { get: o => o.description ? q(o.description) : null, set: (o, v) => { o.description = v.join(' '); } },
+      location: { get: o => o.location ? q(o.location) : null, set: (o, v) => { o.location = v.join(' '); } },
+      'contact-info': { get: o => o.contact ? q(o.contact) : null, set: (o, v) => { o.contact = v.join(' '); } }
+    }
+  },
   'system accprofile': {
     key: 'name', list: st => (st.accprofiles = st.accprofiles || []),
     create: name => ({ name, comment: '', sysgrp: 'none', netgrp: 'none', fwgrp: 'none', loggrp: 'none', utmgrp: 'none', vpngrp: 'none' }),
@@ -4106,6 +4143,47 @@ tr.g74-grp .g74-tw { vertical-align: -2px; margin-right: 6px; }
 .g74-radio.dis { color: var(--muted); }
 .g74-wiz .err { color: var(--bad); margin: 0; }
 .g74-review { grid-template-columns: minmax(120px, max-content) minmax(0, 1fr); }
+</style>
+<style id="g74-top-css">
+/* ---------- FortiOS 7.4 top bar: lab buttons, then Save / Live, then search, bell, >_ and the admin menu ---------- */
+.top > #nmBtn, .top > #misBtn { order: 1; }
+.top > .save-dot, .top > #saveLive { order: 2; }
+.top > .tb-tools { order: 3; }
+.tb-tools { position: relative; display: flex; align-items: center; gap: 6px; min-width: 0; }
+.tbtn.icon { padding: 0 8px; position: relative; }
+#cliBtn svg { display: none; }
+.tb-gt { font: 600 13px/1 var(--f-mono); letter-spacing: -.02em; }
+.tb-badge { position: absolute; top: -5px; right: -5px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: #c0392b; color: #fff; font: 600 10.5px/17px var(--f-mono); text-align: center; }
+.tb-search { position: relative; display: flex; align-items: center; height: 32px; border: 1px solid #2c3d4b; background: #1d2b37; border-radius: 6px; padding-left: 8px; color: #dfe7ee; }
+.tb-search label { display: inline-flex; cursor: pointer; }
+.tb-search svg { width: 15px; height: 15px; opacity: .8; }
+.tb-search input { width: 150px; min-width: 0; height: 30px; border: 0; background: transparent; color: inherit; padding: 0 8px; font: inherit; font-size: 13px; outline: none; transition: width .15s; }
+.tb-search input::placeholder { color: #93a4b3; }
+.tb-search:focus-within { border-color: var(--accent); }
+.tb-pop { position: absolute; top: calc(100% + 8px); right: 0; z-index: 60; width: min(320px, calc(100vw - 24px)); max-height: 70vh; overflow: auto; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); padding: 4px; }
+.tb-pop.tb-res { left: 0; right: auto; width: min(340px, calc(100vw - 24px)); }
+.tb-pop button { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; background: transparent; padding: 8px 10px; border-radius: 5px; text-align: left; cursor: pointer; font: inherit; font-size: 13px; color: var(--ink); }
+.tb-pop button > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.tb-pop button small { color: var(--muted); font-size: 11.5px; white-space: nowrap; }
+.tb-pop button:hover, .tb-pop button.on, .tb-pop button:focus-visible { background: var(--accent-soft); }
+.tb-ph { display: grid; gap: 2px; padding: 8px 10px; font-weight: 600; font-size: 13px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.tb-ph small { font-weight: 400; color: var(--muted); font-size: 12px; }
+.tb-sub { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 8px 10px 2px; }
+.tb-pop hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
+.tb-dot { flex: none !important; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.tb-dot.bad { background: var(--bad); } .tb-dot.warn { background: var(--warn); }
+.g74-login { z-index: 70; background: rgba(8, 14, 20, .82); }
+.g74-login .modal { width: min(380px, 100%); }
+@media (max-width: 1440px) {
+  .tb-search { width: 32px; padding-left: 8px; }
+  .tb-search input { width: 0; padding: 0; }
+  .tb-search:focus-within { position: absolute; right: 0; z-index: 61; width: min(260px, calc(100vw - 24px)); }
+  .tb-search:focus-within input { width: 100%; padding: 0 8px; }
+  .tb-pop.tb-res { left: auto; right: 0; }
+}
+@media (max-width: 1100px) { #userBtn .lbl { display: none; } }
+@media (max-width: 1280px) { #modelLbl { display: none; } }
+@media (max-width: 1100px) { .top > #nmBtn > span, #misBtn .prog > .lbl { display: none; } }
 </style>
 <style id="nm-css">
 /* ---------- Nightmare mode ---------- */
@@ -7092,10 +7170,9 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     $('#hostLbl').textContent = az ? S.azure.subscription.name : S.system.hostname;
     $('#modelLbl').textContent = az ? 'Azure subscription · lab simulation' : 'NGFW-VM04 · lab simulation';
     $('#vFG').setAttribute('aria-pressed', String(!az)); $('#vAZ').setAttribute('aria-pressed', String(az));
-    $('#lookupBtn').hidden = az;
     $('#saveDot').innerHTML = `<i></i><span class="txt">Not saved · </span><span class="num">${fmtElapsed(LIVE.elapsed())}</span>`;
     const d = doneCount(); $('#progTxt').textContent = `${d}/${MISSIONS.length}`; $('#progBar').style.width = Math.round(d / MISSIONS.length * 100) + '%';
-    $('#misBtn').classList.toggle('on', UI.drawer && UI.drawerMode !== 'nm'); $('#nmBtn').classList.toggle('nm-on', NMS.on || (UI.drawer && UI.drawerMode === 'nm')); $('#lookupBtn').classList.toggle('on', !!UI.lkOpen);
+    $('#misBtn').classList.toggle('on', UI.drawer && UI.drawerMode !== 'nm'); $('#nmBtn').classList.toggle('nm-on', NMS.on || (UI.drawer && UI.drawerMode === 'nm')); renderTools();
   }
   function renderMain() { const m = $('#main'); const sc = m.scrollTop; m.innerHTML = (P[UI.page] || P.dashboard)(); m.scrollTop = sc; }
   function renderAll() { renderHeader(); renderRail(); renderMain(); renderDrawer(); termPrompt(); }
@@ -7118,7 +7195,76 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
   $('#menuBtn').addEventListener('click', () => $('#rail').classList.toggle('open'));
   $('#misBtn').addEventListener('click', () => { const open = UI.drawer && UI.drawerMode !== 'nm'; UI.drawerMode = 'missions'; UI.drawer = !open; renderAll(); });
   $('#nmBtn').addEventListener('click', () => { const open = UI.drawer && UI.drawerMode === 'nm'; UI.drawerMode = 'nm'; UI.drawer = !open; renderAll(); });
-  $('#lookupBtn').addEventListener('click', () => A['lk-open']());
+  /* ---------- top bar tools (FortiOS 7.4): search, notifications, CLI console, admin menu ---------- */
+  function notices() {
+    const out = [], now = Date.now(), day = 86400000;
+    const nf = fwNewer(); if (nf.length) out.push(['warn', `Firmware v${nf[nf.length - 1][0]} is available (running ${fwVer()})`, 'firmware']);
+    for (const c of S.certs || []) { if (c.expires < now) out.push(['bad', `Certificate ${c.name} has expired`, 'certs']); else if (c.expires - now < 30 * day) out.push(['warn', `Certificate ${c.name} expires in ${Math.ceil((c.expires - now) / day)} days`, 'certs']); }
+    for (const p of S.vpn.phase1) { let t; try { t = SIM.tunnel(S, p.name); } catch (e) { continue; } if (!t.up && p.status !== 'disable') out.push(['bad', `IPsec tunnel ${p.name} is down`, 'ipsec']); }
+    if (S.ha && S.ha.mode !== 'standalone' && !S.ha.peer) out.push(['warn', 'HA is enabled but no peer is detected', 'ha']);
+    const al = S.logs.event.filter(e => e.level === 'alert' && now - e.ts < day).length; if (al) out.push(['bad', `${al} alert-level system event${al === 1 ? '' : 's'} in the last 24 hours`, 'log-event']);
+    return out;
+  }
+  function searchIndex(q) {
+    q = q.toLowerCase().trim(); if (!q) return [];
+    const r = [], flat = x => x.replace(/[^a-z0-9]/g, ''), fq = flat(q), hit = (...v) => { const t = v.join(' ').toLowerCase(); return t.includes(q) || (fq.length > 1 && flat(t).includes(fq)); };
+    for (const g of NAV) for (const [k, l] of g.items) if (hit(l, g.grp)) r.push([l, g.grp || 'Menu', k]);
+    for (const p of S.policies) if (hit('policy', p.id, p.name)) r.push([`Policy ${p.id}${p.name ? ' · ' + p.name : ''}`, 'Firewall Policy', 'policy']);
+    for (const a of S.addresses.concat(S.addrgrps)) if (!a.builtin && hit(a.name)) r.push([a.name, 'Address', 'addresses']);
+    for (const i of SIM.allIfaces(S)) if (hit(i.name, i.alias)) r.push([i.name + (i.alias ? ` (${i.alias})` : ''), 'Interface', 'interfaces']);
+    for (const p of S.vpn.phase1) if (hit(p.name)) r.push([p.name, 'IPsec tunnel', 'ipsec']);
+    return r.slice(0, 9);
+  }
+  function renderSearch() {
+    const box = $('#tbSearchRes'), q = $('#tbSearch').value, R = searchIndex(q); UI.searchSel = Math.min(UI.searchSel || 0, Math.max(0, R.length - 1));
+    box.hidden = !q.trim();
+    box.innerHTML = R.length ? R.map(([l, k, p], i) => `<button type="button" role="option" class="${i === UI.searchSel ? 'on' : ''}" aria-selected="${i === UI.searchSel}" data-go="${esc(p)}"><span>${esc(l)}</span><small>${esc(k)}</small></button>`).join('') : `<p class="help" style="margin:8px 10px">No match for "${esc(q)}".</p>`;
+  }
+  function popHtml(kind) {
+    if (kind === 'bell') { const N = notices(); return `<div class="tb-ph">Notifications</div>${N.length ? N.map(([c, t, p]) => `<button type="button" data-go="${p}"><span class="tb-dot ${c}"></span><span>${esc(t)}</span></button>`).join('') : '<p class="help" style="margin:8px 10px">Nothing needs attention.</p>'}`; }
+    const me = S.admins.find(a => a.name === 'admin') || S.admins[0] || { name: 'admin', profile: 'super_admin' };
+    return `<div class="tb-ph"><b>${esc(me.name)}</b><small>${esc(me.profile)} · from 10.10.10.20</small></div>
+      <div class="tb-sub">Configuration</div><button type="button" data-go="backup">Backup</button><button type="button" data-go="backup">Restore</button>
+      <div class="tb-sub">System</div><button type="button" data-go="settings">Settings</button><button type="button" data-go="admins">Administrators</button>
+      <hr><button type="button" data-tb="logout">Log out</button>`;
+  }
+  function renderTools() {
+    const n = notices().length, b = $('#bellCount'); if (!b) return;
+    b.hidden = !n; b.textContent = n > 9 ? '9+' : String(n);
+    $('#bellBtn').setAttribute('aria-label', `Notifications (${n})`);
+    $('#bellBtn').classList.toggle('on', UI.tbPop === 'bell'); $('#userBtn').classList.toggle('on', UI.tbPop === 'user'); $('#userBtn').setAttribute('aria-expanded', String(UI.tbPop === 'user'));
+    $('#bellBtn').hidden = UI.view === 'azure';
+    const pop = $('#tbPop'); pop.hidden = !UI.tbPop;
+    if (UI.tbPop && !pop.contains(document.activeElement)) pop.innerHTML = popHtml(UI.tbPop);
+    pop.className = 'tb-pop ' + (UI.tbPop === 'bell' ? 'tb-bell' : 'tb-user');
+  }
+  const togglePop = k => { UI.tbPop = UI.tbPop === k ? null : k; $('#tbSearchRes').hidden = true; renderTools(); };
+  $('#bellBtn').addEventListener('click', () => togglePop('bell'));
+  $('#userBtn').addEventListener('click', () => togglePop('user'));
+  $('#tbTools').addEventListener('click', e => {
+    const g = e.target.closest('[data-go]'); if (g) { UI.tbPop = null; $('#tbSearch').value = ''; $('#tbSearchRes').hidden = true; if (UI.view === 'azure') switchView('fg'); go(g.dataset.go); return; }
+    if (e.target.closest('[data-tb="logout"]')) { UI.tbPop = null; renderTools(); logout(); }
+  });
+  document.addEventListener('click', e => { if (!e.target.closest || e.target.closest('#tbTools')) return; let ch = false; if (UI.tbPop) { UI.tbPop = null; ch = true; } $('#tbSearchRes').hidden = true; if (ch) renderTools(); });
+  $('#tbSearch').addEventListener('input', () => { UI.searchSel = 0; UI.tbPop = null; renderTools(); renderSearch(); });
+  $('#tbSearch').addEventListener('focus', () => { if ($('#tbSearch').value.trim()) renderSearch(); });
+  $('#tbSearch').addEventListener('keydown', e => {
+    const R = searchIndex($('#tbSearch').value);
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); UI.searchSel = Math.max(0, Math.min(R.length - 1, (UI.searchSel || 0) + (e.key === 'ArrowDown' ? 1 : -1))); renderSearch(); }
+    else if (e.key === 'Enter' && R.length) { e.preventDefault(); const p = R[UI.searchSel || 0][2]; $('#tbSearch').value = ''; $('#tbSearchRes').hidden = true; $('#tbSearch').blur(); if (UI.view === 'azure') switchView('fg'); go(p); }
+    else if (e.key === 'Escape') { $('#tbSearch').value = ''; $('#tbSearchRes').hidden = true; $('#tbSearch').blur(); }
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && UI.tbPop) { UI.tbPop = null; renderTools(); } });
+  /* Log out: a lab login screen (no password). The CLI console stays usable, like a console cable. */
+  function logout() {
+    SIM.event(S, 'system', 'information', 'Administrator admin logged out from https(10.10.10.20)');
+    UI.loggedOut = true;
+    const el = document.createElement('div'); el.className = 'modal-back g74-login'; el.id = 'g74Login';
+    el.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="Log in"><header><h2>${esc(S.system.hostname)}</h2></header><form class="body" id="g74LoginForm"><p class="help" style="margin:0 0 10px">You are logged out. This lab has no real passwords: log back in as admin.</p><div class="frow"><label class="lab" for="g74User">Username</label><input class="inp mono" id="g74User" value="admin" readonly></div></form><footer><span class="grow" style="flex:1"></span><button class="btn primary" type="submit" form="g74LoginForm">Log in</button></footer></div>`;
+    document.body.appendChild(el);
+    el.querySelector('form').addEventListener('submit', ev => { ev.preventDefault(); el.remove(); UI.loggedOut = false; SIM.event(S, 'system', 'information', 'Administrator admin logged in successfully from https(10.10.10.20)'); renderAll(); });
+    setTimeout(() => { const b = el.querySelector('button'); if (b) b.focus(); }, 30);
+  }
 
   // boot
   evaluate(true);
