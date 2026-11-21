@@ -334,7 +334,8 @@
       background: var(--face-edge);
       color: var(--face-text);
       display: flex; flex-direction: column; justify-content: flex-end; align-items: center; text-align: center;
-      padding: 0 12% 7%;
+      /* % padding would resolve against the 0-width .pyramid, so use scaled px: lift labels well clear of the base edge */
+      padding: 0 calc(16px * var(--s)) calc(44px * var(--s));
       border: 0; font: inherit; cursor: pointer;
     }
     .face .skin { position: absolute; inset: 0; clip-path: polygon(50% 4px, calc(100% - 3px) 100%, 3px 100%); background: linear-gradient(180deg, var(--face-a), var(--face-b)); }
@@ -362,7 +363,7 @@
     .ico svg { width: 34px; height: 34px; }
     .card.work h3 { display: flex; align-items: center; }
     .face .icon { font-size: calc(30px * var(--s)); line-height: 1; margin-bottom: 6px; position: relative; }
-    .face .label { font-weight: 700; font-size: calc(15px * var(--s)); line-height: 1.2; position: relative; }
+    .face .label { font-weight: 700; font-size: calc(14px * var(--s)); line-height: 1.2; position: relative; }
     .face .kick { font-size: calc(10.5px * var(--s)); letter-spacing: .14em; text-transform: uppercase; opacity: calc(.8 * var(--ink, 1)); margin-top: 4px; position: relative; }
     .face[aria-selected="true"] { background: var(--pz-accent); }
     .face[aria-selected="true"] .skin { background: linear-gradient(180deg, var(--face-sel-a), var(--face-sel-b)); }
@@ -1076,7 +1077,7 @@
       const cx = scene.clientWidth / 2, base = geo.top + geo.H + bob;
       const n = Math.round(38 * strength);
       for (let k = 0; k < n; k++) {
-        const h = 0.38 + Math.random() * 0.62;                     // 0 = base, 1 = tip; stay above the labels
+        const h = 0.62 + Math.random() * 0.38;                     // 0 = base, 1 = tip; stay above the labels
         const half = geo.R * 1.25 * (1 - h * 0.85);
         const x = cx - dir * half * (0.6 + Math.random() * 0.6);   // start on the trailing side
         const y = base - h * geo.H * 0.9 + (Math.random() - 0.5) * 10;
