@@ -2865,19 +2865,27 @@ CLI.Shell.prototype.get = function (a, st) {
   if (s === 'router info bgp summary') {
     const B = st.bgp; if (!B.as) return 'BGP is not configured (set the local AS under config router bgp)';
     const lines = [`BGP router identifier ${B.routerId || '0.0.0.0'}, local AS number ${B.as}`, '', 'Neighbor        V   AS      MsgRcvd MsgSent  Up/Down   State/PfxRcd'];
-    for (const n of SIM.bgpStatus(st)) lines.push(`${n.ip.padEnd(16)}4   ${String(n.remoteAs).padEnd(8)}${n.up ? '142     139      00:04:12  ' + n.learned.length : '0       0        never     ' + (n.reason.includes('Local AS') ? 'Idle' : 'Active')}${n.up ? '' : '   # ' + n.reason}`);
+    const hms = ms => { const t = Math.max(0, Math.floor(ms / 1000)); return [Math.floor(t / 3600), Math.floor(t % 3600 / 60), t % 60].map(x => String(x).padStart(2, '0')).join(':'); };
+    for (const n of SIM.bgpStatus(st)) { const b = typeof TELE !== 'undefined' && TELE.bgp(n.ip); lines.push(`${n.ip.padEnd(16)}4   ${String(n.remoteAs).padEnd(8)}${n.up ? String(b ? b.rcvd : 4).padEnd(8) + String(b ? b.sent : 4).padEnd(9) + hms(b ? Date.now() - b.since : 0) + '  ' + n.learned.length : '0       0        never     ' + (n.reason.includes('Local AS') ? 'Idle' : 'Active')}${n.up ? '' : '   # ' + n.reason}`); }
     lines.push('', `Total number of neighbors ${B.neighbors.length}`);
     return lines.join('\n');
+  }
+  if (s === 'system performance status') {
+    const T = typeof TELE !== 'undefined' ? TELE : null, cpu = T ? T.cpu() : 5, mem = T ? T.mem() : 41, up = Math.floor((Date.now() - st.system.bootedAt) / 1000);
+    const u = Math.round(cpu * 0.55), sy = Math.round(cpu * 0.25), si = Math.max(0, Math.round(cpu) - u - sy);
+    return [`CPU states: ${u}% user ${sy}% system 0% nice ${Math.max(0, 100 - Math.round(cpu))}% idle 0% iowait 0% irq ${si}% softirq`, `CPU0 states: ${u}% user ${sy}% system 0% nice ${Math.max(0, 100 - Math.round(cpu))}% idle 0% iowait 0% irq ${si}% softirq`,
+      `Memory: 2055248k total, ${Math.round(2055248 * mem / 100)}k used (${mem.toFixed(1)}%), ${Math.round(2055248 * (1 - mem / 100))}k free`, `Average network usage: ${Math.round(((T && T.iface('port1')) || { rate: 0 }).rate / 1000)} kbps in 1 minute`,
+      `Average sessions: ${(st.sessions || []).length} sessions in 1 minute`, `Virus caught: 0 total in 1 minute`, `IPS attacks blocked: 0 total in 1 minute`, `Uptime: ${Math.floor(up / 86400)} days, ${Math.floor(up % 86400 / 3600)} hours, ${Math.floor(up % 3600 / 60)} minutes`].join('\n');
   }
   if (s === 'webfilter categories') return Object.entries(SIM.CAT_ID).sort((a, b) => a[1] - b[1]).map(([n, id]) => `${String(id).padStart(3)}  ${n}`).join('\n');
   if (s === 'vpn ipsec tunnel summary') {
     if (!st.vpn.phase1.length) return '(no IPsec tunnels configured)';
-    return st.vpn.phase1.map(p => { const tu = SIM.tunnel(st, p.name); return `'${p.name}' ${p.remoteGw}:0  selectors(total,up): ${st.vpn.phase2.filter(x => x.phase1 === p.name).length}/${tu.up ? st.vpn.phase2.filter(x => x.phase1 === p.name).length : 0}  rx(pkt,err): ${tu.up ? 1420 : 0}/0  tx(pkt,err): ${tu.up ? 1388 : 0}/${tu.up ? 0 : 6}`; }).join('\n');
+    return st.vpn.phase1.map(p => { const tu = SIM.tunnel(st, p.name), c = typeof TELE !== 'undefined' && TELE.iface(p.name); return `'${p.name}' ${p.remoteGw}:0  selectors(total,up): ${st.vpn.phase2.filter(x => x.phase1 === p.name).length}/${tu.up ? st.vpn.phase2.filter(x => x.phase1 === p.name).length : 0}  rx(pkt,err): ${c && tu.up ? Math.round(c.rxp) : 0}/0  tx(pkt,err): ${c && tu.up ? Math.round(c.txp) : 0}/${tu.up ? 0 : 6}`; }).join('\n');
   }
   if (s.startsWith('system interface')) {
     return SIM.allIfaces(st).map(i => `== [ ${i.name} ]\nname: ${i.name}   mode: ${i.mode || 'static'}    ip: ${SIM.fmtIpMask(i.ip, i.bits)}   status: ${i.status}    type: ${i.type}${i.type === 'vlan' ? '   vlanid: ' + i.vlanid + '   interface: ' + i.parent : ''}   role: ${i.role}`).join('\n');
   }
-  return `command parse error before '${s}'\nTry: get system status | get router info routing-table all | get router info bgp summary | get vpn ipsec tunnel summary | get system interface | get webfilter categories`;
+  return `command parse error before '${s}'\nTry: get system status | get system performance status | get router info routing-table all | get router info bgp summary | get vpn ipsec tunnel summary | get system interface | get webfilter categories`;
 };
 CLI.Shell.prototype.execute = function (a, st) {
   if (a[0] === 'ping' && a[1]) {
@@ -2908,7 +2916,7 @@ CLI.Shell.prototype.diagnose = function (a, st) {
   }
   if (s.startsWith('vpn ike gateway list')) {
     if (!st.vpn.phase1.length) return '(no IKE gateways)';
-    return st.vpn.phase1.map(p => { const tu = SIM.tunnel(st, p.name); return `vd: root/0\nname: ${p.name}\nversion: ${p.ike}\ninterface: ${p.interface}\naddr: ${(SIM.iface(st, p.interface) || {}).ip || '?'}:500 -> ${p.remoteGw}:500\ncreated: ${tu.p1 ? '312s ago' : '-'}\nIKE SA: created ${tu.p1 ? '1/1  established 1/1' : '0/1  established 0/1'}\nIPsec SA: created ${tu.up ? '1/1  established 1/1' : '0/1  established 0/1'}\nstatus: ${tu.up ? 'UP' : 'DOWN'}  ${tu.reason}`; }).join('\n\n');
+    return st.vpn.phase1.map(p => { const tu = SIM.tunnel(st, p.name); return `vd: root/0\nname: ${p.name}\nversion: ${p.ike}\ninterface: ${p.interface}\naddr: ${(SIM.iface(st, p.interface) || {}).ip || '?'}:500 -> ${p.remoteGw}:500\ncreated: ${tu.p1 ? Math.max(1, Math.round((Date.now() - (((typeof TELE !== 'undefined' && TELE.tunnel(p.name)) || {}).since || Date.now())) / 1000)) + 's ago' : '-'}\nIKE SA: created ${tu.p1 ? '1/1  established 1/1' : '0/1  established 0/1'}\nIPsec SA: created ${tu.up ? '1/1  established 1/1' : '0/1  established 0/1'}\nstatus: ${tu.up ? 'UP' : 'DOWN'}  ${tu.reason}`; }).join('\n\n');
   }
   if (s.startsWith('vpn ike log-filter')) return 'command parse error before \'log-filter\'\nCommand fail. Return code -61\n(diagnose vpn ike log-filter was replaced in FortiOS 7.4.1. This firewall runs 7.4.5: use "diagnose vpn ike log filter rem-addr4 <peer-ip>")';
   if (s.startsWith('vpn ike log filter')) { const m = a.slice(4); if (m[0] === 'rem-addr4' && SIM.isIp(m[1] || '')) return `IKE log filter set: rem-addr4 ${m[1]}. In this lab the negotiation result is summarized by "diagnose vpn ike gateway list".`; if (m[0] === 'clear') return 'IKE log filter cleared.'; return 'Usage (FortiOS 7.4.1 and later): diagnose vpn ike log filter rem-addr4 <peer-ip> | diagnose vpn ike log filter clear'; }
@@ -2921,7 +2929,7 @@ CLI.Shell.prototype.help = function () {
     if (!c.T.single && !c.obj) return `edit <${c.T.key}>     create or edit an entry${c.T.numeric ? ' (edit 0 = next free ID)' : ''}\ndelete <${c.T.key}>   delete an entry\n${c.path === 'firewall policy' ? 'move <id> before|after <id>   reorder policies\n' : ''}show            show this table\nend             leave this table`;
     return 'set <field> <value...>    unset <field>    append <field> <value>    unselect <field> <value>\nshow    get    next (save entry)    end (save and exit)    abort (discard all)\nFields: ' + (Object.keys(c.T.f || {}).filter(k => !/^trusthost([2-9]|10)$/.test(k)).join(', ') || '(none)') + (c.T.sub ? '\nSub-tables: config ' + Object.keys(c.T.sub).join(' | config ') : '');
   }
-  return ['config <table>     enter a configuration table:', ...CLI.PATHS.map(p => '    ' + p), 'show [table] [entry]', 'get system status | get router info routing-table all | get router info bgp summary | get vpn ipsec tunnel summary | get system interface | get webfilter categories', 'execute ping <ip>', 'diagnose firewall iprope lookup <src_ip> <src_port> <dst_ip> <dst_port> <proto> <in_intf>', 'diagnose vpn ike gateway list', 'clear              clear the console', 'Tips: quote values with spaces ("Malicious Websites"). Up/Down arrows recall history. Tab completes words.'].join('\n');
+  return ['config <table>     enter a configuration table:', ...CLI.PATHS.map(p => '    ' + p), 'show [table] [entry]', 'get system status | get system performance status | get router info routing-table all | get router info bgp summary | get vpn ipsec tunnel summary | get system interface | get webfilter categories', 'execute ping <ip>', 'diagnose firewall iprope lookup <src_ip> <src_port> <dst_ip> <dst_port> <proto> <in_intf>', 'diagnose vpn ike gateway list', 'clear              clear the console', 'Tips: quote values with spaces ("Malicious Websites"). Up/Down arrows recall history. Tab completes words.'].join('\n');
 };
 CLI.complete = function (shell, line) {
   const words = ['config', 'show', 'get', 'execute', 'diagnose', 'edit', 'set', 'unset', 'append', 'next', 'end', 'delete', 'move', 'abort', ...CLI.PATHS.flatMap(p => p.split(' ')), 'system', 'firewall', 'router', 'vpn', 'ipsec', 'status', 'info', 'routing-table', 'all', 'ping', 'iprope', 'lookup', 'enable', 'disable', 'accept', 'deny', 'before', 'after'];
@@ -3790,6 +3798,197 @@ const LIVE = (() => {
 if (typeof module !== 'undefined') module.exports = LIVE;
 
 </script>
+<style id="tele-css">
+/* ---------- live counters (TELE) ---------- */
+.spark { display: block; width: 100%; height: 34px; color: var(--accent); }
+.spark polyline { fill: none; stroke: currentColor; stroke-width: 1.6; vector-effect: non-scaling-stroke; }
+.spark polygon { fill: currentColor; opacity: .12; stroke: none; }
+.spark.sm { width: 90px; height: 20px; display: inline-block; vertical-align: middle; }
+.live-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); margin-right: 6px; vertical-align: 1px; animation: livePulse 1.6s ease-in-out infinite; }
+@keyframes livePulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
+.flowlog { font: 12px var(--f-mono); }
+.flowlog td { white-space: nowrap; }
+</style>
+<script>
+/* ================= TELE: live counters and health for everything a real box would show changing =================
+   Runtime only: nothing here goes into S, so backups, validation and mission checks never see it. LIVE drives it
+   (one TELE.tick per traffic tick), and every number comes from the same sessions, tunnel and BGP state the lab runs on. */
+const TELE = (() => {
+  const rnd = n => Math.floor(Math.random() * n);
+  const hex = n => Array.from({ length: n }, () => '0123456789abcdef'[rnd(16)]).join('');
+  const lc = x => String(x == null ? '' : x).toLowerCase();
+  const HIST = 40; // samples kept for sparklines (about a minute at one tick per 1.6 s)
+  const fresh = () => ({ st: null, last: 0, ifc: {}, tun: {}, bgp: {}, az: { cn: null, alerts: [], cond: {} }, vm: {}, nsg: {}, flowlog: [], cpu: 6, mem: 41, nextFg: 0, gwHist: [] });
+  let E = fresh();
+
+  const ifc = n => E.ifc[n] || (E.ifc[n] = { rx: 0, tx: 0, rxp: 0, txp: 0, rate: 0, hist: [] });
+  const push = (a, v) => { a.push(v); if (a.length > HIST) a.shift(); };
+
+  /* the bytes a session has moved so far: real sessions grow while they live */
+  const sessBytes = (s, now) => { const life = Math.max(1, (s.expires || 0) - s.ts); return Math.round(s.bytes * Math.min(1, Math.max(0.02, ((now || Date.now()) - s.ts) / life))); };
+
+  /* ---------- NSG flow log: every flow that crosses the tunnel toward or from an Azure VM ---------- */
+  function nsgFlow(st, q, R) {
+    if (!st.azure || !Array.isArray(st.azure.nsgs) || !st.azure.nsgs.length || !SIM.TF || !SIM.TF.nsgFor) return;
+    const vms = st.azure.vms || [];
+    let vm = null, dir = 'Inbound', src = q.srcip, dst = q.dstip;
+    if (R.verdict === 'accept' && R.far && (R.far.ok || R.far.nsg)) vm = vms.find(m => m.privateIp === (R.dnat ? R.dnat.to : q.dstip));
+    else if ((SIM.iface(st, q.srcintf) || {}).type === 'tunnel') { vm = vms.find(m => m.privateIp === q.srcip && m.power === 'running'); dir = 'Outbound'; }
+    if (!vm) return;
+    const f = SIM.TF.nsgFor(st, vm); if (!f || !f.n) return;
+    const rule = dir === 'Inbound' && R.far.nsg ? (f.n.rules.concat(SIM.TF.NSG_DEFAULTS).find(r => r.name === R.far.nsg.rule) || { name: R.far.nsg.rule, access: 'Deny' })
+      : SIM.TF.evalNsg(f.n, { direction: dir, proto: q.proto, port: q.port, src, dst });
+    const key = SIM.TF.nsgRef(f.n) + '|' + rule.name + '|' + dir;
+    const c = E.nsg[key] || (E.nsg[key] = { n: 0, last: 0 }); c.n++; c.last = Date.now();
+    E.flowlog.unshift({ ts: Date.now(), nsg: f.n.name, rule: rule.name, dir: dir === 'Inbound' ? 'I' : 'O', src, dst, sport: 49152 + rnd(16000), dport: +q.port || 0, proto: q.proto === 'udp' ? 'U' : q.proto === 'icmp' ? 'I' : 'T', decision: rule.access === 'Deny' ? 'D' : 'A' });
+    if (E.flowlog.length > 120) E.flowlog.length = 120;
+  }
+  const baseRecord = SIM.record;
+  SIM.record = (st, q, R) => { baseRecord(st, q, R); try { nsgFlow(st, q, R); } catch (e) { } };
+
+  /* ---------- Azure Monitor: simple alert rules the Azure team left behind ---------- */
+  const RULES = [
+    { id: 'vpn', sev: 1, name: 'VPN connection disconnected', desc: 'Connection status is not Connected for 30 seconds' },
+    { id: 'bgp', sev: 2, name: 'BGP peer down', desc: 'Gateway BGP peer status is not Connected for 30 seconds' },
+    { id: 'cpu', sev: 2, name: 'VM CPU above 80%', desc: 'Percentage CPU above 80 for 3 samples' }
+  ];
+  function condition(st, id, res, rg, bad, now) {
+    const k = id + '|' + res, c = E.az.cond[k] || (E.az.cond[k] = { since: 0, n: 0, alert: null });
+    if (bad) { c.since = c.since || now; c.n++; } else { c.since = 0; c.n = 0; }
+    const rule = RULES.find(r => r.id === id);
+    const fire = id === 'cpu' ? c.n >= 3 : c.since && now - c.since >= 30000;
+    if (fire && !c.alert) {
+      c.alert = { rule: rule.name, sev: rule.sev, desc: rule.desc, resource: res, rg, fired: now, resolved: 0 };
+      E.az.alerts.unshift(c.alert); if (E.az.alerts.length > 40) E.az.alerts.length = 40;
+      SIM.AZ.log(st, `Alert fired: ${rule.name}`, res, rg, 'Active', 'Azure Monitor');
+    } else if (!bad && c.alert) {
+      c.alert.resolved = now; c.alert = null;
+      SIM.AZ.log(st, `Alert resolved: ${rule.name}`, res, rg, 'Resolved', 'Azure Monitor');
+    }
+  }
+  /* Azure Resource Health on the connection and on each VM, logged the way the portal shows it */
+  function health(st, key, res, rg, state, why) {
+    const h = E.az.cond['health|' + key] || (E.az.cond['health|' + key] = { state: null });
+    if (h.state === state) return; const prev = h.state; h.state = state;
+    if (prev === null) return; // first sample: nothing changed yet
+    SIM.AZ.log(st, state === 'Available' ? 'Health Event Resolved' : 'Health Event Activated', res, rg, state === 'Available' ? 'Resolved' : 'Active', `Microsoft.ResourceHealth (${why})`);
+  }
+
+  function tick(st) {
+    if (!st) return;
+    if (E.st !== st) { E = fresh(); E.st = st; }
+    const now = Date.now(), dt = E.last ? Math.min(5, Math.max(0, (now - E.last) / 1000)) : 1.6; E.last = now;
+
+    /* interface counters from the live sessions: requests one way, replies (most bytes) the other */
+    const rate = {};
+    for (const s of st.sessions || []) {
+      const bps = s.bytes / Math.max(1, ((s.expires || now) - s.ts) / 1000), fwd = bps * 0.22, rev = bps * 0.78;
+      const a = ifc(s.srcintf), b = ifc(s.dstintf);
+      a.rx += fwd * dt; a.tx += rev * dt; b.tx += fwd * dt; b.rx += rev * dt;
+      a.rxp += fwd * dt / 420; a.txp += rev * dt / 1100; b.txp += fwd * dt / 420; b.rxp += rev * dt / 1100;
+      rate[s.srcintf] = (rate[s.srcintf] || 0) + bps; rate[s.dstintf] = (rate[s.dstintf] || 0) + bps;
+    }
+    for (const i of SIM.allIfaces(st)) {
+      const c = ifc(i.name), up = i.type === 'tunnel' ? SIM.tunnel(st, i.name).up : i.status === 'up';
+      if (up && i.type !== 'tunnel') { const n = 120 + rnd(240); c.rx += n * dt; c.tx += n * 0.4 * dt; c.rxp += dt * 2; c.txp += dt; } // ARP, LLDP, broadcasts
+      c.rate = up ? (rate[i.name] || 0) * 8 : 0; push(c.hist, c.rate);
+    }
+
+    /* IPsec: up time, SA counters reset on each new SA, periodic phase 2 rekey */
+    for (const p1 of st.vpn.phase1) {
+      const t = SIM.tunnel(st, p1.name), r = E.tun[p1.name] || (E.tun[p1.name] = { up: null, since: now, rekeyAt: 0, spi: hex(8), base: null });
+      const c = ifc(p1.name);
+      if (r.up !== t.up) { r.up = t.up; r.since = now; r.base = { rx: c.rx, tx: c.tx }; r.spi = hex(8); r.rekeyAt = now + 5 * 60000; }
+      if (t.up && now >= r.rekeyAt) {
+        r.spi = hex(8); r.rekeyAt = now + 5 * 60000;
+        SIM.event(st, 'vpn', 'information', `IPsec ${p1.name}: phase 2 SA rekey (soft lifetime reached): negotiate success, new SPI 0x${r.spi}`);
+      }
+    }
+
+    /* BGP: adjacency changes, keepalives every 60 s, one update per learned prefix */
+    for (const n of SIM.bgpStatus(st)) {
+      const r = E.bgp[n.ip], fresh1 = !r;
+      const b = r || (E.bgp[n.ip] = { up: n.up, since: now, sent: n.up ? 3 : 0, rcvd: n.up ? 3 + n.learned.length : 0, ka: now });
+      if (!fresh1 && b.up !== n.up) {
+        b.up = n.up; b.since = now; b.ka = now;
+        SIM.event(st, 'router', n.up ? 'notice' : 'warning', n.up ? `BGP: %BGP-5-ADJCHANGE: neighbor ${n.ip} Up` : `BGP: %BGP-5-ADJCHANGE: neighbor ${n.ip} Down ${n.reason}`);
+        if (n.up) { b.sent += 3; b.rcvd += 3 + n.learned.length; }
+      }
+      if (n.up && now - b.ka >= 60000) { b.ka = now; b.sent++; b.rcvd++; }
+      b.prefixes = n.up ? n.learned.length : 0;
+    }
+
+    /* FortiGate resources follow the load */
+    const utm = st.policies.filter(p => p.status === 'enable' && p.utm).length;
+    const threats = Object.values(st.threats || {}).filter(x => x.active).length;
+    const tgt = 3 + (st.sessions || []).length * 0.11 + utm * 1.5 + threats * 2.2 + Math.random() * 4;
+    E.cpu += (Math.min(92, tgt) - E.cpu) * 0.35; E.mem += ((38 + (st.sessions || []).length * 0.03 + utm * 0.4) - E.mem) * 0.08 + (Math.random() - 0.5) * 0.3;
+
+    /* FortiGuard checks in a few times an hour */
+    if (!E.nextFg) E.nextFg = now + 90000 + rnd(60000);
+    else if (now >= E.nextFg) {
+      E.nextFg = now + 6 * 60000 + rnd(4 * 60000);
+      const pick = Math.random() < 0.5 ? `AV database updated to 92.0${2000 + rnd(900)}` : `IPS definitions updated to 28.0${700 + rnd(200)}`;
+      SIM.event(st, 'system', 'information', `FortiGuard update succeeded: ${pick}`);
+    }
+
+    /* ---------- Azure side ---------- */
+    const P = SIM.peer(st), cs = SIM.azConn(st);
+    if (P.live && cs) {
+      const tn = cs.tunnel ? ifc(cs.tunnel) : null, cn = E.az.cn && E.az.cn.name === P.cn.name ? E.az.cn : (E.az.cn = { name: P.cn.name, status: null, since: now, inB: 0, outB: 0 });
+      if (cn.status !== cs.status) { cn.status = cs.status; cn.since = now; }
+      if (tn && cs.status === 'Connected') { const r = E.tun[cs.tunnel]; const base = r && r.base ? r.base : { rx: 0, tx: 0 }; cn.inB = tn.tx - base.tx; cn.outB = tn.rx - base.rx; }
+      push(E.gwHist, cs.status === 'Connected' && tn ? tn.rate : 0);
+      condition(st, 'vpn', P.cn.name, P.cn.rg, cs.status !== 'Connected' && cs.status !== 'Updating', now);
+      health(st, 'cn|' + P.cn.name, P.cn.name, P.cn.rg, cs.status === 'Connected' ? 'Available' : cs.status === 'Updating' ? 'Unknown' : 'Unavailable', cs.status === 'Connected' ? 'connection restored' : cs.reason);
+      if (P.bgp.enabled) condition(st, 'bgp', P.gw.name, P.gw.rg, cs.status === 'Connected' && !SIM.bgpStatus(st).some(n => n.up), now);
+      else condition(st, 'bgp', P.gw.name, P.gw.rg, false, now);
+    } else { E.az.cn = null; push(E.gwHist, 0); }
+
+    /* VM guest metrics: idle load, plus whatever reaches the VM, plus a compromised VM scanning the office */
+    const lan = (st.interfaces.find(i => i.role === 'lan') || {}).name || 'port2';
+    for (const m of st.azure.vms || []) {
+      const k = m.rg + '/' + m.name, v = E.vm[lc(k)] || (E.vm[lc(k)] = { cpu: 0, inB: 0, outB: 0, cpuHist: [], since: now, power: m.power });
+      if (v.power !== m.power) { v.power = m.power; v.since = now; }
+      health(st, 'vm|' + lc(k), m.name, m.rg, m.power === 'running' ? 'Available' : 'Unavailable', m.power === 'running' ? 'VM started' : 'stopped (deallocated) by a user');
+      if (m.power !== 'running') { v.cpu = 0; push(v.cpuHist, 0); condition(st, 'cpu', m.name, m.rg, false, now); continue; }
+      let reach = false; try { const R = SIM.lookup(st, { srcintf: lan, srcip: '10.10.10.20', dstip: m.privateIp, proto: 'tcp', port: 443 }); reach = !!(R && R.verdict === 'accept' && R.far && R.far.ok); } catch (e) { }
+      let load = 0;
+      for (const s of st.sessions || []) {
+        if (reach && s.dstip === m.privateIp) { const bps = s.bytes / Math.max(1, ((s.expires || now) - s.ts) / 1000); v.inB += bps * 0.22 * dt; v.outB += bps * 0.78 * dt; load++; }
+        else if (s.srcip === m.privateIp) { const bps = s.bytes / Math.max(1, ((s.expires || now) - s.ts) / 1000); v.outB += bps * 0.22 * dt; v.inB += bps * 0.78 * dt; load++; }
+      }
+      const scanning = m.privateIp === '10.100.1.4' && ((st.threats || {})['t-azscan'] || {}).active;
+      const booting = now - v.since < 45000;
+      const tgt = (booting ? 55 : 4) + load * 3 + (scanning ? 78 : 0) + Math.random() * 5;
+      v.cpu += (Math.min(99, tgt) - v.cpu) * 0.4; push(v.cpuHist, v.cpu);
+      v.inB += (60 + rnd(90)) * dt; v.outB += (40 + rnd(60)) * dt; // guest agent, DHCP, Azure DNS
+      condition(st, 'cpu', m.name, m.rg, v.cpu > 80, now);
+    }
+  }
+
+  return {
+    tick, sessBytes,
+    reset() { E = fresh(); },
+    iface: n => E.ifc[n] || null,
+    tunnel: n => { const r = E.tun[n]; if (!r) return null; const c = ifc(n), b = r.base || { rx: 0, tx: 0 }; return { up: r.up, since: r.since, rx: c.rx - b.rx, tx: c.tx - b.tx, spi: r.spi, rate: c.rate, hist: c.hist }; },
+    bgp: ip => E.bgp[ip] || null,
+    conn: () => E.az.cn,
+    gwHist: () => E.gwHist,
+    alerts: () => E.az.alerts,
+    vm: (rg, name) => E.vm[lc(rg + '/' + name)] || null,
+    nsgHits: (n, rule, dir) => { const c = E.nsg[SIM.TF.nsgRef(n) + '|' + rule + '|' + (dir || 'Inbound')]; return c ? c.n : 0; },
+    flowlog: () => E.flowlog,
+    cpu: () => E.cpu, mem: () => E.mem,
+    started: () => !!E.last
+  };
+})();
+/* restore, reset and new Nightmare incidents swap in a new state: start the counters over, like a reboot */
+{ const baseSet = LIVE.setState; LIVE.setState = st => { baseSet(st); TELE.reset(); }; }
+if (typeof module !== 'undefined') module.exports = TELE;
+</script>
+
 <style id="nm-css">
 /* ---------- Nightmare mode ---------- */
 .tbtn.nm-on { background: #B43A2C; border-color: #B43A2C; color: #FFFFFF; }
@@ -4682,9 +4881,8 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
       </dl></section>
       <section class="card widget"><h2>Network Ports</h2><div class="ports">${S.interfaces.filter(i => i.type === 'physical').map(i => `<div class="port ${i.status === 'up' ? 'up' : ''}"><div class="jack"></div><b class="mono">${esc(i.name)}</b><div class="muted">${esc(i.alias || i.role)}</div></div>`).join('')}</div>
         <p class="help" style="margin:10px 0 0">${ifs.filter(i => i.type === 'vlan').length} VLAN interface(s), ${ifs.filter(i => i.type === 'tunnel').length} tunnel interface(s)</p></section>
-      <section class="card widget"><h2>Resources</h2>
-        <div class="kv"><dt>CPU</dt><dd><div class="meter"><i style="width:7%"></i></div></dd><dt>Memory</dt><dd><div class="meter"><i style="width:41%"></i></div></dd><dt>Sessions</dt><dd class="num">${S.sessions.length}</dd><dt>Policies</dt><dd class="num">${S.policies.length} (${enabled.length} enabled)</dd></div></section>
-      <section class="card widget"><h2>IPsec</h2>${tunnels.length ? tunnels.map(({ p, t }) => `<div style="display:flex;gap:8px;align-items:center;justify-content:space-between"><span class="mono">${esc(p.name)} → ${esc(p.remoteGw)}</span>${pill(t.up ? 'Up' : 'Down', t.up ? 'ok' : 'bad')}</div>`).join('') : '<p class="muted" style="margin:0">No tunnels configured.</p>'}</section>
+      ${resourcesCard()}${bandwidthCard()}
+      <section class="card widget"><h2>IPsec</h2>${tunnels.length ? tunnels.map(({ p, t }) => `<div style="display:flex;gap:8px;align-items:center;justify-content:space-between"><span class="mono">${esc(p.name)} → ${esc(p.remoteGw)}</span>${pill(t.up ? 'Up' : 'Down', t.up ? 'ok' : 'bad')}</div>${tunStats(p.name)}`).join('') : '<p class="muted" style="margin:0">No tunnels configured.</p>'}</section>
       <section class="card widget"><h2>Live Traffic</h2><dl class="kv"><dt>Active sessions</dt><dd class="num">${S.sessions.length}</dd><dt>Flows since start</dt><dd class="num">${LIVE.flows().toLocaleString()}</dd><dt>Lab time</dt><dd class="num">${fmtElapsed(LIVE.elapsed())}</dd><dt>Active threats</dt><dd class="num">${LIVE.THREATS.filter(t => (S.threats[t.id] || {}).active).length} of ${LIVE.THREATS.length} unlocked</dd></dl><p style="margin:10px 0 0"><button class="btn" data-act="nav" data-id="sessions">View sessions</button></p></section>
       <section class="card widget"><h2>Scavenger Hunt</h2><p style="margin:0 0 8px"><b class="num" style="font-size:22px">${done}</b> <span class="muted">of ${MISSIONS.length} missions complete</span></p><div class="meter"><i style="width:${Math.round(done / MISSIONS.length * 100)}%;background:var(--ok)"></i></div><p style="margin:12px 0 0"><button class="btn primary" data-act="open-missions">${I.flag} Open missions</button></p></section>
       <section class="card widget" style="grid-column:1/-1"><h2>Recent System Events</h2><div class="evt">${S.logs.event.slice(0, 7).map(e => `<span class="muted num mono">${fmtTs(e.ts)}</span><span>${pill(e.level, e.level === 'alert' ? 'bad' : e.level === 'warning' ? 'warn' : e.level === 'notice' ? 'info' : 'mute')} ${esc(e.msg)}</span>`).join('')}</div></section>
@@ -4701,12 +4899,12 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     for (const t of SIM.allIfaces(S).filter(x => x.type === 'tunnel')) rows.push(ifRow(t, ref(t.name)));
     return head('Physical ports, VLAN subinterfaces and tunnel interfaces. Administrative Access controls which management protocols the firewall answers on each interface.') +
       `<div class="toolbar"><button class="btn primary" data-act="if-new">${I.plus} Create New VLAN</button></div>
-      <div class="tablewrap"><table class="grid"><thead><tr><th>Name</th><th>Alias</th><th>Type</th><th>Role</th><th>IP/Netmask</th><th>Administrative Access</th><th>Status</th><th>Ref.</th><th></th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+      <div class="tablewrap"><table class="grid"><thead><tr><th>Name</th><th>Alias</th><th>Type</th><th>Role</th><th>IP/Netmask</th><th>Administrative Access</th><th>Status</th><th>Traffic (Rx / Tx)</th><th>Ref.</th><th></th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
   };
   function ifRow(i, r, sub) {
     return `<tr class="${sub ? 'sub' : ''}"><td class="mono">${sub ? '└ ' : ''}${esc(i.name)}</td><td>${esc(i.alias)}</td><td>${esc(i.type === 'vlan' ? 'VLAN ' + i.vlanid : i.type === 'tunnel' ? 'IPsec tunnel' : 'Physical')}</td><td>${esc(i.role === 'undefined' ? '' : i.role.toUpperCase())}</td>
     <td class="mono num">${i.ip === '0.0.0.0' ? '<span class="muted">0.0.0.0/0</span>' : esc(i.ip + '/' + i.bits)}${i.type === 'tunnel' && i.remoteIp ? `<div class="help">remote ${esc(i.remoteIp)}</div>` : ''}</td><td>${chips(i.allowaccess.map(a => a.toUpperCase()), '')}</td>
-    <td>${pill(i.status === 'up' ? 'Up' : 'Down', i.status === 'up' ? 'ok' : 'mute')}</td><td class="num">${r}</td>
+    <td>${pill(i.status === 'up' ? 'Up' : 'Down', i.status === 'up' ? 'ok' : 'mute')}</td><td class="num">${(c => c ? `${fmtBytes(c.rx)} / ${fmtBytes(c.tx)}<div>${spark(c.hist, 'sm', i.name + ' bandwidth')} <span class="help">${fmtRate(c.rate)}</span></div>` : '<span class="muted">-</span>')(TELE.iface(i.name))}</td><td class="num">${r}</td>
     <td class="acts">${actBtn('if-edit', i.name, I.edit, 'Edit ' + i.name)}${i.type === 'vlan' ? actBtn('if-del', i.name, I.del, 'Delete ' + i.name) : ''}</td></tr>`;
   }
 
@@ -4801,7 +4999,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
   };
 
   P.ipsec = () => head('Site-to-site IPsec tunnels. Each tunnel becomes an interface you can route to and write policies for.') + `<div class="toolbar"><button class="btn primary" data-act="vpn-new">${I.plus} Create New Tunnel</button><span class="help">Azure side: gateway 198.51.100.25 · IKEv2 · route-based · ${S.azure.policy === 'custom' ? '<b>custom IPsec/IKE policy</b> (IKE AES256/SHA256/DH14, IPsec AES256GCM, PFS 14)' : 'default IPsec/IKE policy'}</span></div>
-    <div class="tablewrap"><table class="grid"><thead><tr><th>Name</th><th>Remote Gateway</th><th>Interface</th><th>IKE</th><th>Phase 1 / Phase 2</th><th>Status</th><th></th></tr></thead><tbody>${S.vpn.phase1.map(p => { const t = SIM.tunnel(S, p.name); const p2 = S.vpn.phase2.filter(q => q.phase1 === p.name); return `<tr><td class="mono">${esc(p.name)}</td><td class="mono">${esc(p.remoteGw)}</td><td class="mono">${esc(p.interface)}</td><td>v${esc(p.ike)}</td><td class="mono" style="font-size:12px">${esc(p.proposals.join(' '))} · DH ${esc(p.dhgrp.join(','))}<br>${p2.map(q => esc(`${q.name}: ${q.proposals.join(' ')} · PFS ${q.pfs}`)).join('<br>') || '<span class="muted">no phase 2</span>'}</td><td>${pill(t.up ? 'Up' : 'Down', t.up ? 'ok' : 'bad')}<div class="help" style="max-width:340px">${esc(t.reason)}</div></td><td class="acts">${actBtn('vpn-up', p.name, I.play, 'Bring up')}${actBtn('vpn-edit', p.name, I.edit, 'Edit')}${actBtn('vpn-del', p.name, I.del, 'Delete')}</td></tr>`; }).join('') || '<tr><td colspan="7" class="empty">No tunnels yet.</td></tr>'}</tbody></table></div>`;
+    <div class="tablewrap"><table class="grid"><thead><tr><th>Name</th><th>Remote Gateway</th><th>Interface</th><th>IKE</th><th>Phase 1 / Phase 2</th><th>Status</th><th></th></tr></thead><tbody>${S.vpn.phase1.map(p => { const t = SIM.tunnel(S, p.name); const p2 = S.vpn.phase2.filter(q => q.phase1 === p.name); return `<tr><td class="mono">${esc(p.name)}</td><td class="mono">${esc(p.remoteGw)}</td><td class="mono">${esc(p.interface)}</td><td>v${esc(p.ike)}</td><td class="mono" style="font-size:12px">${esc(p.proposals.join(' '))} · DH ${esc(p.dhgrp.join(','))}<br>${p2.map(q => esc(`${q.name}: ${q.proposals.join(' ')} · PFS ${q.pfs}`)).join('<br>') || '<span class="muted">no phase 2</span>'}</td><td>${pill(t.up ? 'Up' : 'Down', t.up ? 'ok' : 'bad')}${tunStats(p.name)}<div class="help" style="max-width:340px">${esc(t.reason)}</div></td><td class="acts">${actBtn('vpn-up', p.name, I.play, 'Bring up')}${actBtn('vpn-edit', p.name, I.edit, 'Edit')}${actBtn('vpn-del', p.name, I.del, 'Delete')}</td></tr>`; }).join('') || '<tr><td colspan="7" class="empty">No tunnels yet.</td></tr>'}</tbody></table></div>`;
 
   P.localin = () => head('Local-in policies control traffic addressed to the firewall itself (management, ping). They are checked after Administrative Access and let you deny explicitly, with a log entry.') +
     `<div class="toolbar"><button class="btn primary" data-act="li-new">${I.plus} Create New</button></div>
@@ -4815,7 +5013,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
         <div class="frow"><label class="lab" for="bgp_rid">Router ID</label><input class="inp mono" id="bgp_rid" value="${esc(B.routerId || '')}" placeholder="203.0.113.10"></div>
         <div><button class="btn primary" type="submit">Apply</button></div></form>
       <div class="toolbar" style="margin-top:16px"><h2>Neighbors</h2><span class="grow"></span><button class="btn primary" data-act="bgp-nnew">${I.plus} Create New</button></div>
-      <div class="tablewrap"><table class="grid"><thead><tr><th>Neighbor IP</th><th>Remote AS</th><th>State</th><th>Prefixes received</th><th></th></tr></thead><tbody>${B.neighbors.map(n => { const x = st.find(y => y.ip === n.ip) || {}; return `<tr><td class="mono">${esc(n.ip)}</td><td class="num">${esc(n.remoteAs)}</td><td>${x.up ? pill('Established', 'ok') : pill('Idle', 'bad') + `<div class="help" style="max-width:360px">${esc(x.reason || '')}</div>`}</td><td>${x.up ? chips(x.learned.map(l => l.dst + '/' + l.bits)) : '<span class="muted">-</span>'}</td><td class="acts">${actBtn('bgp-nedit', n.ip, I.edit, 'Edit')}${actBtn('bgp-ndel', n.ip, I.del, 'Delete')}</td></tr>`; }).join('') || '<tr><td colspan="5" class="empty">No neighbors.</td></tr>'}</tbody></table></div>
+      <div data-live="bgp-nb">${bgpTable()}</div>
       <p class="help" style="margin-top:12px">Azure side for this lab: gateway ASN 65515, BGP peer IP 10.100.0.254, peers with your tunnel address 169.254.21.2.</p>`;
   };
 
@@ -4865,7 +5063,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     const top = Object.entries(bySrc).sort((a, b) => b[1] - a[1]).slice(0, 5);
     return head('Sessions the firewall is forwarding right now. Killing a session ends it; if the host is still allowed by policy, it can start a new one.') +
       `<div class="toolbar"><input class="search" id="sessFilter" placeholder="Filter (IP, interface, app, policy)…" value="${esc(UI.filter)}" aria-label="Filter sessions"><span class="help num">${S.sessions.length} active · refreshes live</span><span class="grow"></span><span class="help">Top talkers: ${top.map(([ip, n]) => `<span class="chip ref">${esc(ip)} ×${n}</span>`).join(' ') || '-'}</span></div>
-      <div class="tablewrap"><table class="grid"><thead><tr><th>Source</th><th>Src Intf</th><th>Destination</th><th>Dst Intf</th><th>Application</th><th>Policy</th><th>NAT</th><th>Duration</th><th>Bytes</th><th></th></tr></thead><tbody>${rows.map(x => `<tr><td class="mono">${esc(x.srcip)}${SIM.HOSTS[x.srcip] ? `<div class="help">${esc(SIM.HOSTS[x.srcip])}</div>` : ''}</td><td class="mono">${esc(x.srcintf)}</td><td class="mono">${esc(x.dstip)}:${x.port}${SIM.HOSTS[x.dstip] ? `<div class="help">${esc(SIM.HOSTS[x.dstip])}</div>` : ''}</td><td class="mono">${esc(x.dstintf)}</td><td>${esc(x.app)}</td><td class="num">${esc(x.policyid)}</td><td class="mono">${esc(x.nat)}</td><td class="num">${fmtElapsed(now - x.ts)}</td><td class="num">${esc(Number(x.bytes).toLocaleString())}</td><td class="acts"><button class="btn danger" style="height:26px" data-act="sess-kill" data-id="${esc(x.id)}">Kill</button></td></tr>`).join('') || '<tr><td colspan="10" class="empty">No active sessions match.</td></tr>'}</tbody></table></div>`;
+      <div class="tablewrap"><table class="grid"><thead><tr><th>Source</th><th>Src Intf</th><th>Destination</th><th>Dst Intf</th><th>Application</th><th>Policy</th><th>NAT</th><th>Duration</th><th>Bytes</th><th></th></tr></thead><tbody>${rows.map(x => `<tr><td class="mono">${esc(x.srcip)}${SIM.HOSTS[x.srcip] ? `<div class="help">${esc(SIM.HOSTS[x.srcip])}</div>` : ''}</td><td class="mono">${esc(x.srcintf)}</td><td class="mono">${esc(x.dstip)}:${x.port}${SIM.HOSTS[x.dstip] ? `<div class="help">${esc(SIM.HOSTS[x.dstip])}</div>` : ''}</td><td class="mono">${esc(x.dstintf)}</td><td>${esc(x.app)}</td><td class="num">${esc(x.policyid)}</td><td class="mono">${esc(x.nat)}</td><td class="num">${fmtElapsed(now - x.ts)}</td><td class="num">${esc(TELE.sessBytes(x, now).toLocaleString())}</td><td class="acts"><button class="btn danger" style="height:26px" data-act="sess-kill" data-id="${esc(x.id)}">Kill</button></td></tr>`).join('') || '<tr><td colspan="10" class="empty">No active sessions match.</td></tr>'}</tbody></table></div>`;
   };
   P.logs = () => {
     const t = curTab('logs', 'traffic');
@@ -4912,10 +5110,11 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
         <dt>Subnets</dt><dd class="num">${subnets}</dd><dt>Virtual machines</dt><dd class="num">${z.vms.length} (${running} running)</dd></dl>
         <p style="margin:12px 0 0"><button class="btn" data-act="nav" data-id="az-resources">${I.list} All resources</button></p></section>
       <section class="card widget"><h2>Azure Foundations</h2><p style="margin:0 0 8px"><b class="num" style="font-size:22px">${ad}</b> <span class="muted">of ${ams.length} Azure missions complete</span></p><div class="meter"><i style="width:${ams.length ? Math.round(ad / ams.length * 100) : 0}%;background:var(--ok)"></i></div><p style="margin:12px 0 0"><button class="btn primary" data-act="open-missions">${I.flag} Open missions</button></p></section>
+      ${azAlertsCard()}
       <section class="card widget" style="grid-column:1/-1"><h2>Recent activity</h2>${azActivityTable(z.activity.slice(0, 6))}</section>
     </div>`;
   };
-  const azActivityTable = rows => `<div class="tablewrap"><table class="grid"><thead><tr><th>Operation name</th><th>Status</th><th>Time</th><th>Resource</th><th>Resource group</th><th>Event initiated by</th></tr></thead><tbody>${rows.map(a => `<tr><td>${esc(a.op)}</td><td>${pill(a.status, a.status === 'Succeeded' ? 'ok' : 'bad')}</td><td class="mono num">${fmtTs(a.ts)}</td><td class="mono">${esc(a.resource)}</td><td class="mono">${esc(a.rg)}</td><td class="mono">${esc(a.by)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">No activity.</td></tr>'}</tbody></table></div>`;
+  const azActivityTable = rows => `<div class="tablewrap"><table class="grid"><thead><tr><th>Operation name</th><th>Status</th><th>Time</th><th>Resource</th><th>Resource group</th><th>Event initiated by</th></tr></thead><tbody>${rows.map(a => `<tr><td>${esc(a.op)}</td><td>${pill(a.status, a.status === 'Succeeded' || a.status === 'Resolved' ? 'ok' : a.status === 'Active' ? 'warn' : 'bad')}</td><td class="mono num">${fmtTs(a.ts)}</td><td class="mono">${esc(a.resource)}</td><td class="mono">${esc(a.rg)}</td><td class="mono">${esc(a.by)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">No activity.</td></tr>'}</tbody></table></div>`;
 
   P['az-resources'] = () => {
     const z = S.azure, rgf = UI.azRg;
@@ -4980,7 +5179,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     const rows = z.vms.filter(m => fmatch(m.name, m.rg, m.privateIp, m.vnet, m.subnet, m.location));
     return head('Virtual machines and the private IP their NIC holds. Stopping (deallocating) a VM stops compute billing; its private IP stays reserved.') +
       `<div class="toolbar"><button class="btn primary" data-act="az-vm-new">${I.plus} Create</button>${azFilter('Filter virtual machines…')}</div>
-      <div class="tablewrap"><table class="grid"><thead><tr><th>Name</th><th>Status</th><th>Resource group</th><th>Location</th><th>Image</th><th>Size</th><th>Private IP</th><th>Virtual network / subnet</th><th></th></tr></thead><tbody>${rows.map(m => { const img = AZ.image(m.image); const id = `${m.rg}/${m.name}`; return `<tr><td class="mono">${esc(m.name)}</td><td>${vmStatus(m)}</td><td class="mono">${esc(m.rg)}</td><td>${azRegion(m.location)}</td><td>${esc(img ? img.label : m.image)}</td><td class="mono">${esc(m.size)}</td><td class="mono">${esc(m.privateIp)} <span class="help">(${esc(m.ipAlloc)})</span></td><td class="mono">${esc(m.vnet)} / ${esc(m.subnet)}</td><td class="acts">${m.power === 'running' ? `<button class="ibtn" data-act="az-vm-power" data-id="${esc(id)}" data-name="deallocated" title="Stop" aria-label="Stop ${esc(m.name)}">${I.stop}</button>` : `<button class="ibtn" data-act="az-vm-power" data-id="${esc(id)}" data-name="running" title="Start" aria-label="Start ${esc(m.name)}">${I.play}</button>`}${actBtn('az-vm-del', id, I.del, 'Delete virtual machine')}</td></tr>`; }).join('') || '<tr><td colspan="9" class="empty">No virtual machines.</td></tr>'}</tbody></table></div>`;
+      <div class="tablewrap"><table class="grid"><thead><tr><th>Name</th><th>Status</th><th>Resource group</th><th>Location</th><th>Image</th><th>Size</th><th>CPU (avg)</th><th>Network in / out</th><th>Private IP</th><th>Virtual network / subnet</th><th></th></tr></thead><tbody>${rows.map(m => { const img = AZ.image(m.image); const id = `${m.rg}/${m.name}`; return `<tr><td class="mono">${esc(m.name)}</td><td>${vmStatus(m)}</td><td class="mono">${esc(m.rg)}</td><td>${azRegion(m.location)}</td><td>${esc(img ? img.label : m.image)}</td><td class="mono">${esc(m.size)}</td>${(v => m.power === 'running' && v && TELE.started() ? `<td class="num">${v.cpu.toFixed(0)}%${spark(v.cpuHist, 'sm', m.name + ' CPU')}</td><td class="num">${fmtBytes(v.inB)} / ${fmtBytes(v.outB)}</td>` : `<td class="muted">-</td><td class="${v && v.inB ? 'num' : 'muted'}">${v && v.inB ? fmtBytes(v.inB) + ' / ' + fmtBytes(v.outB) : '-'}</td>`)(TELE.vm(m.rg, m.name))}<td class="mono">${esc(m.privateIp)} <span class="help">(${esc(m.ipAlloc)})</span></td><td class="mono">${esc(m.vnet)} / ${esc(m.subnet)}</td><td class="acts">${m.power === 'running' ? `<button class="ibtn" data-act="az-vm-power" data-id="${esc(id)}" data-name="deallocated" title="Stop" aria-label="Stop ${esc(m.name)}">${I.stop}</button>` : `<button class="ibtn" data-act="az-vm-power" data-id="${esc(id)}" data-name="running" title="Start" aria-label="Start ${esc(m.name)}">${I.play}</button>`}${actBtn('az-vm-del', id, I.del, 'Delete virtual machine')}</td></tr>`; }).join('') || '<tr><td colspan="11" class="empty">No virtual machines.</td></tr>'}</tbody></table></div>`;
   };
 
   P['az-vpn'] = () => {
@@ -4990,7 +5189,8 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     const state = g ? (AZ.gwReady(g) ? pill('Succeeded', 'ok') : pill(`Updating, about ${Math.max(1, Math.ceil((g.readyAt - now) / 1000))}s left`, 'warn')) : '';
     const gwCard = g ? `<section class="card widget"><h2>Virtual network gateway</h2>${kv([
         ['Name', `<span class="mono">${esc(g.name)}</span>`], ['Provisioning state', state], ['SKU', esc(g.sku)], ['Virtual network', `${esc(g.vnet)} (${esc(g.rg)})`],
-        ['Public IP address', `<span class="mono">${esc(g.publicIp)}</span>`], ['BGP', g.bgp ? `On, ASN <span class="mono">${esc(g.asn)}</span>, peer IP <span class="mono">${esc(AZ.gwBgpIp(S, g) || '')}</span>` : 'Off']])}
+        ['Public IP address', `<span class="mono">${esc(g.publicIp)}</span>`], ['BGP', g.bgp ? `On, ASN <span class="mono">${esc(g.asn)}</span>, peer IP <span class="mono">${esc(AZ.gwBgpIp(S, g) || '')}</span>` : 'Off'],
+        ['Tunnel bandwidth', `<span class="num">${fmtRate((TELE.gwHist().slice(-1)[0]) || 0)}</span>${spark(TELE.gwHist(), '', 'Tunnel bandwidth')}`]])}
         <div class="toolbar">${btn('az-gw-edit', 'Configuration', g.name)}${btn('az-gw-del', 'Delete', g.name)}</div></section>`
       : `<section class="card widget"><h2>Virtual network gateway</h2><p class="muted">No VPN gateway yet. It deploys into the hub's GatewaySubnet and gives Azure a public IP for the tunnel.</p><div class="toolbar">${btn('az-gw-new', I.plus + ' Create', '', true)}</div></section>`;
     const lngCard = l ? `<section class="card widget"><h2>Local network gateway</h2>${kv([
@@ -5003,7 +5203,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     const cnCard = c ? `<section class="card widget"><h2>Connection</h2>${kv([
         ['Name', `<span class="mono">${esc(c.name)}</span>`], ['Status', pill(cs ? cs.status : 'Unknown', kind)], ['Last IKE event', `<span class="muted">${esc(cs ? cs.reason : '')}</span>`],
         ['Gateways', `${esc(c.gateway)} ↔ ${esc(c.lng)}`], ['IKE protocol', esc(c.ike)], ['IPsec / IKE policy', S.azure.policy === 'custom' ? 'Custom (AES256, SHA256, DH14, GCM, PFS14)' : 'Default'],
-        ['BGP', c.enableBgp ? 'Enabled' : 'Disabled'], ['Shared key', `<span class="mono">${'•'.repeat(Math.min(12, c.sharedKey.length))}</span>`]])}
+        ['BGP', c.enableBgp ? 'Enabled' : 'Disabled'], ['Shared key', `<span class="mono">${'•'.repeat(Math.min(12, c.sharedKey.length))}</span>`], ...azConnLive()])}
         <div class="toolbar">${btn('az-cn-edit', 'Configuration', c.name)}${btn('az-cn-del', 'Delete', c.name)}</div></section>`
       : `<section class="card widget"><h2>Connection</h2><p class="muted">Joins the gateway to the office. Its shared key, IKE version, IPsec policy and BGP setting must match the FortiGate exactly.</p><div class="toolbar">${g && l ? btn('az-cn-new', I.plus + ' Create', '', true) : '<span class="muted">Create the gateway and the local network gateway first.</span>'}</div></section>`;
     const give = g ? `<section class="card widget"><h2>Give these to the office firewall</h2>${kv([
@@ -5011,7 +5211,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
         ['BGP neighbor', g.bgp ? `<span class="mono">${esc(AZ.gwBgpIp(S, g) || '')}</span>, remote AS <span class="mono">${esc(g.asn)}</span>` : 'BGP off'],
         ['Tunnel interface IP', `<span class="mono">${esc((l && l.bgp && l.bgpPeerIp) || '169.254.21.2')}</span>`]])}</section>` : '';
     return head('The Azure end of the site-to-site tunnel. Everything here is live: the office FortiGate negotiates against exactly what you build, so a mismatch on either side shows up on both.') +
-      `<div class="dash">${gwCard}${lngCard}${cnCard}${give}</div>`;
+      `<div class="dash">${gwCard}${lngCard}${cnCard}${give}${azBgpPeersCard(g)}</div>`;
   };
 
   P['az-activity'] = () => {
@@ -5684,17 +5884,17 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     const card = n => {
       const id = `${n.rg}/${n.name}`, tfm = TFX.ws(S).state.resources.some(r => r.type === 'azurerm_network_security_group' && r.attrs.name && r.attrs.name.toLowerCase() === n.name.toLowerCase() && String(r.attrs.resource_group_name).toLowerCase() === n.rg.toLowerCase());
       const subs = TFX.nsgSubnets(S, n).map(u => `${u.v.name}/${u.s.name}`);
-      const row = (r, def) => `<tr class="${def ? 'muted' : ''}"><td class="num">${r.priority}</td><td class="mono">${esc(r.name)}${r.description ? `<div class="help">${esc(r.description)}</div>` : ''}</td><td class="mono">${esc(nsgPort(r))}</td><td>${esc(r.protocol === '*' ? 'Any' : r.protocol)}</td><td class="mono">${esc(r.source_address_prefix || '*')}</td><td class="mono">${esc(r.destination_address_prefix || '*')}</td><td>${pill(r.access, r.access === 'Allow' ? 'ok' : 'bad')}</td><td class="acts">${def ? '' : `<button class="ibtn" data-act="nsg-rule-del" data-id="${esc(id)}" data-name="${esc(r.name)}" title="Delete rule" aria-label="Delete rule ${esc(r.name)}">${I.del}</button>`}</td></tr>`;
+      const row = (r, def) => `<tr class="${def ? 'muted' : ''}"><td class="num">${r.priority}</td><td class="mono">${esc(r.name)}${r.description ? `<div class="help">${esc(r.description)}</div>` : ''}</td><td class="mono">${esc(nsgPort(r))}</td><td>${esc(r.protocol === '*' ? 'Any' : r.protocol)}</td><td class="mono">${esc(r.source_address_prefix || '*')}</td><td class="mono">${esc(r.destination_address_prefix || '*')}</td><td>${pill(r.access, r.access === 'Allow' ? 'ok' : 'bad')}</td><td class="num">${TELE.nsgHits(n, r.name, r.direction) || '<span class="muted">0</span>'}</td><td class="acts">${def ? '' : `<button class="ibtn" data-act="nsg-rule-del" data-id="${esc(id)}" data-name="${esc(r.name)}" title="Delete rule" aria-label="Delete rule ${esc(r.name)}">${I.del}</button>`}</td></tr>`;
       const dir = d => n.rules.filter(r => r.direction === d).sort((a, b) => a.priority - b.priority).map(r => row(r)).join('') + TFX.NSG_DEFAULTS.filter(r => r.direction === d).map(r => row(r, true)).join('');
       return `<section class="card widget" style="margin-bottom:14px"><h2 style="text-transform:none;letter-spacing:0;font-size:15px;color:var(--ink)">${esc(n.name)} ${tfm ? pill('Managed by Terraform', 'info') : pill('Not in Terraform', 'mute')}</h2>
         <dl class="kv"><dt>Resource group</dt><dd class="mono">${esc(n.rg)}</dd><dt>Location</dt><dd>${azRegion(n.location)}</dd><dt>Associated with</dt><dd>${subs.length ? chips(subs) : '<span class="muted">no subnets (it filters nothing)</span>'}</dd></dl>
         <div class="toolbar"><button class="btn" data-act="nsg-rule-new" data-id="${esc(id)}">${I.plus} Add inbound rule</button>${subs.length ? '' : `<button class="btn" data-act="nsg-del" data-id="${esc(id)}">${I.del} Delete</button>`}${tfm ? '<span class="help">Edits here are drift: Terraform will see them on the next plan.</span>' : ''}</div>
-        <div class="sub-h">Inbound security rules</div><div class="tablewrap"><table class="grid"><thead><tr><th>Priority</th><th>Name</th><th>Port</th><th>Protocol</th><th>Source</th><th>Destination</th><th>Action</th><th></th></tr></thead><tbody>${dir('Inbound')}</tbody></table></div>
-        <div class="sub-h" style="margin-top:10px">Outbound security rules</div><div class="tablewrap"><table class="grid"><thead><tr><th>Priority</th><th>Name</th><th>Port</th><th>Protocol</th><th>Source</th><th>Destination</th><th>Action</th><th></th></tr></thead><tbody>${dir('Outbound')}</tbody></table></div></section>`;
+        <div class="sub-h">Inbound security rules</div><div class="tablewrap"><table class="grid"><thead><tr><th>Priority</th><th>Name</th><th>Port</th><th>Protocol</th><th>Source</th><th>Destination</th><th>Action</th><th title="Flows this rule decided since the lab started (from the NSG flow log)">Flows</th><th></th></tr></thead><tbody>${dir('Inbound')}</tbody></table></div>
+        <div class="sub-h" style="margin-top:10px">Outbound security rules</div><div class="tablewrap"><table class="grid"><thead><tr><th>Priority</th><th>Name</th><th>Port</th><th>Protocol</th><th>Source</th><th>Destination</th><th>Action</th><th title="Flows this rule decided since the lab started (from the NSG flow log)">Flows</th><th></th></tr></thead><tbody>${dir('Outbound')}</tbody></table></div></section>`;
     };
     return head('A network security group is an allow/deny list for a subnet. Azure checks the rules lowest priority number first and the first match wins; the 65000+ default rules come last. Traffic that arrives over the VPN counts as VirtualNetwork. In this lab you create NSGs with Terraform; the portal can still edit their rules, which is exactly how drift starts.') +
       `<div class="toolbar">${azFilter('Filter by name or group…')}<button class="btn" data-act="nav" data-id="az-terraform">Open Terraform</button></div>` +
-      (ns.length ? ns.map(card).join('') : '<section class="card widget"><p class="muted" style="margin:0">No network security groups yet. Create one with Terraform (azurerm_network_security_group).</p></section>');
+      (ns.length ? ns.map(card).join('') + nsgFlowCard() : '<section class="card widget"><p class="muted" style="margin:0">No network security groups yet. Create one with Terraform (azurerm_network_security_group).</p></section>');
   };
   ED.nsgRule = id => {
     const [rg, name] = String(id).split('/'); const n = TFX.nsg(S, rg, name); if (!n) return;
@@ -6137,6 +6337,71 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
   $('#termMax').addEventListener('click', () => { const t = $('#term'); t.classList.toggle('max'); $('#termMax').textContent = t.classList.contains('max') ? 'shrink' : 'expand'; });
   function renderTerm() { $('#term').hidden = !UI.termOpen; $('#cliBtn').classList.toggle('on', UI.termOpen); termPrompt(); if (UI.termOpen && !termOut.childNodes.length) termBanner(); }
 
+  /* ================= LIVE VIEWS (TELE) =================
+     Pages in liveSet re-render every traffic tick. Pages with a form of their own (BGP) only swap the parts marked
+     data-live="key", using LIVEV[key](), so nothing the user is typing gets wiped. */
+  const fmtBytes = n => { n = Math.max(0, +n || 0); const u = ['B', 'KB', 'MB', 'GB', 'TB']; let i = 0; while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; } return (i ? n.toFixed(n < 10 ? 2 : n < 100 ? 1 : 0) : Math.round(n)) + ' ' + u[i]; };
+  const fmtRate = bps => { bps = Math.max(0, +bps || 0); return bps >= 1e6 ? (bps / 1e6).toFixed(2) + ' Mbps' : bps >= 1e3 ? (bps / 1e3).toFixed(1) + ' kbps' : Math.round(bps) + ' bps'; };
+  const fmtDur = ms => { const t = Math.max(0, Math.floor(ms / 1000)), h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), x = t % 60; return h ? `${h}h ${pad(m)}m` : m ? `${m}m ${pad(x)}s` : `${x}s`; };
+  function spark(vals, cls, label) {
+    const v = (vals || []).slice(-40); if (v.length < 2) return `<svg class="spark ${cls || ''}" viewBox="0 0 100 30" preserveAspectRatio="none" role="img" aria-label="${esc(label || 'trend')}: collecting"></svg>`;
+    const max = Math.max(1, ...v), step = 100 / (v.length - 1);
+    const pts = v.map((y, i) => `${(i * step).toFixed(1)},${(29 - y / max * 27).toFixed(1)}`).join(' ');
+    return `<svg class="spark ${cls || ''}" viewBox="0 0 100 30" preserveAspectRatio="none" role="img" aria-label="${esc(label || 'trend')}"><polygon points="0,30 ${pts} 100,30"/><polyline points="${pts}"/></svg>`;
+  }
+  const waiting = () => TELE.started() ? '' : '<span class="muted">starts with the lab</span>';
+
+  /* BGP neighbors (FortiGate): the table only, so the AS/router-id form above it is left alone */
+  function bgpTable() {
+    const B = S.bgp, st = SIM.bgpStatus(S), now = Date.now();
+    return `<div class="tablewrap"><table class="grid"><thead><tr><th>Neighbor IP</th><th>Remote AS</th><th>State</th><th>Up/Down</th><th>Msgs rcvd / sent</th><th>Prefixes received</th><th></th></tr></thead><tbody>${B.neighbors.map(n => { const x = st.find(y => y.ip === n.ip) || {}, b = TELE.bgp(n.ip); return `<tr><td class="mono">${esc(n.ip)}</td><td class="num">${esc(n.remoteAs)}</td><td>${x.up ? pill('Established', 'ok') : pill('Idle', 'bad') + `<div class="help" style="max-width:360px">${esc(x.reason || '')}</div>`}</td><td class="num">${b ? (b.up ? '' : 'down ') + fmtDur(now - b.since) : '<span class="muted">-</span>'}</td><td class="num">${b ? `${b.rcvd} / ${b.sent}` : '<span class="muted">-</span>'}</td><td>${x.up ? chips(x.learned.map(l => l.dst + '/' + l.bits)) : '<span class="muted">-</span>'}</td><td class="acts">${actBtn('bgp-nedit', n.ip, I.edit, 'Edit')}${actBtn('bgp-ndel', n.ip, I.del, 'Delete')}</td></tr>`; }).join('') || '<tr><td colspan="7" class="empty">No neighbors.</td></tr>'}</tbody></table></div>`;
+  }
+  /* FortiGate dashboard: resources and bandwidth */
+  function resourcesCard() {
+    const cpu = TELE.started() ? TELE.cpu() : 4, mem = TELE.started() ? TELE.mem() : 41, enabled = S.policies.filter(p => p.status === 'enable');
+    return `<section class="card widget"><h2>Resources</h2>
+        <div class="kv"><dt>CPU</dt><dd><div class="meter" title="${cpu.toFixed(0)}%"><i style="width:${cpu.toFixed(1)}%"></i></div><span class="help num">${cpu.toFixed(0)}%</span></dd><dt>Memory</dt><dd><div class="meter" title="${mem.toFixed(0)}%"><i style="width:${mem.toFixed(1)}%"></i></div><span class="help num">${mem.toFixed(0)}%</span></dd><dt>Sessions</dt><dd class="num">${S.sessions.length}</dd><dt>Policies</dt><dd class="num">${S.policies.length} (${enabled.length} enabled)</dd></div></section>`;
+  }
+  function bandwidthCard() {
+    const wan = S.interfaces.find(i => i.role === 'wan') || {}, lan = S.interfaces.find(i => i.role === 'lan') || {};
+    const row = i => { const c = TELE.iface(i.name); return `<div style="margin-top:6px"><div style="display:flex;justify-content:space-between;gap:8px"><span class="mono">${esc(i.name)} <span class="muted">${esc(i.alias || i.role)}</span></span><span class="num">${c ? fmtRate(c.rate) : '-'}</span></div>${spark(c ? c.hist : [], '', i.name + ' bandwidth')}</div>`; };
+    return `<section class="card widget"><h2><span class="live-dot"></span>Bandwidth</h2>${[wan, lan].filter(i => i.name).map(row).join('')}${waiting() ? `<p class="help" style="margin:6px 0 0">${waiting()}</p>` : ''}</section>`;
+  }
+  const tunStats = name => { const r = TELE.tunnel(name); return r && r.up ? `<div class="help num">up ${fmtDur(Date.now() - r.since)} · in ${fmtBytes(r.rx)} · out ${fmtBytes(r.tx)}</div>` : ''; };
+
+  /* Azure Monitor alerts (home) */
+  function azAlertsCard() {
+    const al = TELE.alerts(), open = al.filter(a => !a.resolved);
+    return `<section class="card widget" style="grid-column:1/-1"><h2><span class="live-dot"></span>Alerts · Azure Monitor</h2>
+      <p class="help" style="margin-top:0">Rules the Azure team set up: VPN connection disconnected (Sev 1), BGP peer down (Sev 2), VM CPU above 80% (Sev 2). ${open.length ? `<b>${open.length} fired</b>.` : 'Nothing firing.'}</p>
+      <div class="tablewrap"><table class="grid"><thead><tr><th>Severity</th><th>Alert rule</th><th>Monitor condition</th><th>Affected resource</th><th>Fired</th><th>Resolved</th></tr></thead><tbody>${al.slice(0, 8).map(a => `<tr><td>${pill('Sev ' + a.sev, a.sev <= 1 ? 'bad' : 'warn')}</td><td>${esc(a.rule)}<div class="help">${esc(a.desc)}</div></td><td>${a.resolved ? pill('Resolved', 'ok') : pill('Fired', 'bad')}</td><td class="mono">${esc(a.resource)}<div class="help">${esc(a.rg)}</div></td><td class="mono num">${fmtTs(a.fired)}</td><td class="mono num">${a.resolved ? fmtTs(a.resolved) : '-'}</td></tr>`).join('') || `<tr><td colspan="6" class="empty">No alerts${TELE.started() ? '' : ' (monitoring starts with the lab)'}.</td></tr>`}</tbody></table></div></section>`;
+  }
+  /* Azure VPN gateway: BGP peers blade, built from the same adjacency the FortiGate shows */
+  function azBgpPeersCard(g) {
+    if (!g || !g.bgp) return '';
+    const P = SIM.peer(S), st = SIM.bgpStatus(S), now = Date.now(), up = st.find(n => n.up);
+    const me = (P.lng && P.lng.bgp && P.lng.bgpPeerIp) || SIM.AZURE_BGP.ourTunnelIp, b = up ? TELE.bgp(up.ip) : null;
+    const adv = ((S.bgp || {}).networks || []).map(x => (x.prefix || x.ip) + '/' + x.bits);
+    return `<section class="card widget"><h2><span class="live-dot"></span>BGP peers</h2><div class="tablewrap"><table class="grid"><thead><tr><th>Peer address</th><th>Local address</th><th>ASN</th><th>Status</th><th>Connected duration</th><th>Routes received</th><th>Messages sent / received</th></tr></thead><tbody>
+      <tr><td class="mono">${esc(me)}</td><td class="mono">${esc(AZ.gwBgpIp(S, g) || '')}</td><td class="num">${esc(S.bgp && S.bgp.as ? S.bgp.as : (P.lng && P.lng.asn) || '-')}</td><td>${up ? pill('Connected', 'ok') : pill('Connecting', 'warn')}</td><td class="num">${b ? fmtDur(now - b.since) : '-'}</td><td class="num">${up ? adv.length : 0}${up && adv.length ? `<div class="help">${esc(adv.join(', '))}</div>` : ''}</td><td class="num">${b ? `${b.rcvd} / ${b.sent}` : '0 / 0'}</td></tr></tbody></table></div>
+      <p class="help">Azure's side of the same session the FortiGate shows under Network → BGP: what Azure sends, the office receives, and the other way round.</p></section>`;
+  }
+  function azConnLive() {
+    const cn = TELE.conn(); if (!cn) return [];
+    return [['Status changed', `<span class="num">${fmtDur(Date.now() - cn.since)} ago</span>`], ['Data in', `<span class="num">${fmtBytes(cn.inB)}</span>`], ['Data out', `<span class="num">${fmtBytes(cn.outB)}</span>`]];
+  }
+  /* NSG flow log (Network Watcher), newest first */
+  function nsgFlowCard() {
+    const fl = TELE.flowlog().filter(f => fmatch(f.nsg, f.rule, f.src, f.dst, f.dport)).slice(0, 15);
+    return `<section class="card widget" style="margin-bottom:14px"><h2><span class="live-dot"></span>Flow log · Network Watcher</h2><p class="help" style="margin-top:0">Every flow that crosses the tunnel to or from a VM behind an NSG, with the rule that decided it. A = allowed, D = denied; I = inbound, O = outbound. In a real subscription these land in a storage account every minute.</p>
+      <div class="tablewrap"><table class="grid flowlog"><thead><tr><th>Time</th><th>NSG / rule</th><th>Source</th><th>Destination</th><th>Proto</th><th>Dir</th><th>Decision</th></tr></thead><tbody>${fl.map(f => `<tr><td class="num">${fmtTs(f.ts).slice(11)}</td><td>${esc(f.nsg)} / ${esc(f.rule)}</td><td>${esc(f.src)}:${f.sport}</td><td>${esc(f.dst)}:${f.dport}</td><td>${f.proto}</td><td>${f.dir}</td><td>${f.decision === 'A' ? pill('A', 'ok') : pill('D', 'bad')}</td></tr>`).join('') || `<tr><td colspan="7" class="empty">${TELE.started() ? 'No flows yet. Traffic shows up here once the tunnel is up and a VM sits in a subnet with an NSG.' : 'The flow log starts with the lab.'}</td></tr>`}</tbody></table></div></section>`;
+  }
+  const LIVEV = { 'bgp-nb': bgpTable };
+  function livePatch() {
+    const m = $('#main'); if (!m || selHeld(m)) return;
+    m.querySelectorAll('[data-live]').forEach(el => { const f = LIVEV[el.dataset.live]; if (!f) return; const h = f(); if (el.innerHTML !== h) el.innerHTML = h; });
+  }
+
   /* ================= RENDER ================= */
   function renderRail() {
     const active = k => UI.page === k || (UI.page === 'az-vnet' && k === 'az-vnets');
@@ -6181,12 +6446,14 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
   renderAll(); renderTerm();
   $('#saveDot').className = 'save-dot offline';
 
-  const liveSet = new Set(['dashboard', 'logs', 'sessions', 'policy']);
+  const liveSet = new Set(['dashboard', 'logs', 'sessions', 'policy', 'interfaces', 'routes', 'ipsec', 'az-home', 'az-vpn', 'az-vms', 'az-nsgs', 'az-activity']);
   let lastDone = -1;
   function onTick() {
+    TELE.tick(S);
     evaluate();
     const ae = document.activeElement; const typing = ae && ae.closest && ae.closest('#main') && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName);
     if (liveSet.has(UI.page) && !typing && !selHeld($('#main'))) renderMain();
+    else if (!typing) livePatch();
     renderHeader();
     const d = doneCount();
     const inDrawer = ae && ae.closest && ae.closest('#drawer') && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName);
