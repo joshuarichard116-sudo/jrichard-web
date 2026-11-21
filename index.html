@@ -532,7 +532,7 @@
             <p>Working out firewall changes directly on a live client firewall is risky, so I designed an interactive FortiGate-style firewall and Azure simulator and directed Claude and Grok to build it. I build and test configurations there, then port them one-for-one to live environments. The version that handles real configurations runs only on my own machine; the public version is a 53-mission training lab with fictional data, a live FortiGate-to-Azure link, Terraform missions for the Azure side, and a Nightmare mode of random production incidents.</p>
             <p class="take">Get the change right somewhere safe first, then make it once in production.</p>
             <div class="chips"><span class="chip">FortiGate-style config</span><span class="chip">IPsec site-to-site</span><span class="chip">Azure networking</span><span class="chip">Nightmare mode</span><span class="chip">Built with AI help</span></div>
-            <p class="lab-cta"><a class="btn primary" href="labs/talvex-firewall/" target="_blank" rel="noopener">Play the lab</a><a class="btn" href="labs/talvex-firewall/tour/" target="_blank" rel="noopener">2-minute tour</a><span class="lab-note">The lab runs in your browser · about 60–75 minutes · nothing is saved</span></p>
+            <p class="lab-cta"><a class="btn primary" href="labs/talvex-firewall/" target="_blank" rel="noopener">Play the lab</a><a class="btn" href="labs/talvex-firewall/tour/" target="_blank" rel="noopener">2-minute tour</a><span class="lab-note">The lab runs in your browser · about 60–75 minutes · Save keeps your progress in this browser</span></p>
           </article>
           <article class="card work reveal">
             <p class="kicker">Microsoft 365 · Microsoft Graph · S1 Technology</p>
@@ -894,7 +894,7 @@
       kicker: "Play it",
       title: "Talvex Firewall Lab",
       text: "An interactive FortiGate-style firewall and Azure simulator I designed and built with AI help. I use it to build and test configurations before porting them one-for-one to live environments. The public version is a 53-mission training lab, with Terraform for the Azure side and a Nightmare mode of random, escalating incidents.",
-      bullets: ["Read the logs, harden the firewall, and stop live simulated attackers", "Build a site-to-site IPsec tunnel into Azure, then build the Azure side", "Policy Lookup and a working CLI that share the same config", "Runs in your browser, about 60–75 minutes, nothing is saved", "Short on time? There is a 2-minute screenshot tour"],
+      bullets: ["Read the logs, harden the firewall, and stop live simulated attackers", "Build a site-to-site IPsec tunnel into Azure, then build the Azure side", "Policy Lookup and a working CLI that share the same config", "Runs in your browser, about 60–75 minutes, and Save keeps your progress in that browser", "Short on time? There is a 2-minute screenshot tour"],
       chips: ["FortiGate-style", "IPsec", "Azure", "Built with AI help"],
       link: {"text": "Play the lab", "href": "labs/talvex-firewall/", "newtab": true}
     },
