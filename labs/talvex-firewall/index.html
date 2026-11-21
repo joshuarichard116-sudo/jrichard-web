@@ -156,6 +156,14 @@ td .chips { display: flex; flex-wrap: wrap; gap: 4px; }
 .kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; font-size: 13px; }
 .kv dt { color: var(--muted); }
 .kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+/* Status pills inside cards wrap instead of spilling past the card edge */
+.card .kv dd .pill, .widget .pill { max-width: 100%; white-space: normal; }
+.kv.lic { grid-template-columns: minmax(7em, 1fr) auto; }
+.kv.lic dd .help { margin-top: 2px; font-size: 11.5px; overflow-wrap: normal; }
+.card .chip:not(td .chip) { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.kv dd.mrow { display: flex; align-items: center; gap: 10px; }
+.kv dd.mrow .meter { flex: 1; min-width: 40px; }
+.kv dd.mrow .help { min-width: 3.5ch; text-align: right; }
 .ports { display: flex; gap: 8px; flex-wrap: wrap; }
 .port { width: 64px; border: 1px solid var(--line); border-radius: 6px; padding: 6px; text-align: center; font-size: 11.5px; background: var(--panel-2); }
 .port .jack { height: 22px; border-radius: 3px; margin: 0 auto 5px; width: 34px; background: var(--line); position: relative; }
@@ -6314,8 +6322,8 @@ if (typeof module !== 'undefined') module.exports = CATS;
 
   function licensesCard() {
     const ago = m => { const t = Date.now() - m * 60000; return fmtTs(t).slice(0, 16); };
-    const L = [['Support contract', 'Registered (lab)', 'ok'], ['Firmware & General Updates', 'Licensed', 'ok'], ['IPS', `Licensed · updated ${ago(47)}`, 'ok'], ['AntiVirus', `Licensed · updated ${ago(47)}`, 'ok'], ['Web Filtering', 'Licensed', 'ok'], ['Virtual machine', `${S.system.model} · 4 vCPU`, 'info']];
-    return `<section class="card widget"><h2>Licenses</h2><dl class="kv">${L.map(([k, v, c]) => `<dt>${esc(k)}</dt><dd>${pill(v, c)}</dd>`).join('')}</dl></section>`;
+    const L = [['Support contract', 'Registered (lab)', 'ok'], ['Firmware & General Updates', 'Licensed', 'ok'], ['IPS', 'Licensed', 'ok', `updated ${ago(47)}`], ['AntiVirus', 'Licensed', 'ok', `updated ${ago(47)}`], ['Web Filtering', 'Licensed', 'ok'], ['Virtual machine', `${S.system.model} · 4 vCPU`, 'info']];
+    return `<section class="card widget"><h2>Licenses</h2><dl class="kv lic">${L.map(([k, v, c, sub]) => `<dt>${esc(k)}</dt><dd>${pill(v, c)}${sub ? `<div class="help num">${esc(sub)}</div>` : ''}</dd>`).join('')}</dl></section>`;
   }
   P.interfaces = () => {
     const ref = n => SIM.usedBy(S, 'iface', n).length, all = SIM.allIfaces(S), closed = UI.ifClosed || {};
@@ -8552,7 +8560,7 @@ if (typeof module !== 'undefined') module.exports = CATS;
   function resourcesCard() {
     const cpu = TELE.started() ? TELE.cpu() : 4, mem = TELE.started() ? TELE.mem() : 41, enabled = S.policies.filter(p => p.status === 'enable');
     return `<section class="card widget"><h2>Resources</h2>
-        <div class="kv"><dt>CPU</dt><dd><div class="meter" title="${cpu.toFixed(0)}%"><i style="width:${cpu.toFixed(1)}%"></i></div><span class="help num">${cpu.toFixed(0)}%</span></dd><dt>Memory</dt><dd><div class="meter" title="${mem.toFixed(0)}%"><i style="width:${mem.toFixed(1)}%"></i></div><span class="help num">${mem.toFixed(0)}%</span></dd><dt>Sessions</dt><dd class="num">${S.sessions.length}</dd><dt>Policies</dt><dd class="num">${S.policies.length} (${enabled.length} enabled)</dd></div></section>`;
+        <div class="kv"><dt>CPU</dt><dd class="mrow"><div class="meter" title="${cpu.toFixed(0)}%"><i style="width:${cpu.toFixed(1)}%"></i></div><span class="help num">${cpu.toFixed(0)}%</span></dd><dt>Memory</dt><dd class="mrow"><div class="meter" title="${mem.toFixed(0)}%"><i style="width:${mem.toFixed(1)}%"></i></div><span class="help num">${mem.toFixed(0)}%</span></dd><dt>Sessions</dt><dd class="num">${S.sessions.length}</dd><dt>Policies</dt><dd class="num">${S.policies.length} (${enabled.length} enabled)</dd></div></section>`;
   }
   function bandwidthCard() {
     const wan = S.interfaces.find(i => i.role === 'wan') || {}, lan = S.interfaces.find(i => i.role === 'lan') || {};
