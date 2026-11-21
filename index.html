@@ -268,6 +268,13 @@
       background: radial-gradient(calc(260px * var(--s)) circle at var(--mx, 50%) var(--my, 45%), rgba(217, 162, 27, .16), transparent 70%);
     }
     .scene.hovering::after { opacity: 1; }
+    /* The scene is a plain rectangle: fade the spotlight and the sparks out before its edges so no hard line shows against the page */
+    .scene::after, .sparks {
+      -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent), linear-gradient(180deg, transparent, #000 10%, #000 90%, transparent);
+      -webkit-mask-composite: source-in;
+      mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent), linear-gradient(180deg, transparent, #000 10%, #000 90%, transparent);
+      mask-composite: intersect;
+    }
     /* ---------- Background: Blueprint grid + Network map ---------- */
     .bp, .net { display: none; }
     html.bg-new .bp, html.bg-new .net { display: block; }
@@ -1063,7 +1070,7 @@
       for (let k = parts.length - 1; k >= 0; k--) if (parts[k].streak) parts.splice(k, 1);
       arcs = arcs.slice(-1);
       const cx = scene.clientWidth / 2, base = geo.top + geo.H + bob;
-      const n = Math.round(28 * strength);
+      const n = Math.round(38 * strength);
       for (let k = 0; k < n; k++) {
         const h = Math.random();                                   // 0 = base, 1 = tip
         const half = geo.R * 1.25 * (1 - h * 0.85);
@@ -1080,7 +1087,8 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, Hh);
       const dark = isDark();
-      ctx.globalCompositeOperation = 'source-over';   // never additive: overlapping sparks must not blow out to white
+      // additive glow in dark mode (the original look); sweeps are capped in sweep() so it can't pile up into a white smear
+      ctx.globalCompositeOperation = dark ? 'lighter' : 'source-over';
       const col = dark ? '232, 184, 74' : '168, 116, 10';
       for (let k = parts.length - 1; k >= 0; k--) {
         const q = parts[k];
