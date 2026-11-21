@@ -4355,7 +4355,17 @@ button.sec-card:hover, button.sec-card:focus-visible { border-color: var(--accen
 .sec-why ul { margin: 0; padding-left: 18px; display: grid; gap: 3px; }
 .sec-link { border: 0; background: none; padding: 0; font: inherit; font-weight: 600; color: var(--accent); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; text-align: left; }
 .sec-all { padding: 12px 0 0; }
-.sec-nav { display: flex; align-items: center; gap: 10px; padding: 6px 2px 0; font-size: 12px; }
+.sec-nav { display: flex; align-items: center; gap: 10px; padding: 4px 4px 0; font-size: 12.5px; }
+.sec-nav + .tier { padding-top: 8px; }
+.dr-count { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.drawer header .learn-mode { margin-top: 6px; }
+.mis-acts { display: flex; flex-wrap: wrap; gap: 6px; }
+.mis-acts .btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+.mis-acts .btn.ghost:hover { color: var(--ink); border-color: var(--line); }
+.dif-row .sec-meta { margin-left: 2px; align-self: center; }
+.sec-blurb { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.sec-why-d > summary { cursor: pointer; font-size: 12.5px; color: var(--warn); font-weight: 600; list-style: revert; }
+.sec-why-d[open] > summary { margin-bottom: 6px; }
 .sec-fin { display: grid; gap: 8px; margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: var(--ok-soft); border: 1px solid color-mix(in srgb, var(--ok) 45%, var(--line)); font-size: 13px; }
 </style>
 <style id="g74-css">
@@ -8036,8 +8046,8 @@ if (typeof module !== 'undefined') module.exports = CATS;
     else body = nmStartView();
     d.innerHTML = `<header><div style="display:flex;align-items:center;gap:8px"><h2 style="flex:1">Nightmare mode</h2><button class="ibtn" data-act="drawer-close" aria-label="Close Nightmare mode">✕</button></div><p>Seeded production incidents. Nothing is uniform.</p></header><div class="scroll"><div class="nm">${body}</div></div>`;
     const s2 = d.querySelector('.scroll'); if (s2) s2.scrollTop = sc;
-    const lv = $('#nmLevel'); if (lv) lv.addEventListener('change', () => { const e = $('#nmLvlEcho'); if (e) e.textContent = lv.value; });
   }
+  document.addEventListener('change', e => { if (e.target && e.target.id === 'nmLevel') { const x = $('#nmLvlEcho'); if (x) x.textContent = e.target.value; } });
   /* ================= ADAPTIVE HINTS ================= */
   /* Every hint click is counted per mission (rec.asks) and overall (S.learn.asks). When the pattern looks like someone
      still learning the environment, the drawer offers Guided hints: the same hints, step by step, with where to click,
@@ -8234,8 +8244,8 @@ if (typeof module !== 'undefined') module.exports = CATS;
       <div class="learn-row"><button class="btn primary" data-act="learn-yes">Yes, guide me</button><button class="btn" data-act="learn-no">No thanks</button></div></div>`;
   }
   function learnToggle() {
-    const g = guided(), s = learnStats();
-    return `<div class="learn-mode"><span>Hints:</span><div class="seg" role="group" aria-label="Hint style"><button class="${g ? '' : 'on'}" data-act="learn-mode" data-id="standard" aria-pressed="${!g}">Short</button><button class="${g ? 'on' : ''}" data-act="learn-mode" data-id="guided" aria-pressed="${g}">Guided</button></div>${s.asks ? `<small class="muted">${s.asks} hint${s.asks === 1 ? '' : 's'} used${s.tried > 1 ? ` on ${s.tried} missions` : ''}</small>` : ''}</div>`;
+    const g = guided();
+    return `<div class="learn-mode"><span>Hints:</span><div class="seg" role="group" aria-label="Hint style"><button class="${g ? '' : 'on'}" data-act="learn-mode" data-id="standard" aria-pressed="${!g}">Short</button><button class="${g ? 'on' : ''}" data-act="learn-mode" data-id="guided" aria-pressed="${g}">Guided</button></div></div>`;
   }
   const learnSteps = m => m.hints.length + (m.cli ? 1 : 0);
   function learnHints(m, rec, ok) {
@@ -8280,7 +8290,7 @@ if (typeof module !== 'undefined') module.exports = CATS;
     const d = $('#drawer'); d.hidden = !UI.drawer; if (!UI.drawer) return;
     const sc = d.querySelector('.scroll') ? d.querySelector('.scroll').scrollTop : 0;
     const done = doneCount();
-    let html = `<header><div style="display:flex;align-items:center;gap:8px"><h2 style="flex:1">Talvex Scavenger Hunt</h2><button class="ibtn" data-act="drawer-close" aria-label="Close missions">✕</button></div><p>Rick's network, inherited as-is. ${done} of ${MISSIONS.length} done. Checks run live as you change the config.</p>${learnToggle()}</header><div class="scroll">`;
+    let html = `<header><div style="display:flex;align-items:center;gap:8px"><h2 style="flex:1">Missions</h2><span class="dr-count">${done}/${MISSIONS.length} done</span><button class="ibtn" data-act="drawer-close" aria-label="Close missions">✕</button></div>${learnToggle()}</header><div class="scroll">`;
     const offer = learnOf().pending && !guided(); let offered = false; const top = html.length;
     for (const tier of MISSIONS.TIERS) {
       const ms = MISSIONS.filter(m => m.tier === tier);
@@ -8293,19 +8303,30 @@ if (typeof module !== 'undefined') module.exports = CATS;
         html += `<div class="mis ${ok ? 'done' : hot ? 'hot' : part ? 'part' : ''} ${m.followup ? 'fu' : ''}"><button class="head" data-act="mis-open" data-id="${m.id}" aria-expanded="${open}"><span class="badge">${ok ? '✓' : ''}</span><span>${m.followup ? '<span class="fu-tag">follow-up</span> ' : ''}${m.view === 'azure' ? '<span class="fu-tag">Azure</span> ' : ''}${m.needs_live ? '<span class="fu-tag live-tag" title="Needs Live Mode">Live</span> ' : ''}<b>${esc(m.title)}</b><br><small>${m.type === 'answer' ? 'find & answer' : m.type === 'threat' && !(S.threats[m.id] || {}).active ? 'locked' : m.type === 'threat' ? ((S.threats[m.id] || {}).lastAccepted && Date.now() - S.threats[m.id].lastAccepted < 45000 ? 'ACTIVE · succeeding' : 'active') : st.filter(x => x.ok).length + '/' + st.length + ' checks'}</small></span><span class="muted">${open ? '−' : '+'}</span></button>`;
         if (open) {
           if (m.needs_live && !UI.live) { UI.liveAsk = true; html += `<div class="content">${liveBanner()}<div class="story">${esc(m.story)}</div>`; } else
-          html += `<div class="content"><div class="story">${esc(m.story)}</div><div><div class="sub-h">Your tasks</div><ul>${m.tasks.map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>`;
+          {
+            const live = m.type === 'config' || m.type === 'threat', paired = live && st.length === m.tasks.length;
+            const mark = x => `<span class="${x.ok ? 'y' : 'n'}">${x.ok ? '✓' : '○'}</span>`;
+            html += `<div class="content"><div class="story">${esc(m.story)}</div>`;
+            if (paired) html += `<div><div class="sub-h">Tasks</div><ul class="checklist">${m.tasks.map((t, i) => `<li title="Check: ${esc(st[i].label)}">${mark(st[i])}<span>${esc(t)}</span></li>`).join('')}</ul></div>`;
+            else {
+              html += `<div><div class="sub-h">Tasks</div><ul>${m.tasks.map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>`;
+              if (live) html += `<div><div class="sub-h">Live checks</div><ul class="checklist">${st.map(x => `<li>${mark(x)}<span>${esc(x.label)}</span></li>`).join('')}</ul></div>`;
+            }
+          }
           if (m.view === 'azure' && UI.view !== 'azure') html += `<div><button class="btn" data-act="view" data-id="azure">Switch to the Azure view</button></div>`;
           if (m.type === 'answer') html += `<div class="ans"><input class="inp mono" id="ans_${m.id}" value="${esc(S.answers[m.id] || '')}" placeholder="Your answer" aria-label="Answer for ${esc(m.title)}"><button class="btn primary" data-act="mis-ans" data-id="${m.id}">Submit</button></div>`;
-          if (m.type === 'config' || m.type === 'threat') html += `<div><div class="sub-h">Live checks</div><ul class="checklist">${st.map(x => `<li><span class="${x.ok ? 'y' : 'n'}">${x.ok ? '✓' : '○'}</span><span>${esc(x.label)}</span></li>`).join('')}</ul></div>`;
           if (guided()) html += learnHints(m, rec, ok);
           else {
             for (let i = 0; i < Math.min(rec.hints || 0, m.hints.length); i++) html += `<div class="hint"><b>Hint ${i + 1}.</b> ${esc(m.hints[i])}</div>`;
             if (offer) { html += learnOfferCard(); offered = true; }
-            if (!ok && (rec.hints || 0) < m.hints.length) html += `<div><button class="btn" data-act="mis-hint" data-id="${m.id}">Show hint ${(rec.hints || 0) + 1} of ${m.hints.length}</button></div>`;
           }
           if (ok) html += `<div class="why"><b>Why this matters.</b> ${esc(m.why)}</div>`;
           if (ok || rec.showCli) html += `<div><div class="sub-h">${esc(m.cliLabel || (m.view === 'azure' ? 'Azure CLI equivalent' : 'CLI equivalent'))}</div><pre>${esc(m.cli)}</pre></div>`;
-          else html += `<div><button class="btn" data-act="mis-cli" data-id="${m.id}">Reveal the CLI (spoiler)</button></div>`;
+          {
+            const hintBtn = !guided() && !ok && (rec.hints || 0) < m.hints.length ? `<button class="btn" data-act="mis-hint" data-id="${m.id}">Hint ${(rec.hints || 0) + 1} of ${m.hints.length}</button>` : '';
+            const cliBtn = ok || rec.showCli ? '' : `<button class="btn ghost" data-act="mis-cli" data-id="${m.id}">${m.cliLabel ? 'Show the solution' : 'Show the CLI'} (spoiler)</button>`;
+            if (hintBtn || cliBtn) html += `<div class="mis-acts">${hintBtn}${cliBtn}</div>`;
+          }
           html += `</div>`;
         }
         html += `</div>`;
@@ -8375,7 +8396,7 @@ if (typeof module !== 'undefined') module.exports = CATS;
     const ms = secMis(t), pg = CATS.progress(S, t), n = pg.done, sk = pg.skipped, pct = Math.round((n + sk) / ms.length * 100), info = SECTIONS[t] || {};
     const v = secView(t), where = v === 'azure' ? 'Azure view' : v === 'both' ? 'FortiGate + Azure' : 'FortiGate';
     const head = `<span class="sec-top"><span class="sec-idx">${i + 1}</span><span class="sec-name">${esc(t)}</span>`;
-    const meta = `<span class="sec-meta">${ms.length} mission${ms.length === 1 ? '' : 's'} · ${where}</span><span class="dif-row">${diffMix(ms)}</span>${info.blurb ? `<span class="sec-blurb">${esc(info.blurb)}</span>` : ''}`;
+    const meta = `<span class="dif-row">${diffMix(ms)}<span class="sec-meta">${where}</span></span>${info.blurb ? `<span class="sec-blurb">${esc(info.blurb)}</span>` : ''}`;
     if (secLocked(t)) {
       const items = CATS.reqs(t).map(k => {
         const r = CATS.REQ[k], have = r.test(S);
@@ -8383,8 +8404,8 @@ if (typeof module !== 'undefined') module.exports = CATS;
         return `<li class="${have ? 'have' : ''}"><span aria-hidden="true">${have ? '✓' : '○'}</span> ${esc(r.label)}${have ? '' : `<br><span class="muted">Built in: ${by}</span>`}</li>`;
       }).join('');
       return `<div class="sec-card locked" role="group" aria-label="${esc(t)}, locked">${head}<span class="sec-tag lock">${lockIc}Locked</span></span>${meta}
-        <div class="sec-why"><span><b>Why it is locked.</b> ${esc(info.why || 'It builds on config from an earlier section.')}</span><span class="sub-h">Needs this config in the firewall${v !== 'fg' ? ' and Azure' : ''}</span><ul class="req-list">${items}</ul>
-        <div><button class="btn" data-act="sec-auto" data-id="${esc(t)}">Auto-configure prerequisites</button></div><span class="muted" style="font-size:11.5px">Applies the baseline config for you. The missions that build it are marked skipped and do not score.</span></div></div>`;
+        <details class="sec-why-d" data-k="why-${esc(t)}"><summary>How to unlock</summary><div class="sec-why"><span>${esc(info.why || 'It builds on config from an earlier section.')}</span><span class="sub-h">Needs this config in the firewall${v !== 'fg' ? ' and Azure' : ''}</span><ul class="req-list">${items}</ul>
+        <div><button class="btn" data-act="sec-auto" data-id="${esc(t)}" title="Applies the baseline config. The missions that build it are marked skipped and do not score.">Auto-configure prerequisites</button></div></div></details></div>`;
     }
     const done = n + sk === ms.length, tag = done ? '<span class="sec-tag ok">✓ Done</span>' : t === rec ? '<span class="sec-tag next">Suggested next</span>' : n || sk ? '<span class="sec-tag">In progress</span>' : '';
     return `<button class="sec-card ${done ? 'done' : ''}" data-act="sec-pick" data-id="${esc(t)}" aria-label="Start ${esc(t)}: ${n} of ${ms.length} done${sk ? `, ${sk} skipped` : ''}">${head}${tag}<span class="sec-num">${n}/${ms.length}${sk ? ` · ${sk} skipped` : ''}</span></span>${meta}<span class="sec-bar"><i style="width:${pct}%"></i></span></button>`;
@@ -8392,16 +8413,17 @@ if (typeof module !== 'undefined') module.exports = CATS;
   function renderSectionPicker(d) {
     const sc = d.dataset.sec === 'pick' && d.querySelector('.scroll') ? d.querySelector('.scroll').scrollTop : 0;
     const L = secTiers(), rec = secNext(null), locked = L.filter(secLocked).length, all = CATS.progress(S);
-    let html = `<header><div style="display:flex;align-items:center;gap:8px"><h2 style="flex:1">Choose a category</h2><button class="ibtn" data-act="drawer-close" aria-label="Close missions">✕</button></div><p>Start wherever you like. ${all.done} of ${all.total} missions done${all.skipped ? `, ${all.skipped} skipped` : ''}.${locked ? ` ${locked} categor${locked === 1 ? 'y is' : 'ies are'} locked until the config ${locked === 1 ? 'it builds' : 'they build'} on exists. Build it, or auto-configure it to skip ahead.` : ''}</p><div class="sec-bar" aria-hidden="true"><i style="width:${Math.round(all.done / all.total * 100)}%"></i></div></header><div class="scroll"><div class="sec-list">`;
+    let html = `<header><div style="display:flex;align-items:center;gap:8px"><h2 style="flex:1">Categories</h2><span class="dr-count">${all.done}/${all.total} done${all.skipped ? ` · ${all.skipped} skipped` : ''}</span><button class="ibtn" data-act="drawer-close" aria-label="Close missions">✕</button></div><p>Start anywhere.${locked ? ` Locked ones open once the config they build on exists.` : ''}</p><div class="sec-bar" aria-hidden="true"><i style="width:${Math.round(all.done / all.total * 100)}%"></i></div></header><div class="scroll"><div class="sec-list">`;
     html += L.map((t, i) => secCard(t, i, rec)).join('');
-    html += `<button class="sec-card nm-card" data-act="sec-nm" aria-label="Open Nightmare mode"><span class="sec-top"><span class="sec-idx">☠</span><span class="sec-name">Nightmare mode</span><span class="sec-tag">Any time</span></span><span class="sec-meta">Random incidents · FortiGate + Azure</span><span class="sec-blurb">A working production network with random faults planted. Never locked: it builds its own network, and replaces your current configuration when it starts.</span></button>`;
+    html += `<button class="sec-card nm-card" data-act="sec-nm" aria-label="Open Nightmare mode"><span class="sec-top"><span class="sec-idx">☠</span><span class="sec-name">Nightmare mode</span><span class="sec-tag">Any time</span></span><span class="sec-blurb">Random faults planted on a working network. Replaces your current config when it starts.</span></button>`;
     html += `</div><div class="sec-all"><button class="btn" data-act="sec-pick" data-id="*">Show every mission in one list</button></div></div>`;
     d.innerHTML = html; d.dataset.sec = 'pick';
     const s = d.querySelector('.scroll'); if (s) s.scrollTop = sc;
   }
   function secNav(t) {
     const L = secTiers(), i = L.indexOf(t);
-    return `<div class="sec-nav"><button class="btn" data-act="sec-list">◂ All categories</button><span class="muted">${t === '*' ? 'Every mission, one list' : `Category ${i + 1} of ${L.length}`}</span></div>`;
+    void L; void i;
+    return `<div class="sec-nav"><button class="linkbtn" data-act="sec-list">◂ All categories</button></div>`;
   }
   function secFoot(t) {
     if (t === '*' || !secDone(t)) return '';
@@ -8609,8 +8631,10 @@ if (typeof module !== 'undefined') module.exports = CATS;
   }
   function morphNode(o, n) {
     if (o.nodeType !== 1) { if (o.nodeValue !== n.nodeValue) o.nodeValue = n.nodeValue; return; }
+    const tag = o.tagName, wasOpen = tag === 'DETAILS' ? o.open : null;
     morphAttrs(o, n);
-    const tag = o.tagName, focused = o === document.activeElement;
+    if (wasOpen !== null && o.open !== wasOpen) o.open = wasOpen; // a dropdown the user opened stays open across live redraws
+    const focused = o === document.activeElement || !!o._userSet; // a value the user typed or picked survives redraws too
     if (tag === 'TEXTAREA') { if (!focused && o.defaultValue !== n.defaultValue) { o.defaultValue = n.defaultValue; o.value = n.defaultValue; } return; }
     morphKids(o, n);
     if (tag === 'INPUT') {
@@ -8641,6 +8665,8 @@ if (typeof module !== 'undefined') module.exports = CATS;
     }
     while (cur) { const nx = cur.nextSibling; o.removeChild(cur); cur = nx; }
   }
+  document.addEventListener('input', e => { const t = e.target; if (t && t.closest && t.closest('#drawer') && /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)) t._userSet = true; }, true);
+  document.addEventListener('change', e => { const t = e.target; if (t && t.closest && t.closest('#drawer') && /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)) t._userSet = true; }, true);
   function morph(el, html) {
     if (!el) return;
     morphTpl.innerHTML = html;
