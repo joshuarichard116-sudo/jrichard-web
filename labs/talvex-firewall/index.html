@@ -236,6 +236,22 @@ textarea.inp { height: auto; min-height: 70px; padding: 8px 10px; resize: vertic
 .mis .checklist .y { color: var(--ok); font-weight: 700; }
 .mis .checklist .n { color: var(--muted); }
 .mis .hint { background: var(--warn-soft); border-radius: 6px; padding: 6px 9px; font-size: 12.5px; }
+.mis .hint.guided { display: grid; gap: 6px; padding: 8px 10px; }
+.mis .hint .lh { margin: 0; color: var(--ink); }
+.mis .hint.spoil { background: var(--info-soft); }
+.mis dl { margin: 0; display: grid; gap: 4px; }
+.mis dl dt { font-weight: 600; }
+.mis dl dd { margin: 0 0 4px; }
+.mis dl.cli-ex dt { font-size: 11.5px; background: var(--term-bg); color: var(--term-ink); border-radius: 4px; padding: 2px 6px; white-space: pre-wrap; word-break: break-word; }
+.btn.sm { height: 26px; padding: 0 9px; font-size: 12px; }
+.learn-offer { border: 1px solid var(--accent); background: var(--accent-soft); border-radius: 8px; padding: 10px 12px; display: grid; gap: 6px; font-size: 13px; margin-bottom: 6px; }
+.learn-offer p { margin: 0; font-size: 12.5px; }
+.learn-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.learn-mode { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12.5px; flex-wrap: wrap; }
+.learn-mode .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.learn-mode .seg button { border: 0; background: var(--panel); color: var(--muted); padding: 4px 10px; cursor: pointer; font-size: 12.5px; }
+.learn-mode .seg button + button { border-left: 1px solid var(--line); }
+.learn-mode .seg button.on { background: var(--accent); color: var(--accent-ink); font-weight: 500; }
 .mis .why { background: var(--ok-soft); border-radius: 6px; padding: 8px 10px; font-size: 12.5px; }
 .mis pre { margin: 0; background: var(--term-bg); color: var(--term-ink); font-family: var(--f-mono); font-size: 11.5px; border-radius: 6px; padding: 8px 10px; overflow-x: auto; }
 .mis .ans { display: flex; gap: 6px; }
@@ -491,7 +507,8 @@ SIM.seed = () => {
     vpn: { phase1: [], phase2: [] },
     admins: [{ name: 'admin', profile: 'super_admin', trusthosts: [], twofactor: 'disable', passwordSet: true, builtin: true, comment: '' }],
     logs: { traffic: [], local: [], event: [] },
-    missions: {}, answers: {}, savedAt: 0, sessions: [], sessionSeq: 0, threats: {}
+    missions: {}, answers: {}, savedAt: 0, sessions: [], sessionSeq: 0, threats: {},
+    learn: { mode: 'standard', asks: 0, quick: 0, offers: 0, declinedAt: 0, pending: false }
   };
   // seeded history
   const L = st.logs;
@@ -4156,10 +4173,14 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     'adm-del': d => del('system admin', d.id, () => { const a = S.admins.find(x => x.name === d.id); if (a.profile === 'super_admin' && S.admins.filter(x => x.profile === 'super_admin').length <= 1) return 'Cannot delete the last super_admin account.'; S.admins = S.admins.filter(x => x.name !== d.id); }),
     'bk-copy': () => copyText(JSON.stringify(S), 'Configuration copied'),
     'bk-copycli': () => copyText($('#fullCfg').textContent, 'CLI configuration copied'),
-    'bk-restore': () => { NMS.on = false; NMS.inc = null; let o; try { o = JSON.parse($('#bkIn').value); } catch (e) { toast('Restore failed', 'That is not valid backup JSON.', 'bad'); return; } SIM.AZ.migrate(o); if (!valid(o)) { toast('Restore failed', 'That backup is not from this lab.', 'bad'); return; } S = o; S.sessions = []; S.threats = S.threats || {}; LIVE.setState(S); evaluate(true); commit('configuration restored from backup'); toast('Restored', 'Backup loaded.', 'ok'); },
-    'bk-reset': () => confirmBox('Reset the lab?', 'This puts the firewall back to its starting state and clears all mission progress. It cannot be undone unless you copied a backup.', 'Reset lab', () => { NMS.on = false; NMS.inc = null; S = SIM.seed(); LIVE.setState(S); UI.lookup = null; evaluate(true); setTimeout(() => toast('Lab reset', 'Back to how the old IT guy left it.'), 50); }),
-    'mis-open': d => { UI.open = UI.open === d.id ? null : d.id; renderDrawer(); },
-    'mis-hint': d => { const r = S.missions[d.id] || (S.missions[d.id] = { hints: 0 }); r.hints = (r.hints || 0) + 1; scheduleSave(); renderDrawer(); },
+    'bk-restore': () => { NMS.on = false; NMS.inc = null; let o; try { o = JSON.parse($('#bkIn').value); } catch (e) { toast('Restore failed', 'That is not valid backup JSON.', 'bad'); return; } SIM.AZ.migrate(o); if (!valid(o)) { toast('Restore failed', 'That backup is not from this lab.', 'bad'); return; } learnFix(o); S = o; S.sessions = []; S.threats = S.threats || {}; LIVE.setState(S); evaluate(true); commit('configuration restored from backup'); toast('Restored', 'Backup loaded.', 'ok'); },
+    'bk-reset': () => confirmBox('Reset the lab?', 'This puts the firewall back to its starting state and clears all mission progress. It cannot be undone unless you copied a backup.', 'Reset lab', () => { NMS.on = false; NMS.inc = null; const keep = learnOf(); S = SIM.seed(); S.learn = Object.assign({}, keep, { pending: false }); LIVE.setState(S); UI.lookup = null; evaluate(true); setTimeout(() => toast('Lab reset', 'Back to how the old IT guy left it.'), 50); }),
+    'mis-open': d => { UI.open = UI.open === d.id ? null : d.id; if (UI.open) UI.openedAt = { id: d.id, t: Date.now() }; renderDrawer(); },
+    'mis-hint': d => { const m = MISSIONS.find(x => x.id === d.id); if (!m) return; learnAsk(m); scheduleSave(); renderDrawer(); },
+    'learn-yes': () => { learnSetMode('guided', 'offer'); scheduleSave(); renderDrawer(); },
+    'learn-no': () => { learnSetMode('standard', 'offer'); scheduleSave(); renderDrawer(); toast('Short hints it is', 'Switch to Guided at the top of the missions panel any time.'); },
+    'learn-mode': d => { learnSetMode(d.id, 'toggle'); scheduleSave(); renderDrawer(); },
+    'learn-go': d => { if (d.id === 'lookup') { $('#lookupBtn').click(); return; } if (d.key && d.tab) UI.tab[d.key] = d.tab; if (PAGES.includes(d.id)) go(d.id); },
     'mis-cli': d => { const r = S.missions[d.id] || (S.missions[d.id] = { hints: 0 }); r.showCli = true; scheduleSave(); renderDrawer(); },
     'mis-ans': d => { const inp = document.getElementById('ans_' + d.id); S.answers[d.id] = inp.value; const ok = MISSIONS.find(m => m.id === d.id).check(S).every(x => x.ok); if (!ok) toast('Not quite', 'Check again and resubmit.', 'bad'); commit(); },
     'drawer-close': () => { UI.drawer = false; renderAll(); },
@@ -4248,7 +4269,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
   const nmPick = a => a[Math.floor(Math.random() * a.length)];
   function nmNew() {
     let g; try { g = NIGHTMARE.generate(NMS.level); } catch (e) { toast('Nightmare mode', e.message, 'bad'); return; }
-    S = g.state; S.sessions = []; LIVE.setState(S); UI.lookup = null; UI.link = {};
+    const keep = learnOf(); S = g.state; S.learn = Object.assign({}, keep, { pending: false }); S.sessions = []; LIVE.setState(S); UI.lookup = null; UI.link = {};
     NMS.inc = g.incident; NMS.count++; NMS.from = nmPick(['Dana in the front office', 'Marcus in engineering', 'the Azure team', 'the service desk', 'the CFO\'s assistant', 'a very loud sales manager']);
     UI.drawer = true; UI.drawerMode = 'nm'; evaluate(true); renderAll();
     toast(`Incident #${NMS.count}`, `Level ${NMS.level}: a new ticket just came in.`, 'bad');
@@ -4307,12 +4328,229 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     d.innerHTML = `<header><div style="display:flex;align-items:center;gap:8px"><h2 style="flex:1">Nightmare mode</h2><button class="ibtn" data-act="drawer-close" aria-label="Close Nightmare mode">✕</button></div><p>Random production incidents. Nothing is uniform.</p></header><div class="scroll"><div class="nm">${body}</div></div>`;
     const s2 = d.querySelector('.scroll'); if (s2) s2.scrollTop = sc;
   }
+  /* ================= ADAPTIVE HINTS ================= */
+  /* Every hint click is counted per mission (rec.asks) and overall (S.learn.asks). When the pattern looks like someone
+     still learning the environment, the drawer offers Guided hints: the same hints, step by step, with where to click,
+     what the words mean, and (last step, marked as a spoiler) the fix explained line by line. It never auto-switches;
+     the learner opts in and can turn it off from the drawer header. Counters ride along in backups and are sanitized
+     on restore like the rest of the state. */
+  const LEARN = {
+    OFFER_MAX: 2,      // times the "new to this?" card may appear on its own
+    REOFFER_AFTER: 8,  // more hint requests after a "no thanks" before asking again
+    QUICK_MS: 20000    // a hint asked this soon after opening a mission counts as a "quick" ask
+  };
+  const learnNum = (x, max) => (typeof x === 'number' && Number.isFinite(x) && x >= 0) ? Math.min(Math.floor(x), max) : 0;
+  const plainObj = x => !!x && typeof x === 'object' && !Array.isArray(x);
+  /* coerce everything the hint system reads back from a backup into plain numbers / booleans / one of two modes */
+  function learnFix(o) {
+    const l = plainObj(o.learn) ? o.learn : {};
+    o.learn = { mode: l.mode === 'guided' ? 'guided' : 'standard', asks: learnNum(l.asks, 1e6), quick: learnNum(l.quick, 1e6), offers: learnNum(l.offers, 9), declinedAt: learnNum(l.declinedAt, 1e6), pending: l.pending === true };
+    if (!plainObj(o.missions)) o.missions = {};
+    for (const k of Object.keys(o.missions)) {
+      const r = o.missions[k];
+      if (!plainObj(r)) { delete o.missions[k]; continue; }
+      r.hints = learnNum(r.hints, 50); r.asks = learnNum(r.asks, 1e6); r.showCli = r.showCli === true;
+      if (r.done !== undefined && !(typeof r.done === 'number' && Number.isFinite(r.done) && r.done > 0)) delete r.done;
+    }
+    return o;
+  }
+  const learnOf = () => S.learn || learnFix(S).learn;
+  const guided = () => learnOf().mode === 'guided';
+  function learnStats() {
+    let tried = 0, multi = 0, maxed = 0;
+    for (const m of MISSIONS) {
+      const r = S.missions[m.id]; if (!r || !r.asks) continue;
+      tried++; if (r.asks >= 2) multi++;
+      if (!isDone(m) && (r.hints || 0) >= m.hints.length) maxed++;
+    }
+    const L = learnOf();
+    return { asks: L.asks, quick: L.quick, tried, multi, maxed };
+  }
+  /* the analysis: one mission where every hint got used, two missions needing 2+ hints, 5 hints overall,
+     or reaching for hints right after opening a mission twice. Any one of those is "still learning the ropes". */
+  function learnShouldOffer() {
+    const L = learnOf();
+    if (L.mode === 'guided' || L.pending || L.offers >= LEARN.OFFER_MAX) return false;
+    if (L.offers && L.asks < L.declinedAt + LEARN.REOFFER_AFTER) return false;
+    const s = learnStats();
+    return s.maxed >= 1 || s.multi >= 2 || s.asks >= 5 || s.quick >= 2;
+  }
+  function learnAsk(m) {
+    const L = learnOf(), r = S.missions[m.id] || (S.missions[m.id] = { hints: 0 });
+    r.hints = (r.hints || 0) + 1; r.asks = (r.asks || 0) + 1; L.asks++;
+    if (UI.openedAt && UI.openedAt.id === m.id && Date.now() - UI.openedAt.t < LEARN.QUICK_MS && (r.hints || 0) === 1) L.quick++;
+    if (learnShouldOffer()) { L.pending = true; L.offers++; }
+  }
+  function learnSetMode(mode, how) {
+    const L = learnOf();
+    L.mode = mode === 'guided' ? 'guided' : 'standard'; L.pending = false;
+    if (L.mode === 'standard') { L.declinedAt = L.asks; if (how === 'toggle') L.offers = LEARN.OFFER_MAX; } // switched off by hand: do not nag again
+  }
+
+  /* where a hint points: menu labels that can be opened with one click */
+  const LEARN_PLACES = [
+    ['Forward Traffic', 'logs', 'logs', 'traffic'], ['Local Traffic', 'logs', 'logs', 'local'], ['System Events', 'logs', 'logs', 'event'],
+    ['Address Group', 'addresses', 'addr', 'grp'], ['Policy Lookup', 'lookup'], ['Sessions page', 'sessions'],
+    ['Site-to-site VPN', 'az-vpn'], ['Resource groups', 'az-rgs'], ['Virtual networks', 'az-vnets'], ['Virtual machines', 'az-vms'], ['Activity log', 'az-activity'],
+    ['System Information', 'dashboard'], ['Administrative Access', 'interfaces'], ['URL Filter', 'webfilter']
+  ];
+  function learnPlaces(text) {
+    const all = LEARN_PLACES.concat(NAV.flatMap(g => g.items.map(i => [i[1], i[0]])));
+    let hits = [];
+    for (const p of all) { let i = text.indexOf(p[0]); if (i >= 0) hits.push({ at: i, end: i + p[0].length, p }); }
+    hits = hits.filter(h => !hits.some(o => o !== h && o.at <= h.at && o.end >= h.end && o.end - o.at > h.end - h.at)).sort((a, b) => a.at - b.at);
+    const seen = new Set(), out = [];
+    for (const h of hits) { const key = h.p[1] + (h.p[3] || ''); if (seen.has(key)) continue; seen.add(key); out.push(h.p); }
+    return out.slice(-2);
+  }
+  const placeBtn = p => `<button class="btn sm" data-act="learn-go" data-id="${esc(p[1])}"${p[2] ? ` data-key="${esc(p[2])}" data-tab="${esc(p[3])}"` : ''}>Open ${esc(p[0].replace(/ page$/, ''))}</button>`;
+
+  /* plain-language meanings for the words the hints use. First match per mission only, so nothing repeats. */
+  const GLOSS = [
+    [/\bCLI\b|command line/i, 'CLI', 'The text console (the >_ CLI button at the top). Everything the menus do can be typed here. FortiGate-style config is a tree: config opens a table, edit opens one entry, set changes a field, next saves the entry, end saves and leaves.'],
+    [/Dashboard/, 'Dashboard', 'The landing page of the firewall. Cards on it summarize the device: model, serial, firmware, uptime, interfaces and recent traffic.'],
+    [/System Events|event log/i, 'System events', 'The firewall\'s own diary: admin logins, configuration changes, VPN up/down, BGP changes. Not user traffic. This is where you look for "who changed what, and when".'],
+    [/Forward Traffic/, 'Forward traffic', 'Log of sessions passing through the firewall from one interface to another (LAN to internet, LAN to DMZ, and so on). Each row shows the policy that matched and whether it was accepted or denied.'],
+    [/Local Traffic|local-in/i, 'Local traffic (local-in)', 'Traffic aimed at the firewall itself, like someone trying to log in to it over SSH or HTTPS. Controlled by each interface\'s Administrative Access and by Local-In policies, not by normal firewall policies.'],
+    [/policy ID|Policy column|ID number/i, 'Policy ID', 'A number the firewall gives a policy when it is created. It is a name tag only: it says nothing about where the policy sits in the list.'],
+    [/top-down|first match|top of the list|move arrows|ordering|\bOrder\b/i, 'Policy order', 'The firewall reads the policy list from the top and stops at the first policy that matches the traffic. A broad rule near the top hides (shadows) every narrower rule under it.'],
+    [/implicit deny/i, 'Implicit deny', 'An invisible last rule at the bottom of every policy list: anything that matched nothing above is dropped. You never have to write a final "deny all".'],
+    [/Administrative Access|allowaccess/i, 'Administrative access', 'Which management protocols the firewall answers on an interface (PING, HTTPS, SSH, HTTP, TELNET...). It controls access to the firewall itself, not traffic through it.'],
+    [/cleartext|Telnet|\bHTTP\b/i, 'Cleartext protocols', 'Telnet and HTTP send everything, passwords included, unencrypted. Anyone on the path can read them. Use SSH and HTTPS instead.'],
+    [/\bport\d\b|interface/i, 'Interface', 'A physical or virtual network port on the firewall. Here: port1 is the internet (WAN), port2 is the office LAN, port3 is the DMZ, port4 is the backup internet circuit.'],
+    [/\bVLAN\b/, 'VLAN', 'A virtual LAN: one physical port carrying several separate networks. Each frame carries a tag (the VLAN ID), and the firewall and switch must agree on the number.'],
+    [/\bDMZ\b|role dmz/i, 'DMZ', 'A separate network for servers the internet can reach (like a web server). If one is hacked, the attacker is still behind a firewall rule before they reach the office LAN.'],
+    [/\/32|\/24|\/27|\/16|255\.255|subnet mask/i, 'CIDR and masks', 'The /number says how many bits are the network part. /24 = 255.255.255.0 = 256 addresses. /27 = 32 addresses. /32 = exactly one host. /16 = 65,536 addresses.'],
+    [/address objects?|\bAddresses\b/, 'Address object', 'A named IP, subnet or range (like LAN-Users = 10.10.10.0/24). Policies use the name, so if the network changes you edit one object, not every rule.'],
+    [/Address Group|addrgrp|Members/i, 'Address group', 'A named bundle of address objects. Handy when one rule should cover several networks.'],
+    [/Services|service|port range|portrange/i, 'Service', 'A protocol and port (or port range), like HTTPS = TCP 443. A policy only allows the services listed in it. ALL means every port, which is rarely what you want.'],
+    [/schedule/i, 'Schedule', 'A time window object. Attach it to a policy and the policy only matches during that window.'],
+    [/Incoming Interface|Outgoing Interface|srcintf|dstintf/i, 'Incoming / outgoing interface', 'Where the traffic enters the firewall and where it leaves. A policy only matches traffic going in that direction between those interfaces.'],
+    [/Disabl|status toggle/i, 'Disable vs delete', 'A disabled policy stays in the list but is skipped. On a live network that is the safer change: one click puts it back if something breaks.'],
+    [/\bdeny\b/i, 'Deny policy', 'A policy whose action drops the traffic. It only works if it sits above anything broader that would accept the same traffic.'],
+    [/\bNAT\b/, 'NAT', 'Network Address Translation: the firewall replaces the source address with its own. Needed to reach the internet from private addresses, harmful between your own networks because it hides who really sent the traffic.'],
+    [/Virtual IP|\bVIP\b/, 'Virtual IP (VIP)', 'Destination NAT: traffic to a public address on the firewall is translated to an inside server. A policy then has to allow traffic to the VIP.'],
+    [/port forward/i, 'Port forwarding', 'Limits a VIP to specific ports. Without it the VIP sends every port on that public IP to the server.'],
+    [/IPsec|tunnel/i, 'IPsec tunnel', 'An encrypted link between two sites over the internet. It comes up in two steps: phase 1 (the two gateways prove who they are) then phase 2 (they agree how to encrypt the actual traffic).'],
+    [/phase 1|phase1|IKE|INVALID_KE|NAT-T|NAT traversal/i, 'Phase 1 / IKE', 'IKE is the handshake that builds the tunnel. Both sides must agree on the IKE version, the encryption proposal, the Diffie-Hellman group and the pre-shared key. NAT-T wraps it in UDP 4500 when a NAT device sits in the path.'],
+    [/phase 2|PFS/i, 'Phase 2 / PFS', 'Phase 2 sets up the keys for the actual data. PFS (Perfect Forward Secrecy) makes it run a fresh Diffie-Hellman exchange: both sides must agree on whether to use it and on the group number.'],
+    [/pre-shared key|AUTHENTICATION_FAILED|\bkeys?\b/i, 'Pre-shared key', 'A password both tunnel ends must have, character for character. One different character and phase 1 fails with an authentication error.'],
+    [/Static Route|route|next-hop|gateway empty/i, 'Routing', 'The routing table tells the firewall where to send traffic for each destination. A policy can allow traffic, but without a route it has nowhere to go.'],
+    [/distance/i, 'Administrative distance', 'When two routes lead to the same destination, the one with the lower distance wins. The other stays in reserve and takes over if the first goes down.'],
+    [/\bBGP\b|\bAS\b|neighbor|Established/, 'BGP', 'A routing protocol: the two ends of the tunnel tell each other which networks they have, so routes appear on their own. Each side has an AS number, and each must be configured with the other side\'s number.'],
+    [/Web Filter|URL Filter|Exempt|category/i, 'Web filter', 'A security profile that checks websites by category (phishing, gambling...) or by your own URL list, and blocks or allows them.'],
+    [/SSL inspection|certificate-inspection|HTTPS sites/i, 'SSL inspection', 'HTTPS is encrypted, so the firewall cannot see the site name unless it inspects the TLS handshake. Certificate inspection reads only the name, without decrypting the page.'],
+    [/Security Profiles/, 'Security profiles', 'Extra inspection (web filter, antivirus, IPS, application control) you switch on per policy. A policy that accepts traffic with no profile just passes it.'],
+    [/Administrators|\badmins?\b/i, 'Admin accounts', 'Accounts that can log in to manage the firewall. Each has a profile (what it can change) and optional trusted hosts (where it can log in from).'],
+    [/Trusted hosts?|trusthost/i, 'Trusted hosts', 'The source networks an admin may log in from. A login from anywhere else is refused before the password is even checked.'],
+    [/Admin Profiles?|accprofile|permission groups?/i, 'Admin profile', 'A set of permissions (none / read / read-write per area). Give each person the smallest profile that lets them do their job.'],
+    [/syslog|Log Settings|Severity/i, 'Syslog and severity', 'Syslog sends a copy of every log line to another server. Severity is a filter: Information and up includes routine traffic logs; Notification and up drops them.'],
+    [/Resource groups?/i, 'Resource group', 'A folder for Azure resources that share a lifecycle. Deleting the group deletes everything in it.'],
+    [/region/i, 'Region', 'The Azure datacenter area where something is created, like South Central US.'],
+    [/VNet|Virtual networks?/i, 'Virtual network (VNet)', 'Your private network inside Azure. It has one or more address spaces and is split into subnets.'],
+    [/address spaces?/i, 'Address space', 'The overall range a VNet owns, like 10.100.0.0/16. Every subnet must fit inside it, and it must not overlap networks you connect to.'],
+    [/\bSubnets?\b/, 'Subnet', 'A slice of the VNet\'s address space. Resources like VMs get their address from a subnet.'],
+    [/GatewaySubnet/, 'GatewaySubnet', 'A subnet Azure reserves for VPN gateways. It must be named exactly GatewaySubnet and hold nothing else.'],
+    [/reserves|Azure keeps|subtract/i, 'Azure reserved addresses', 'Azure keeps 5 addresses in every subnet: the network address, .1 (gateway), .2 and .3 (DNS), and the last one (broadcast). The first usable host is .4.'],
+    [/Virtual machines?|\bVM\b/i, 'Virtual machine', 'A server running in Azure. Its network card sits in a subnet and gets a private IP from it.'],
+    [/static IP|Dynamic IP|Static makes/i, 'Static vs dynamic IP', 'Dynamic gives the next free address at the time; static pins one address so firewall rules and DNS can rely on it.'],
+    [/Site-to-site VPN|VPN gateway|Azure gateway|gateway's BGP/i, 'Azure VPN gateway', 'The Azure end of the tunnel. It lives in the GatewaySubnet and takes a while to deploy.'],
+    [/local network gateway|WAN IP/i, 'Local network gateway', 'Azure\'s record of the office end: the firewall\'s public IP, the office networks, and its BGP details. Azure only talks IKE to that IP.'],
+    [/Connection/, 'Connection', 'Joins the Azure VPN gateway to the local network gateway, with the shared key and the IPsec settings. Its status shows whether the tunnel is up.'],
+    [/Policy Lookup/, 'Policy Lookup', 'The magnifier button at the top. Give it a source, destination and port, and it shows which policy would match and what happens to the packet, step by step.'],
+    [/least privilege/i, 'Least privilege', 'Allow only what is needed: the exact sources, destinations and services. Everything else falls to the implicit deny.']
+  ];
+  function learnTerms(text, used) {
+    const out = [];
+    for (const g of GLOSS) { if (out.length >= 3) break; if (used.has(g[1]) || !g[0].test(text)) continue; used.add(g[1]); out.push(g); }
+    return out;
+  }
+
+  /* what kind of mission this is, in plain words (step 1 only) */
+  function learnOrient(m) {
+    const where = m.view === 'azure' ? 'the Azure portal (the Azure button at the top switches views)' : 'the firewall (the FortiGate view)';
+    const what = m.type === 'answer' ? 'This one is a scavenger hunt: you look something up and type it into the answer box. Nothing needs to change on the firewall.'
+      : m.type === 'threat' ? 'This one is a live attack. Find it in the logs first, then change the configuration so it stops working. The checks update on their own.'
+      : 'This one is a configuration change. You do not submit anything: the Live checks tick off on their own as each part becomes right.';
+    return `You work in ${where}. ${what}`;
+  }
+  const navSentence = h => /→/.test(h) ? 'Read each → as one click, starting from the menu on the left.' : '';
+
+  /* the worked example: each CLI line with what it does */
+  const SET_FIELDS = {
+    hostname: 'the device name', allowaccess: 'the management protocols allowed on this interface (the whole list is replaced)', ip: 'the interface address and mask', role: 'what kind of network this is (lan, wan, dmz)', status: 'whether it is on (enable/up) or off (disable/down)', alias: 'a friendly label', vlanid: 'the VLAN tag number', interface: 'the physical port it rides on', vdom: 'the virtual domain (always root here)',
+    subnet: 'the address and mask the object stands for', member: 'the objects in the group', 'tcp-portrange': 'the TCP destination port or range', 'udp-portrange': 'the UDP destination port or range',
+    name: 'the policy name', srcintf: 'where traffic comes in', dstintf: 'where traffic leaves', srcaddr: 'who it is from', dstaddr: 'where it is going', service: 'which ports and protocols', action: 'accept or deny', schedule: 'when it applies', nat: 'whether the source address is translated', logtraffic: 'what gets logged',
+    extip: 'the public address', mappedip: 'the inside server it translates to', extintf: 'the internet-facing interface', portforward: 'whether only certain ports are forwarded', extport: 'the public port', mappedport: 'the server port',
+    proposal: 'the encryption and hashing the tunnel offers', dhgrp: 'the Diffie-Hellman group', pfs: 'Perfect Forward Secrecy on or off', psksecret: 'the pre-shared key', 'remote-gw': 'the other end\'s public IP', 'ike-version': 'IKE version 1 or 2', peertype: 'which peer IDs are accepted', 'phase1name': 'which phase 1 this phase 2 belongs to', nattraversal: 'NAT-T (UDP 4500)',
+    dst: 'the destination network', device: 'the interface to send it out of', gateway: 'the next-hop router', distance: 'the administrative distance (lower wins)', 'remote-ip': 'the far end of the tunnel interface', as: 'this side\'s AS number', 'remote-as': 'the neighbor\'s AS number', 'router-id': 'this router\'s BGP ID',
+    accprofile: 'the admin profile (permissions)', password: 'the login password', 'two-factor': 'the second factor', trusthost1: 'the network this admin may log in from',
+    server: 'the syslog server', port: 'the port to send to', mode: 'UDP or TCP', severity: 'the lowest severity that gets sent',
+    'utm-status': 'whether security profiles run on this policy', 'ssl-ssh-profile': 'how TLS is inspected', 'webfilter-profile': 'which web filter applies', category: 'the web category', url: 'the site to match', type: 'how the URL is matched', 'urlfilter-table': 'which URL list the profile uses'
+  };
+  const AZ_FLAGS = { 'resource-group': 'the resource group', g: 'the resource group', name: 'the new resource\'s name', n: 'the resource\'s name', location: 'the region', 'address-prefixes': 'the address range', 'vnet-name': 'the VNet it belongs to', image: 'the OS image', size: 'the VM size', 'private-ip-address': 'a static private IP', subnet: 'the subnet it goes in', vnet: 'the VNet', 'gateway-type': 'VPN (vs ExpressRoute)', 'vpn-type': 'route-based tunnel', sku: 'the gateway size', asn: 'the BGP AS number', 'public-ip-addresses': 'its public IP', 'gateway-ip-address': 'the office firewall\'s public IP', 'local-address-prefixes': 'the office networks', 'bgp-peering-address': 'the office BGP address', 'vnet-gateway1': 'the Azure gateway', 'local-gateway2': 'the office side', 'shared-key': 'the pre-shared key', 'enable-bgp': 'BGP on', yes: 'no "are you sure" prompt', query: 'which field to print' };
+  function explainLine(raw) {
+    const l = raw.trim(); let m;
+    if (!l) return '';
+    if ((m = l.match(/^config (.+)$/))) return `Opens the "${m[1]}" table. Changes inside it apply when you reach the matching end.`;
+    if (/^edit 0$/.test(l)) return 'Creates a new entry with the next free ID.';
+    if ((m = l.match(/^edit (.+)$/))) return `Opens the entry ${m[1]} (creates it if it does not exist yet).`;
+    if ((m = l.match(/^set (\S+)\s*(.*)$/))) return `Sets ${SET_FIELDS[m[1]] || 'the ' + m[1] + ' field'}${m[2] ? ' to ' + m[2] : ''}. set replaces the old value.`;
+    if ((m = l.match(/^unset (\S+)/))) return `Puts ${m[1]} back to its default.`;
+    if ((m = l.match(/^move (\S+) (before|after) (\S+)/))) return `Moves entry ${m[1]} ${m[2]} ${m[3]} in the list. For policies, that changes which one is checked first.`;
+    if ((m = l.match(/^delete (.+)$/))) return `Deletes ${m[1]}.`;
+    if (l === 'next') return 'Saves this entry and goes back up to the table.';
+    if (l === 'end') return 'Saves and leaves the table. The change is live now.';
+    if (/^show\b/.test(l)) return 'Prints the configuration. Read-only.';
+    if (/^get\b/.test(l)) return 'Prints status information. Read-only.';
+    if (/^diagnose\b/.test(l)) return 'Runs a troubleshooting command. Read-only.';
+    if (/^az /.test(l)) {
+      const verb = l.split(/\s+--?\w/)[0].replace(/^az /, '');
+      const flags = [...l.matchAll(/(?:^|\s)(--?)([\w-]+)/g)].filter((x, i, a) => AZ_FLAGS[x[2]] && a.findIndex(y => y[2] === x[2]) === i);
+      return `Azure CLI: "${verb}". Each flag fills one box of the portal form${flags.length ? '. ' + flags.map(x => `${x[1]}${x[2]}: ${AZ_FLAGS[x[2]]}`).join('; ') : ''}.`;
+    }
+    return 'Do this in the web interface.';
+  }
+  function learnWorked(m) {
+    const lines = String(m.cli || '').replace(/\\\n\s*/g, '').split('\n').filter(x => x.trim());
+    return `<div class="hint guided spoil"><b>Worked example (shows the answer).</b><p class="lh">Read it top to bottom. ${m.view === 'azure' ? 'In the lab you do this in the portal; the Azure CLI below is the same change as a script.' : 'You can type it in the CLI or make the same changes in the menus.'}</p><dl class="cli-ex">${lines.map(x => `<dt class="mono">${esc(x.trim())}</dt><dd>${esc(explainLine(x))}</dd>`).join('')}</dl></div>`;
+  }
+
+  /* the drawer pieces */
+  function learnOfferCard() {
+    const s = learnStats();
+    return `<div class="learn-offer" role="region" aria-label="Hint style suggestion"><b>It seems like you're new to this. Would you like more descriptive hints to help you learn the environment?</b>
+      <p>You have asked for ${s.asks} hint${s.asks === 1 ? '' : 's'}${s.tried > 1 ? ` across ${s.tried} missions` : ''}. Guided hints walk through each step: where to click, what the terms mean, and at the end, the fix explained line by line. Your hint progress carries over, and you can switch back any time from the top of this panel.</p>
+      <div class="learn-row"><button class="btn primary" data-act="learn-yes">Yes, guide me</button><button class="btn" data-act="learn-no">No thanks</button></div></div>`;
+  }
+  function learnToggle() {
+    const g = guided(), s = learnStats();
+    return `<div class="learn-mode"><span>Hints:</span><div class="seg" role="group" aria-label="Hint style"><button class="${g ? '' : 'on'}" data-act="learn-mode" data-id="standard" aria-pressed="${!g}">Short</button><button class="${g ? 'on' : ''}" data-act="learn-mode" data-id="guided" aria-pressed="${g}">Guided</button></div>${s.asks ? `<small class="muted">${s.asks} hint${s.asks === 1 ? '' : 's'} used${s.tried > 1 ? ` on ${s.tried} missions` : ''}</small>` : ''}</div>`;
+  }
+  const learnSteps = m => m.hints.length + (m.cli ? 1 : 0);
+  function learnHints(m, rec, ok) {
+    const n = rec.hints || 0, total = learnSteps(m), used = new Set();
+    let html = '';
+    for (let i = 0; i < Math.min(n, total); i++) {
+      if (i === m.hints.length) { html += learnWorked(m); continue; }
+      const h = m.hints[i], places = learnPlaces(h), terms = learnTerms(i === 0 ? h + ' ' + m.tasks.join(' ') : h, used), nav = navSentence(h);
+      html += `<div class="hint guided"><b>Step ${i + 1} of ${total}.</b> ${esc(h)}`;
+      if (i === 0) html += `<p class="lh">${esc(learnOrient(m))}</p>`;
+      if (nav || places.length) html += `<p class="lh">${esc(nav)} ${places.map(placeBtn).join(' ')}</p>`;
+      if (terms.length) html += `<div class="sub-h">What this means</div><dl class="gloss">${terms.map(t => `<dt>${esc(t[1])}</dt><dd>${esc(t[2])}</dd>`).join('')}</dl>`;
+      html += `</div>`;
+    }
+    if (!ok && n < total) html += `<div><button class="btn" data-act="mis-hint" data-id="${m.id}">${n === m.hints.length ? 'Walk me through the fix (spoiler)' : `Explain step ${n + 1} of ${total}`}</button></div>`;
+    return html;
+  }
+
   function renderDrawer() { if (UI.drawerMode === 'nm') return renderNmDrawer(); return renderMissionDrawer(); }
   function renderMissionDrawer() {
     const d = $('#drawer'); d.hidden = !UI.drawer; if (!UI.drawer) return;
     const sc = d.querySelector('.scroll') ? d.querySelector('.scroll').scrollTop : 0;
     const done = doneCount();
-    let html = `<header><div style="display:flex;align-items:center;gap:8px"><h2 style="flex:1">Talvex Scavenger Hunt</h2><button class="ibtn" data-act="drawer-close" aria-label="Close missions">✕</button></div><p>Rick's network, inherited as-is. ${done} of ${MISSIONS.length} done. Checks run live as you change the config.</p></header><div class="scroll">`;
+    let html = `<header><div style="display:flex;align-items:center;gap:8px"><h2 style="flex:1">Talvex Scavenger Hunt</h2><button class="ibtn" data-act="drawer-close" aria-label="Close missions">✕</button></div><p>Rick's network, inherited as-is. ${done} of ${MISSIONS.length} done. Checks run live as you change the config.</p>${learnToggle()}</header><div class="scroll">`;
+    const offer = learnOf().pending && !guided(); let offered = false; const top = html.length;
     for (const tier of MISSIONS.TIERS) {
       const ms = MISSIONS.filter(m => m.tier === tier);
       const td = ms.filter(isDone).length;
@@ -4327,8 +4565,12 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
           if (m.view === 'azure' && UI.view !== 'azure') html += `<div><button class="btn" data-act="view" data-id="azure">Switch to the Azure view</button></div>`;
           if (m.type === 'answer') html += `<div class="ans"><input class="inp mono" id="ans_${m.id}" value="${esc(S.answers[m.id] || '')}" placeholder="Your answer" aria-label="Answer for ${esc(m.title)}"><button class="btn primary" data-act="mis-ans" data-id="${m.id}">Submit</button></div>`;
           if (m.type === 'config' || m.type === 'threat') html += `<div><div class="sub-h">Live checks</div><ul class="checklist">${st.map(x => `<li><span class="${x.ok ? 'y' : 'n'}">${x.ok ? '✓' : '○'}</span><span>${esc(x.label)}</span></li>`).join('')}</ul></div>`;
-          for (let i = 0; i < Math.min(rec.hints || 0, m.hints.length); i++) html += `<div class="hint"><b>Hint ${i + 1}.</b> ${esc(m.hints[i])}</div>`;
-          if (!ok && (rec.hints || 0) < m.hints.length) html += `<div><button class="btn" data-act="mis-hint" data-id="${m.id}">Show hint ${(rec.hints || 0) + 1} of ${m.hints.length}</button></div>`;
+          if (guided()) html += learnHints(m, rec, ok);
+          else {
+            for (let i = 0; i < Math.min(rec.hints || 0, m.hints.length); i++) html += `<div class="hint"><b>Hint ${i + 1}.</b> ${esc(m.hints[i])}</div>`;
+            if (offer) { html += learnOfferCard(); offered = true; }
+            if (!ok && (rec.hints || 0) < m.hints.length) html += `<div><button class="btn" data-act="mis-hint" data-id="${m.id}">Show hint ${(rec.hints || 0) + 1} of ${m.hints.length}</button></div>`;
+          }
           if (ok) html += `<div class="why"><b>Why this matters.</b> ${esc(m.why)}</div>`;
           if (ok || rec.showCli) html += `<div><div class="sub-h">${m.view === 'azure' ? 'Azure CLI equivalent' : 'CLI equivalent'}</div><pre>${esc(m.cli)}</pre></div>`;
           else html += `<div><button class="btn" data-act="mis-cli" data-id="${m.id}">Reveal the CLI (spoiler)</button></div>`;
@@ -4338,6 +4580,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
       }
     }
     html += `</div>`;
+    if (offer && !offered) html = html.slice(0, top) + learnOfferCard() + html.slice(top);
     d.innerHTML = html;
     const s = d.querySelector('.scroll'); if (s) s.scrollTop = sc;
   }
