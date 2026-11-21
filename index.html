@@ -1075,13 +1075,13 @@
       for (let k = parts.length - 1; k >= 0; k--) if (parts[k].streak) parts.splice(k, 1);
       arcs = arcs.slice(-1);
       const cx = scene.clientWidth / 2, base = geo.top + geo.H + bob;
-      const n = Math.round(38 * strength);
+      const n = Math.round(50 * strength);
       for (let k = 0; k < n; k++) {
         const h = 0.62 + Math.random() * 0.38;                     // 0 = base, 1 = tip; stay above the labels
         const half = geo.R * 1.25 * (1 - h * 0.85);
         const x = cx - dir * half * (0.6 + Math.random() * 0.6);   // start on the trailing side
         const y = base - h * geo.H * 0.9 + (Math.random() - 0.5) * 10;
-        const q = spawn(x, y, dir * (260 + Math.random() * 300) * geo.s, (Math.random() - 0.6) * 40, 0.55 + Math.random() * 0.45, 0.9 + Math.random() * 1.6);
+        const q = spawn(x, y, dir * (260 + Math.random() * 300) * geo.s, (Math.random() - 0.6) * 40, 0.7 + Math.random() * 0.5, 1 + Math.random() * 1.7);
         q.streak = true;
       }
       arcs.push({ dir, age: 0, strength });
@@ -1107,9 +1107,9 @@
         const twinkle = 0.65 + 0.35 * Math.sin(q.tw + q.age * 9);
         const r = q.size * (0.6 + 0.4 * fade);
         if (q.streak) {                          // motion streak trailing behind the spark
-          ctx.strokeStyle = `rgba(${col}, ${(fade * (dark ? 0.4 : 0.35)).toFixed(3)})`;
-          ctx.lineWidth = r * 0.7; ctx.lineCap = 'round';
-          ctx.beginPath(); ctx.moveTo(q.x - q.vx * 0.05, q.y - q.vy * 0.05); ctx.lineTo(q.x, q.y); ctx.stroke();
+          ctx.strokeStyle = `rgba(${col}, ${(fade * (dark ? 0.5 : 0.42)).toFixed(3)})`;
+          ctx.lineWidth = r * 0.8; ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(q.x - q.vx * 0.065, q.y - q.vy * 0.065); ctx.lineTo(q.x, q.y); ctx.stroke();
           continue;
         }
         ctx.fillStyle = `rgba(${col}, ${(fade * twinkle * (dark ? 0.6 : 0.55)).toFixed(3)})`;
@@ -1127,16 +1127,16 @@
         ctx.beginPath(); ctx.ellipse(w.x, w.y, 12 + t * 120 * geo.s, (12 + t * 120 * geo.s) * 0.45, 0, 0, 6.283); ctx.stroke();
       }
       // the amber sweep along the front of the base ring
-      arcs = arcs.filter(a => (a.age += dt) < 0.6);
+      arcs = arcs.filter(a => (a.age += dt) < 0.75);
       const cx = scene.clientWidth / 2, base = geo.top + geo.H + bob, rx = geo.R * 1.12, ry = geo.R * 0.26;
       drawRing(cx, base, rx, ry, col);
       for (const a of arcs) {
-        const t = a.age / 0.6, head = Math.min(1, t * 1.6), tail = Math.max(0, t * 1.6 - 0.55);
+        const t = a.age / 0.75, head = Math.min(1, t * 1.6), tail = Math.max(0, t * 1.6 - 0.55);
         // front half of the ellipse runs from angle PI (left) to 0 (right)
         const from = a.dir > 0 ? Math.PI - tail * Math.PI : head * Math.PI;
         const to = a.dir > 0 ? Math.PI - head * Math.PI : tail * Math.PI;
-        ctx.strokeStyle = `rgba(${col}, ${(0.45 * (1 - t) * a.strength).toFixed(3)})`;
-        ctx.lineWidth = 2 * (1 - t) + 1; ctx.lineCap = 'round';
+        ctx.strokeStyle = `rgba(${col}, ${(0.6 * (1 - t) * a.strength).toFixed(3)})`;
+        ctx.lineWidth = 2.6 * (1 - t) + 1; ctx.lineCap = 'round';
         ctx.beginPath(); ctx.ellipse(cx, base, rx, ry, 0, Math.min(from, to), Math.max(from, to)); ctx.stroke();
       }
     }
