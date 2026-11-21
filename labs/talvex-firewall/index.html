@@ -2952,6 +2952,16 @@ ol.steps { margin: 0; padding-left: 20px; display: grid; gap: 3px; font-size: 12
 ol.steps li.n { color: var(--bad); }
 .mis.regressed .badge { border-color: var(--warn); background: var(--warn-soft); color: var(--warn); }
 .reg-tag { display: inline-block; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; padding: 1px 5px; border-radius: 4px; background: var(--warn-soft); color: var(--warn); }
+/* ---------- categories, difficulty, auto-configure (Phase 4) ---------- */
+.dif { display: inline-block; font-size: 10px; letter-spacing: .05em; text-transform: uppercase; font-weight: 700; padding: 1px 5px; border-radius: 4px; white-space: nowrap; }
+.dif-b { background: var(--ok-soft); color: var(--ok); }
+.dif-i { background: var(--info-soft); color: var(--info); }
+.dif-a { background: var(--bad-soft); color: var(--bad); }
+.dif-row { display: flex; flex-wrap: wrap; gap: 4px; }
+.skip-tag { display: inline-block; font-size: 10px; letter-spacing: .05em; text-transform: uppercase; font-weight: 700; padding: 1px 5px; border-radius: 4px; background: var(--panel-2); color: var(--muted); border: 1px dashed var(--line); }
+.mis.skipped .badge { border-style: dashed; }
+.req-list li { list-style: none; margin-left: -18px; overflow-wrap: anywhere; }
+.req-list li.have { color: var(--muted); }
 </style>
 <script>
 /* ================= SHARED VIEWS: answers every page, mission check and Nightmare check derive from one state =================
@@ -4803,6 +4813,188 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
 })();
 </script>
 <script>
+/* ================= CATEGORIES: mission tracks, difficulty, state-based locks and auto-configure =================
+   Every mission belongs to one category and has a difficulty. A category unlocks when the config it builds on exists
+   in the shared state (each requirement is a test on S, usually the check of the mission that builds it), never
+   because a mission was clicked. Auto-configure applies the baseline config for missing requirements so experienced
+   people can skip ahead; the missions that build that config are marked "skipped (auto-configured)" and never score.
+   Runs after every MISSIONS block (the IaC block pushes its missions in). No DOM. */
+const CATS = (() => {
+  const C = {};
+  const mis = id => MISSIONS.find(m => m.id === id);
+  const passes = (st, id) => { const m = mis(id); if (!m) return false; try { return m.check(st).every(x => x.ok); } catch (e) { return false; } };
+  const cli = (st, text) => { const sh = new CLI.Shell(() => st, () => { }), errs = []; for (const raw of text.split('\n')) { const l = raw.trim(); if (!l) continue; const r = sh.exec(l); if (r && /error|not found|MUST|parse|Unknown/i.test(r) && !/^config /.test(r)) errs.push(`${l}: ${r.split('\n')[0]}`); } return errs; };
+  const misCli = id => mis(id).cli.replace(/<strong-password>/g, 'Lab-Only-Passw0rd!');
+
+  C.LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
+  C.DIFF = {
+    r1: 'Beginner', n1: 'Beginner', r2: 'Beginner', r3: 'Intermediate',
+    n3: 'Beginner', n4: 'Intermediate', m5: 'Advanced',
+    o1: 'Beginner', o2: 'Beginner', o3: 'Beginner',
+    p1: 'Beginner', p2: 'Intermediate', p1b: 'Intermediate', p3: 'Intermediate', p4: 'Intermediate', p5: 'Advanced', p5b: 'Intermediate',
+    h1: 'Intermediate', h1b: 'Intermediate',
+    v1: 'Intermediate', v1b: 'Advanced', v2: 'Intermediate', v3: 'Intermediate', m4: 'Advanced',
+    n2: 'Beginner', h2: 'Intermediate', m2: 'Intermediate', m1: 'Beginner',
+    't-brute': 'Beginner', 't-lateral': 'Intermediate', 't-scan': 'Intermediate', 't-c2': 'Intermediate', 't-dns': 'Advanced', 't-rdpfwd': 'Advanced', 't-azscan': 'Advanced', 't-phish': 'Intermediate',
+    a1: 'Beginner', a2: 'Beginner', a3: 'Beginner', a4: 'Intermediate', a5: 'Beginner', a6: 'Intermediate', a7: 'Beginner',
+    hy1: 'Intermediate', hy2: 'Intermediate', hy3: 'Advanced',
+    iac1: 'Beginner', iac2: 'Intermediate', iac3: 'Intermediate', iac4: 'Advanced', iac5: 'Advanced', iac6: 'Advanced', iac7: 'Intermediate'
+  };
+
+  /* config a category can depend on: a test on the shared state, the missions that build it, and the baseline to apply */
+  const TUNNEL_CLI = `config firewall address
+edit Azure-Hub
+set subnet 10.100.0.0 255.255.0.0
+next
+end
+config vpn ipsec phase1-interface
+edit To-Azure
+set interface "port1"
+set ike-version 2
+set peertype any
+set net-device disable
+set proposal aes256-sha256 aes256gcm
+set dhgrp 14
+set remote-gw 198.51.100.25
+set psksecret Talvex-S2S-Lab!2026
+set keylife 28800
+set dpd on-idle
+set nattraversal enable
+next
+end
+config vpn ipsec phase2-interface
+edit To-Azure-P2
+set phase1name "To-Azure"
+set proposal aes256gcm
+set pfs enable
+set dhgrp 14
+next
+end
+config system interface
+edit To-Azure
+set ip 169.254.21.2 255.255.255.255
+set remote-ip 169.254.21.1 255.255.255.255
+next
+end
+config router static
+edit 0
+set dst 10.100.0.254 255.255.255.255
+set device "To-Azure"
+next
+end
+config router bgp
+set as 65010
+set router-id 203.0.113.10
+config neighbor
+edit 10.100.0.254
+set remote-as 65515
+next
+end
+end`;
+  const TUNNEL_POL = misCli('v3');
+  C.REQ = {
+    dmz: { label: 'port3 is the DMZ (172.16.10.1/24, up)', covers: ['n3'], test: st => passes(st, 'n3'), apply: st => cli(st, misCli('n3')) },
+    engvlan: { label: 'Engineering VLAN ENG-VLAN20 (10.20.0.1/24) exists', covers: ['n4'], test: st => passes(st, 'n4'), apply: st => cli(st, misCli('n4')) },
+    objects: { label: 'Address objects, the Internal-Nets group and the CAD-License service exist', covers: ['o1', 'o2', 'o3'], test: st => ['o1', 'o2', 'o3'].every(id => passes(st, id)), apply: st => [].concat(...['o1', 'o2', 'o3'].map(id => passes(st, id) ? [] : cli(st, misCli(id)))) },
+    notemp: { label: 'The any-to-any temp rule is gone and LAN users still reach the internet', covers: ['p1'], test: st => passes(st, 'p1'), apply: st => cli(st, misCli('p1')) },
+    outbound: { label: 'Outbound internet policy rebuilt (Internal-Nets, web services only, logged)', needs: ['engvlan', 'objects', 'notemp'], covers: ['p2'], test: st => passes(st, 'p2'), apply: st => cli(st, misCli('p2')) },
+    tunnel: {
+      label: 'IPsec tunnel To-Azure up, tunnel policies in place, BGP routes from Azure', needs: ['engvlan', 'objects', 'notemp'], covers: ['v1', 'v1b', 'v2', 'v3', 'm4'],
+      test: st => ['v1', 'v3', 'm4'].every(id => passes(st, id)),
+      apply: st => {
+        st.azure.policy = 'custom'; // the Azure team's custom IPsec policy (v1b) is already in place: match it
+        const errs = cli(st, TUNNEL_CLI);
+        if (!['v3'].every(id => passes(st, id))) errs.push(...cli(st, TUNNEL_POL));
+        st.routes = st.routes.filter(r => !(r.dst === '10.100.0.0' && r.bits === 16)); // BGP carries the Azure prefix
+        return errs;
+      }
+    },
+    hubnet: {
+      label: 'Resource group rg-talvex-hub-scus with vnet-talvex-hub and snet-app', covers: ['a1', 'a3', 'a5'], test: st => ['a1', 'a3', 'a5'].every(id => passes(st, id)),
+      apply: st => azSteps(st, ['rg', 'vnet', 'app'])
+    },
+    hub: {
+      label: 'Azure hub: GatewaySubnet and AZ-VM-APP01 (10.100.1.4) running', needs: ['hubnet'], covers: ['a4', 'a6'], test: st => ['a4', 'a6'].every(id => passes(st, id)),
+      apply: st => azSteps(st, ['gw', 'vm'])
+    }
+  };
+  function azSteps(st, which) {
+    const AZ = SIM.AZ, RG = 'rg-talvex-hub-scus', VN = 'vnet-talvex-hub', errs = [];
+    const v = () => AZ.vnet(st, RG, VN);
+    const S = {
+      rg: () => AZ.rg(st, RG) ? null : AZ.createRg(st, { name: RG, location: 'southcentralus' }),
+      vnet: () => v() ? null : AZ.createVnet(st, { rg: RG, name: VN, location: 'southcentralus', prefixes: '10.100.0.0/16' }),
+      app: () => AZ.subnet(v(), 'snet-app') ? null : AZ.createSubnet(st, RG, VN, { name: 'snet-app', prefix: '10.100.1.0/24' }),
+      gw: () => AZ.subnet(v(), 'GatewaySubnet') ? null : AZ.createSubnet(st, RG, VN, { name: 'GatewaySubnet', prefix: '10.100.0.224/27' }),
+      vm: () => { const m = AZ.vmByName(st, 'AZ-VM-APP01'); if (m) { m.power = 'running'; return null; } return AZ.createVm(st, { rg: RG, name: 'AZ-VM-APP01', location: 'southcentralus', image: 'win2022', size: 'Standard_B2s', vnetRg: RG, vnet: VN, subnet: 'snet-app', ipAlloc: 'Static', privateIp: '10.100.1.4' }); }
+    };
+    for (const k of which) { try { const e = S[k](); if (e && typeof e === 'string') errs.push(e); else if (e && e.err) errs.push(e.err); } catch (x) { errs.push(x.message); } }
+    return errs;
+  }
+
+  C.LIST = [
+    { name: 'Portal familiarization', view: 'fg', missions: ['r1', 'n1'], blurb: 'Find your way around the FortiGate GUI and CLI: the status page, the serial number, the hostname.' },
+    { name: 'Recon / investigation', view: 'fg', missions: ['r2', 'r3'], blurb: 'Read the logs before you touch anything: who logged in at 3 AM, and which rule really carries the traffic.' },
+    { name: 'Interfaces & routing', view: 'fg', missions: ['n3', 'n4', 'm5'], blurb: 'The DMZ, the Engineering VLAN and a second internet circuit with failover.' },
+    { name: 'Objects', view: 'fg', missions: ['o1', 'o2', 'o3'], blurb: 'Addresses, the Internal-Nets group and a custom CAD license service. Policies are built from these.' },
+    { name: 'Firewall policies', view: 'fg', missions: ['p1', 'p2', 'p1b', 'p3', 'p4', 'p5', 'p5b'], needs: ['dmz', 'engvlan', 'objects'], blurb: 'Kill the any-to-any rule, rebuild outbound, segment Engineering and publish the supplier portal.', why: 'These policies use the DMZ and Engineering VLAN interfaces and the objects. Their checks cannot pass until that config exists.' },
+    { name: 'Web filtering & security profiles', view: 'fg', missions: ['h1', 'h1b'], needs: ['notemp', 'outbound'], blurb: 'Category filtering with certificate inspection, and a URL exemption for a site you blocked on purpose.', why: 'The web filter attaches to the rebuilt outbound policy. With the any-to-any rule still on top, nothing reaches it.' },
+    { name: 'VPN / Azure tunnel', view: 'fg', missions: ['v1', 'v1b', 'v2', 'v3', 'm4'], needs: ['engvlan', 'objects', 'notemp'], blurb: 'Bring up the IPsec tunnel to Azure, route through it, write the tunnel policies and move to BGP.', why: 'The tunnel policies use ENG-VLAN20, Internal-Nets and File-Server, and the temp rule has to be gone or "RDP denied" can never pass.' },
+    { name: 'Admin hardening & logging', view: 'fg', missions: ['n2', 'h2', 'm2', 'm1'], blurb: 'Close management on the WAN, named admins with MFA and trusted hosts, a least-privilege help desk account and syslog.' },
+    { name: 'Live threats', view: 'fg', missions: ['t-brute', 't-lateral', 't-scan', 't-c2', 't-dns', 't-rdpfwd', 't-azscan', 't-phish'], needs_live: true, blurb: 'Attacks in the live traffic. Each one starts when the config it targets exists. Find it in the logs and stop it.' },
+    { name: 'Azure foundations', view: 'azure', missions: ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7'], blurb: 'Azure view. Resource group, hub VNet, GatewaySubnet, workload subnet and the first VM.' },
+    { name: 'Hybrid connectivity', view: 'both', missions: ['hy1', 'hy2', 'hy3'], needs: ['hubnet', 'hub', 'tunnel'], blurb: 'Azure view. Build your own VPN gateway, describe the office and cut the live tunnel over to it.', why: 'Your gateway deploys into the hub from Azure foundations, and the cutover is proven end to end, so the FortiGate tunnel, its policies and BGP must already work.' },
+    { name: 'Infrastructure as Code', view: 'azure', missions: ['iac1', 'iac2', 'iac3', 'iac4', 'iac5', 'iac6', 'iac7'], needs: ['hubnet'], blurb: 'Azure view. Terraform (JSON): init, fix, apply, import the hub, lock down snet-app and handle drift.', why: 'Two of these missions import and protect the hub resource group, VNet and snet-app.' }
+  ].map(c => Object.assign({ needs: [] }, c, { missions: c.missions.filter(mis) })).filter(c => c.missions.length);
+
+  /* re-home every mission: its category becomes its tier, so the section picker and drawer group by category */
+  const notes = MISSIONS.TIER_NOTES || {};
+  const oldTier = {}; for (const m of MISSIONS) oldTier[m.id] = m.tier;
+  for (const c of C.LIST) for (const id of c.missions) { const m = mis(id); m.tier = c.name; m.difficulty = C.DIFF[id] || 'Intermediate'; }
+  for (const m of MISSIONS) if (!C.LIST.some(c => c.missions.includes(m.id))) { m.difficulty = m.difficulty || 'Intermediate'; }
+  MISSIONS.TIERS = C.LIST.map(c => c.name).concat(MISSIONS.map(m => m.tier).filter((t, i, a) => a.indexOf(t) === i && !C.LIST.some(c => c.name === t)));
+  MISSIONS.TIER_NOTES = {
+    'Firewall policies': notes.Policies, 'Live threats': 'Each threat starts once the config it targets exists. Red means the attack is getting through right now.',
+    'Azure foundations': notes['Azure Foundations'], 'Hybrid connectivity': notes['Hybrid connectivity'], 'Infrastructure as Code': notes['Infrastructure as Code']
+  };
+  C.oldTier = id => oldTier[id];
+
+  C.byName = n => C.LIST.find(c => c.name === n) || null;
+  C.of = id => C.LIST.find(c => c.missions.includes(id)) || null;
+  /* requirements for a category, expanded with what they in turn need, in the order they must be applied */
+  C.reqs = name => {
+    const c = C.byName(name), out = [];
+    const add = k => { const r = C.REQ[k]; if (!r || out.includes(k)) return; (r.needs || []).forEach(add); out.push(k); };
+    (c ? c.needs : []).forEach(add);
+    return out;
+  };
+  C.missing = (st, name) => C.reqs(name).filter(k => !C.REQ[k].test(st));
+  C.locked = (st, name) => C.missing(st, name).length > 0;
+  /* apply the baseline for every missing requirement; returns { applied, skipped (mission ids), errors } */
+  C.autoconfigure = (st, name) => {
+    const applied = [], skipped = [], errors = [];
+    for (const k of C.reqs(name)) {
+      const r = C.REQ[k]; if (r.test(st)) continue;
+      errors.push(...(r.apply(st) || []));
+      applied.push(k);
+      for (const id of r.covers) {
+        const rec = st.missions[id] || (st.missions[id] = { hints: 0 });
+        if (!rec.done && !rec.skipped) { rec.skipped = Date.now(); skipped.push(id); }
+      }
+    }
+    return { applied, skipped, errors, ok: !C.locked(st, name) };
+  };
+  /* progress: done counts, skipped never does */
+  C.progress = (st, name) => {
+    const ids = name ? (C.byName(name) || { missions: [] }).missions : MISSIONS.map(m => m.id);
+    const rec = id => st.missions[id] || {};
+    return { total: ids.length, done: ids.filter(id => rec(id).done && !rec(id).skipped).length, skipped: ids.filter(id => rec(id).skipped && !rec(id).done).length };
+  };
+  return C;
+})();
+if (typeof module !== 'undefined') module.exports = CATS;
+</script>
+<script>
 /* ================= UI ================= */
 (function () {
   const $ = s => document.querySelector(s);
@@ -4848,7 +5040,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
       UI.status[m.id] = r;
       const ok = r.every(x => x.ok);
       const rec = S.missions[m.id] || (S.missions[m.id] = { hints: 0 });
-      if (ok && !rec.done) { rec.done = Date.now(); if (!silent) toast('Mission complete', `${m.title} (${MISSIONS.filter(x => S.missions[x.id] && S.missions[x.id].done).length}/${MISSIONS.length})`, 'ok'); }
+      if (ok && !rec.done && !rec.skipped) { rec.done = Date.now(); if (!silent) toast('Mission complete', `${m.title} (${MISSIONS.filter(x => S.missions[x.id] && S.missions[x.id].done).length}/${MISSIONS.length})`, 'ok'); }
     }
   }
   /* both sides see the same link: log every tunnel state change to the FortiGate event log and the Azure activity log */
@@ -6454,49 +6646,17 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
      The choice lives in S.sections, so it rides along in backups; it is sanitized on every read (restore, reset and
      Nightmare all replace S wholesale), so a hand-edited backup can only ever fall back to the picker.
      Kept in its own block, wrapping renderMissionDrawer rather than editing it, because other work edits that function. */
-  const SECTIONS = {
-    Recon: { blurb: 'Read the box before you touch it: serial number, admin logins, the rule that eats everything. No config changes.' },
-    Interfaces: { blurb: 'Hostname, WAN management lockdown, the DMZ and the Engineering VLAN.' },
-    Objects: { blurb: 'Addresses, the Internal-Nets group and a custom CAD license service. Policies are built from these.' },
-    Policies: {
-      blurb: 'Kill the any-to-any rule, rebuild outbound, segment Engineering and publish the supplier portal.',
-      needs: ['n3', 'n4', 'o1', 'o2', 'o3'],
-      why: 'These policies use the DMZ and Engineering VLAN interfaces, and the address objects, group and CAD-License service from Objects. Their checks cannot pass until those exist.'
-    },
-    'VPN to Azure': {
-      blurb: 'Bring up the IPsec tunnel to Azure, route through it, write the tunnel policies and move to BGP.',
-      needs: ['n4', 'o1', 'o2', 'p1'],
-      why: 'The tunnel policies use ENG-VLAN20, Internal-Nets and File-Server, and the any-to-any temp rule has to be gone or "RDP denied" can never pass.'
-    },
-    Hardening: {
-      blurb: 'Web filtering, named admins with MFA, least-privilege help desk access, syslog and a second WAN circuit.',
-      needs: ['p2'],
-      why: 'The web filter and the failover circuit both hang off the outbound internet policy you rebuild in Policies.'
-    },
-    'Live Threats': {
-      blurb: 'Attacks that show up in the live traffic as you progress. Find each one in the logs and stop it.',
-      needs: ['r3'],
-      why: 'Threats only start once you can read the logs. The first appears after Recon; the rest arrive as you finish other sections.'
-    },
-    'Azure Foundations': { blurb: 'Azure view. Resource group, hub VNet, GatewaySubnet, workload subnet and the first VM.' },
-    'Hybrid connectivity': {
-      blurb: 'Azure view. Build your own VPN gateway, describe the office and cut the live tunnel over to it.',
-      needs: ['a1', 'a3', 'a4', 'a5', 'a6', 'v1', 'v3', 'm4'],
-      why: 'Your gateway deploys into the hub and GatewaySubnet from Azure Foundations, and the cutover is proven end to end: the FortiGate tunnel, its policies and BGP from VPN to Azure must already work, and AZ-VM-APP01 must exist to answer.'
-    },
-    'Infrastructure as Code': {
-      blurb: 'Azure view. Terraform (JSON): init, fix, apply, import the hub, lock down snet-app and handle drift.',
-      needs: ['a1', 'a3', 'a5'],
-      why: 'Two of these missions import and protect the hub resource group, VNet and snet-app that you build by hand in Azure Foundations.'
-    }
-  };
+  /* Categories come from CATS (engine): which missions, the difficulty of each, and the config a category needs.
+     A category is locked while that config is missing from the shared state, however it got there or went away. */
+  const SECTIONS = {};
+  for (const c of CATS.LIST) SECTIONS[c.name] = c;
   const secMis = t => MISSIONS.filter(m => m.tier === t);
   const secTiers = () => MISSIONS.TIERS.filter(t => secMis(t).length);
   const misById = id => MISSIONS.find(m => m.id === id);
-  const secNeeds = t => ((SECTIONS[t] || {}).needs || []).filter(misById);
-  const secMissing = t => secNeeds(t).filter(id => !isDone(misById(id)));
+  const secMissing = t => CATS.missing(S, t);
   const secLocked = t => secMissing(t).length > 0;
-  const secDone = t => secMis(t).every(isDone);
+  const secDone = t => secMis(t).every(m => isDone(m) || isSkipped(m));
+  const isSkipped = m => !!(S.missions[m.id] && S.missions[m.id].skipped && !S.missions[m.id].done);
   function secState() {
     const o = S.sections, c = o && typeof o === 'object' && !Array.isArray(o) ? o.current : null;
     const ok = c === '*' || (typeof c === 'string' && secTiers().includes(c) && !secLocked(c));
@@ -6509,39 +6669,52 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     if (t !== '*' && (!secTiers().includes(t) || secLocked(t))) { S.sections = { current: null }; renderAll(); return; }
     S.sections = { current: t }; UI.drawerMode = 'missions'; UI.drawer = true;
     if (t !== '*') {
-      const ms = secMis(t), first = ms.find(m => !isDone(m)) || ms[0];
+      const ms = secMis(t), first = ms.find(m => !isDone(m) && !isSkipped(m)) || ms[0];
       UI.open = misId && ms.some(m => m.id === misId) ? misId : first ? first.id : null;
       const v = secView(t); if ((v === 'azure') !== (UI.view === 'azure') && v !== 'both') { switchView(v); return; }
     }
     renderAll();
   }
+  function secAuto(t) {
+    const miss = secMissing(t); if (!miss.length) return;
+    const covers = [].concat(...miss.map(k => CATS.REQ[k].covers)).filter(id => !isDone(misById(id)));
+    confirmBox(`Auto-configure ${t}?`, `This writes the baseline config for: ${miss.map(k => CATS.REQ[k].label).join('; ')}. It overwrites anything you already have for those objects. ${covers.length ? `These missions will be marked "Skipped (auto-configured)" and will not count toward your score: ${covers.map(id => misById(id).title).join(', ')}.` : ''}`, 'Auto-configure', () => {
+      const r = CATS.autoconfigure(S, t);
+      commit(`auto-configured prerequisites for ${t}: ${r.applied.join(', ')}`, 'GUI');
+      if (r.ok) { toast('Unlocked', `${t} is open. ${r.skipped.length} mission${r.skipped.length === 1 ? '' : 's'} marked skipped.`, 'ok'); secPick(t); }
+      else toast('Not fully configured', r.errors[0] || `Still missing: ${secMissing(t).map(k => CATS.REQ[k].label).join('; ')}`, 'bad');
+    });
+  }
   Object.assign(A, {
     'sec-pick': d => secPick(d.id, d.mis),
     'sec-list': () => { S.sections = { current: null }; UI.drawerMode = 'missions'; UI.drawer = true; renderAll(); },
-    'sec-nm': () => { UI.drawerMode = 'nm'; UI.drawer = true; renderAll(); }
+    'sec-nm': () => { UI.drawerMode = 'nm'; UI.drawer = true; renderAll(); },
+    'sec-auto': d => secAuto(d.id)
   });
   const lockIc = '<svg class="sec-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>';
+  const diffMix = ms => CATS.LEVELS.map(l => [l, ms.filter(m => m.difficulty === l).length]).filter(x => x[1]).map(([l, k]) => `<span class="dif dif-${l[0].toLowerCase()}">${k} ${l}</span>`).join('');
   function secCard(t, i, rec) {
-    const ms = secMis(t), n = ms.filter(isDone).length, pct = Math.round(n / ms.length * 100), info = SECTIONS[t] || {};
+    const ms = secMis(t), pg = CATS.progress(S, t), n = pg.done, sk = pg.skipped, pct = Math.round((n + sk) / ms.length * 100), info = SECTIONS[t] || {};
     const v = secView(t), where = v === 'azure' ? 'Azure view' : v === 'both' ? 'FortiGate + Azure' : 'FortiGate';
     const head = `<span class="sec-top"><span class="sec-idx">${i + 1}</span><span class="sec-name">${esc(t)}</span>`;
-    const meta = `<span class="sec-meta">${ms.length} mission${ms.length === 1 ? '' : 's'} · ${where}</span>${info.blurb ? `<span class="sec-blurb">${esc(info.blurb)}</span>` : ''}`;
+    const meta = `<span class="sec-meta">${ms.length} mission${ms.length === 1 ? '' : 's'} · ${where}</span><span class="dif-row">${diffMix(ms)}</span>${info.blurb ? `<span class="sec-blurb">${esc(info.blurb)}</span>` : ''}`;
     if (secLocked(t)) {
-      const miss = secMissing(t);
-      const items = miss.map(id => {
-        const m = misById(id), open = !secLocked(m.tier);
-        return `<li>${open ? `<button class="sec-link" data-act="sec-pick" data-id="${esc(m.tier)}" data-mis="${esc(m.id)}">${esc(m.title)}</button>` : `<b>${esc(m.title)}</b>`} <span class="muted">· ${esc(m.tier)}${open ? '' : ' (locked too)'}</span></li>`;
+      const items = CATS.reqs(t).map(k => {
+        const r = CATS.REQ[k], have = r.test(S);
+        const by = r.covers.map(id => { const m = misById(id); if (!m) return ''; const open = !secLocked(m.tier); return open ? `<button class="sec-link" data-act="sec-pick" data-id="${esc(m.tier)}" data-mis="${esc(m.id)}">${esc(m.title)}</button>` : esc(m.title); }).filter(Boolean).join(', ');
+        return `<li class="${have ? 'have' : ''}"><span aria-hidden="true">${have ? '✓' : '○'}</span> ${esc(r.label)}${have ? '' : `<br><span class="muted">Built in: ${by}</span>`}</li>`;
       }).join('');
       return `<div class="sec-card locked" role="group" aria-label="${esc(t)}, locked">${head}<span class="sec-tag lock">${lockIc}Locked</span></span>${meta}
-        <div class="sec-why"><span><b>Why it is locked.</b> ${esc(info.why || 'It builds on work from an earlier section.')}</span><span class="sub-h">Finish ${miss.length === 1 ? 'this mission' : `these ${miss.length} missions`} to unlock it</span><ul>${items}</ul></div></div>`;
+        <div class="sec-why"><span><b>Why it is locked.</b> ${esc(info.why || 'It builds on config from an earlier section.')}</span><span class="sub-h">Needs this config in the firewall${v !== 'fg' ? ' and Azure' : ''}</span><ul class="req-list">${items}</ul>
+        <div><button class="btn" data-act="sec-auto" data-id="${esc(t)}">Auto-configure prerequisites</button></div><span class="muted" style="font-size:11.5px">Applies the baseline config for you. The missions that build it are marked skipped and do not score.</span></div></div>`;
     }
-    const done = n === ms.length, tag = done ? '<span class="sec-tag ok">✓ Done</span>' : t === rec ? '<span class="sec-tag next">Suggested next</span>' : n ? '<span class="sec-tag">In progress</span>' : '';
-    return `<button class="sec-card ${done ? 'done' : ''}" data-act="sec-pick" data-id="${esc(t)}" aria-label="Start ${esc(t)}: ${n} of ${ms.length} done">${head}${tag}<span class="sec-num">${n}/${ms.length}</span></span>${meta}<span class="sec-bar"><i style="width:${pct}%"></i></span></button>`;
+    const done = n + sk === ms.length, tag = done ? '<span class="sec-tag ok">✓ Done</span>' : t === rec ? '<span class="sec-tag next">Suggested next</span>' : n || sk ? '<span class="sec-tag">In progress</span>' : '';
+    return `<button class="sec-card ${done ? 'done' : ''}" data-act="sec-pick" data-id="${esc(t)}" aria-label="Start ${esc(t)}: ${n} of ${ms.length} done${sk ? `, ${sk} skipped` : ''}">${head}${tag}<span class="sec-num">${n}/${ms.length}${sk ? ` · ${sk} skipped` : ''}</span></span>${meta}<span class="sec-bar"><i style="width:${pct}%"></i></span></button>`;
   }
   function renderSectionPicker(d) {
     const sc = d.dataset.sec === 'pick' && d.querySelector('.scroll') ? d.querySelector('.scroll').scrollTop : 0;
-    const L = secTiers(), rec = secNext(null), locked = L.filter(secLocked).length;
-    let html = `<header><div style="display:flex;align-items:center;gap:8px"><h2 style="flex:1">Choose a section</h2><button class="ibtn" data-act="drawer-close" aria-label="Close missions">✕</button></div><p>Start wherever you like. ${doneCount()} of ${MISSIONS.length} missions done.${locked ? ` ${locked} section${locked === 1 ? ' is' : 's are'} locked until the work ${locked === 1 ? 'it builds' : 'they build'} on exists; each one says what to finish.` : ''}</p></header><div class="scroll"><div class="sec-list">`;
+    const L = secTiers(), rec = secNext(null), locked = L.filter(secLocked).length, all = CATS.progress(S);
+    let html = `<header><div style="display:flex;align-items:center;gap:8px"><h2 style="flex:1">Choose a category</h2><button class="ibtn" data-act="drawer-close" aria-label="Close missions">✕</button></div><p>Start wherever you like. ${all.done} of ${all.total} missions done${all.skipped ? `, ${all.skipped} skipped` : ''}.${locked ? ` ${locked} categor${locked === 1 ? 'y is' : 'ies are'} locked until the config ${locked === 1 ? 'it builds' : 'they build'} on exists. Build it, or auto-configure it to skip ahead.` : ''}</p><div class="sec-bar" aria-hidden="true"><i style="width:${Math.round(all.done / all.total * 100)}%"></i></div></header><div class="scroll"><div class="sec-list">`;
     html += L.map((t, i) => secCard(t, i, rec)).join('');
     html += `<button class="sec-card nm-card" data-act="sec-nm" aria-label="Open Nightmare mode"><span class="sec-top"><span class="sec-idx">☠</span><span class="sec-name">Nightmare mode</span><span class="sec-tag">Any time</span></span><span class="sec-meta">Random incidents · FortiGate + Azure</span><span class="sec-blurb">A working production network with random faults planted. Never locked: it builds its own network, and replaces your current configuration when it starts.</span></button>`;
     html += `</div><div class="sec-all"><button class="btn" data-act="sec-pick" data-id="*">Show every mission in one list</button></div></div>`;
@@ -6550,12 +6723,13 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
   }
   function secNav(t) {
     const L = secTiers(), i = L.indexOf(t);
-    return `<div class="sec-nav"><button class="btn" data-act="sec-list">◂ All sections</button><span class="muted">${t === '*' ? 'Every mission, one list' : `Section ${i + 1} of ${L.length}`}</span></div>`;
+    return `<div class="sec-nav"><button class="btn" data-act="sec-list">◂ All categories</button><span class="muted">${t === '*' ? 'Every mission, one list' : `Category ${i + 1} of ${L.length}`}</span></div>`;
   }
   function secFoot(t) {
     if (t === '*' || !secDone(t)) return '';
-    const nx = secNext(t), opened = secTiers().filter(x => x !== t && secNeeds(x).some(id => misById(id).tier === t) && !secLocked(x) && !secDone(x));
-    return `<div class="sec-fin"><b>${esc(t)} is complete.</b>${opened.length ? `<span>This unlocked: ${opened.map(esc).join(', ')}.</span>` : ''}<div class="nm-row">${nx ? `<button class="btn primary" data-act="sec-pick" data-id="${esc(nx)}">Next: ${esc(nx)}</button>` : '<span>Every open section is done. Try Nightmare mode.</span>'}<button class="btn" data-act="sec-list">All sections</button></div></div>`;
+    const mine = secMis(t).map(m => m.id);
+    const nx = secNext(t), opened = secTiers().filter(x => x !== t && CATS.reqs(x).some(k => CATS.REQ[k].covers.some(id => mine.includes(id))) && !secLocked(x) && !secDone(x));
+    return `<div class="sec-fin"><b>${esc(t)} is complete.</b>${opened.length ? `<span>This unlocked: ${opened.map(esc).join(', ')}.</span>` : ''}<div class="nm-row">${nx ? `<button class="btn primary" data-act="sec-pick" data-id="${esc(nx)}">Next: ${esc(nx)}</button>` : '<span>Every open category is done. Try Nightmare mode.</span>'}<button class="btn" data-act="sec-list">All categories</button></div></div>`;
   }
   const baseMissionDrawer = renderMissionDrawer;
   renderMissionDrawer = function () {
@@ -6575,7 +6749,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
   setInterval(() => {
     if (!UI.started || NMS.on) { secWasLocked = null; return; }
     const now = secTiers().filter(secLocked);
-    if (secWasLocked) for (const t of secWasLocked) if (!now.includes(t)) toast('Section unlocked', `${t} is open. Pick it from the section list any time.`, 'ok');
+    if (secWasLocked) for (const t of secWasLocked) if (!now.includes(t)) toast('Category unlocked', `${t} is open: the config it needs now exists. Pick it from the category list any time.`, 'ok');
     secWasLocked = now;
   }, 1500);
 
@@ -6613,6 +6787,12 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
   renderMissionDrawer = function () {
     baseMissionDrawer3();
     const d = $('#drawer'); if (!d || d.hidden) return;
+    for (const b of d.querySelectorAll('button.head[data-act="mis-open"]')) {
+      const m = MISSIONS.find(x => x.id === b.dataset.id); if (!m || b.querySelector('.dif')) continue;
+      const sm = b.querySelector('small'), skip = !!(S.missions[m.id] && S.missions[m.id].skipped && !S.missions[m.id].done);
+      if (sm) sm.insertAdjacentHTML('afterbegin', `<span class="dif dif-${(m.difficulty || 'I')[0].toLowerCase()}">${esc(m.difficulty || '')}</span> ${skip ? '<span class="skip-tag">Skipped (auto-configured)</span> ' : ''}`);
+      if (skip) b.closest('.mis').classList.add('skipped');
+    }
     for (const m of MISSIONS) {
       if (!regressed(m)) continue;
       const b = d.querySelector(`button.head[data-act="mis-open"][data-id="${m.id}"]`); if (!b) continue;
