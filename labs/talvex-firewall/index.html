@@ -388,13 +388,153 @@ tr.muted td { color: var(--muted); }
 @media (max-width: 1100px) { .tf-grid { grid-template-columns: minmax(0, 1fr); } .tf-src { min-height: 300px; } .tf-con { min-height: 420px; max-height: 70vh; } }
 </style>
 
+<style id="save-css">
+/* ---------- Save (Phase 2): primary accent button, unsaved dot, small menu ---------- */
+.tb-save { display: inline-flex; align-items: center; gap: 10px; flex: none; }
+.save-split { display: inline-flex; position: relative; }
+/* ---------- Live Mode switch: "LIVE" with a pulse when on, "Paused" when off ---------- */
+.tbtn.live-sw { gap: 7px; font-weight: 600; letter-spacing: .02em; min-width: 84px; justify-content: center; }
+.live-sw .ld { width: 9px; height: 9px; border-radius: 50%; background: #7e8e9d; flex: none; }
+.live-sw[aria-checked="true"], .live-sw[aria-checked="true"]:not(.on):hover { background: #13301F; border-color: #2F8F57; color: #CFF5DD; }
+.live-sw[aria-checked="true"] .ld { background: #3DDC84; box-shadow: 0 0 0 0 rgba(61, 220, 132, .7); animation: livePulse 1.6s infinite; }
+@keyframes livePulse { 0% { box-shadow: 0 0 0 0 rgba(61, 220, 132, .65); } 70% { box-shadow: 0 0 0 7px rgba(61, 220, 132, 0); } 100% { box-shadow: 0 0 0 0 rgba(61, 220, 132, 0); } }
+@media (prefers-reduced-motion: reduce) { .live-sw[aria-checked="true"] .ld { animation: none; } }
+:root[data-live="off"] .topo .flow { animation-play-state: paused; }
+.live-banner { display: grid; gap: 8px; border: 1px solid #2F8F57; border-left-width: 4px; background: var(--ok-soft); border-radius: 8px; padding: 10px 12px; font-size: 13px; }
+.live-banner p { margin: 0; }
+.live-banner .btn { justify-self: start; }
+.fu-tag.live-tag { color: var(--ok); }
+.live-off-note { font-size: 12px; color: var(--muted); }
+.tbtn.save-btn, .tbtn.save-btn:not(.on):hover { background: var(--rail-active); border-color: var(--rail-active); color: #fff; font-weight: 600; position: relative; border-radius: 6px 0 0 6px; }
+:root:not([data-view="azure"]) .tbtn.save-btn { color: var(--rail-active-ink); }
+.tbtn.save-btn:hover { filter: brightness(1.08); }
+.tbtn.save-btn:disabled { opacity: .55; cursor: not-allowed; filter: none; }
+.tbtn.save-more, .tbtn.save-more:not(.on):hover { background: var(--rail-active); border-color: var(--rail-active); color: #fff; padding: 0 6px; border-radius: 0 6px 6px 0; border-left: 1px solid rgba(0, 0, 0, .25); }
+:root:not([data-view="azure"]) .tbtn.save-more { color: var(--rail-active-ink); }
+.tbtn.save-more:hover { filter: brightness(1.08); }
+.tbtn.save-more svg { width: 14px; height: 14px; }
+.save-btn .udot { position: absolute; top: -4px; right: -4px; width: 11px; height: 11px; border-radius: 50%; background: #E5484D; border: 2px solid var(--rail); }
+.save-dot.dirty i { background: #e4ac4b; }
+.notice.ok-note { background: var(--ok-soft); border-left-color: var(--ok); }
+.save-dot.clean i { background: #4cc48a; }
+.save-dot.none i { background: #7e8e9d; }
+.save-menu { position: absolute; top: calc(100% + 6px); right: 0; z-index: 70; width: min(320px, calc(100vw - 24px)); background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); padding: 4px; display: grid; gap: 2px; }
+.save-menu button { display: grid; gap: 1px; text-align: left; border: 0; background: transparent; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.save-menu button small { color: var(--muted); font-size: 11.5px; }
+.save-menu button:hover, .save-menu button:focus-visible { background: var(--panel-2); }
+@media (max-width: 1100px) { .save-dot { display: none; } }
+/* keep the hostname readable as the top bar fills up */
+.brand { flex: 0 1 auto; min-width: 7.5em; }
+@media (max-width: 1360px) { .brand span { display: none; } }
+@media (max-width: 1180px) { .tbtn.live-sw { min-width: 0; } }
+@media (max-width: 1060px) { #misBtn .lbl, #lookupBtn .lbl { display: none; } }
+@media (max-width: 820px) { .tb-save { gap: 6px; } .live-sw .lt { display: none; } .tbtn.live-sw { padding: 0 10px; } .brand { min-width: 0; } }
+@media (max-width: 560px) { .tbtn.save-more { display: none; } .tbtn.save-btn { border-radius: 6px; } }
+</style>
+<style id="fit-css">
+/* ---------- Fit: nothing runs past the right edge of its box (Phase 1) ----------
+   Long tokens wrap, flex/grid children may shrink, inputs never exceed their box, and only code blocks and wide
+   tables scroll sideways, inside their own frame. The main pane and the missions panel never scroll sideways. */
+*, *::before, *::after { box-sizing: border-box; }
+input, select, textarea, .inp { max-width: 100%; }
+.main, .drawer .scroll { overflow-x: hidden; }
+.main > *, .dash > *, .card, .widget, .frow > *, .toolbar > :not(.btn):not(button), .lookup form > *, label.f, .kv > *, .evt > *,
+.mis, .mis .content, .mis .content > *, .mis > button.head > *, .sec-card, .sec-card > *, .tf-grid > *, .nm > *, .modal .body > * { min-width: 0; }
+p, li, dd, dt, td, h1, h2, .lede, .help, .story, .hint, .why, .notice, .banner, .toast, .verdict, .trace .row > span, .kv dd, .evt > span, .sec-blurb, .crumb { overflow-wrap: anywhere; }
+pre, .mis pre, .mis dl.cli-ex dt { max-width: 100%; overflow-x: auto; overflow-wrap: normal; white-space: pre; }
+.mis dl.cli-ex dt { white-space: pre-wrap; overflow-wrap: anywhere; }
+.mis > button.head { grid-template-columns: 22px minmax(0, 1fr) auto; }
+.mis .ans { flex-wrap: wrap; }
+.mis .ans .inp { flex: 1 1 160px; }
+.toolbar .help { min-width: 0; overflow-wrap: anywhere; }
+.search { flex: 1 1 200px; }
+/* tab strips wrap instead of scrolling (the stray arrows were a 1px vertical overflow from the active tab's underline) */
+.tabs { overflow: visible; flex-wrap: wrap; row-gap: 0; }
+/* tables: headers may wrap, cells break long tokens, chips truncate with the full value in a tooltip */
+table.grid th { white-space: normal; }
+/* cells wrap at spaces and break a token only when it cannot fit at all; short tokens (IPs, interfaces, times) never
+   split mid-value, so a data table that is genuinely wider than the pane scrolls inside its own frame instead */
+table.grid td { overflow-wrap: normal; }
+table.grid td.acts { white-space: nowrap; }
+table.grid td.pname, .prof-grid table.grid td { white-space: normal; overflow-wrap: anywhere; }
+td .chip { max-width: 18ch; overflow: hidden; text-overflow: ellipsis; display: inline-block; vertical-align: top; }
+.tablewrap { max-width: 100%; }
+table.grid td .pill { white-space: normal; text-align: left; }
+@media (max-width: 1360px) { table.grid th, table.grid td { padding-left: 7px; padding-right: 7px; } }
+/* dialogs never run off a short screen: the body scrolls, the footer buttons stay reachable */
+.modal { max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); min-height: 0; }
+.modal .body { min-height: 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.v.b { font-weight: 700; }
+
+/* ---------- Firewall Policy table: fits the pane; low-priority columns fold into the Name cell when narrow ---------- */
+.tablewrap.pol { container-type: inline-size; overflow-x: auto; }
+table.grid.pol { table-layout: auto; }
+table.grid.pol th, table.grid.pol td { padding-left: 7px; padding-right: 7px; }
+table.grid.pol td.seq { white-space: nowrap; color: var(--muted); }
+table.grid.pol td.seq .mv { display: inline-flex; flex-direction: column; vertical-align: middle; margin-right: 2px; }
+table.grid.pol td.seq .mv .ibtn { width: 20px; height: 16px; }
+table.grid.pol td.seq .mv .ibtn svg { width: 12px; height: 12px; }
+table.grid.pol td.pname { min-width: 9em; }
+table.grid.pol .st-btn { height: 24px; padding: 0 8px; font-size: 12px; }
+table.grid.pol td.acts .ibtn { width: 24px; }
+table.grid.pol .pmeta { display: none; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+table.grid.pol .pmeta > span { display: none; }
+table.grid.pol .pmeta .chip { max-width: 14ch; }
+table.grid.pol .m-to { display: none; gap: 3px; align-items: center; margin-top: 3px; color: var(--muted); font-size: 12px; }
+@container (max-width: 1060px) { table.grid.pol .c-log { display: none; } table.grid.pol .pmeta, table.grid.pol .pmeta .m-log { display: flex; } }
+@container (max-width: 960px) { table.grid.pol .c-prof { display: none; } table.grid.pol .pmeta .m-prof { display: flex; } }
+@container (max-width: 880px) { table.grid.pol .c-nat, table.grid.pol .c-hits, table.grid.pol .c-seq { display: none; } table.grid.pol td .chip { max-width: 14ch; } table.grid.pol .pmeta .m-nat, table.grid.pol .pmeta .m-hits { display: flex; } }
+@container (max-width: 760px) { table.grid.pol td .chip { max-width: 12ch; } table.grid.pol td.pname { min-width: 7em; } }
+@container (max-width: 680px) { table.grid.pol .c-to { display: none; } table.grid.pol .m-to { display: flex; } table.grid.pol th, table.grid.pol td { padding-left: 5px; padding-right: 5px; } table.grid.pol td .chip { max-width: 10ch; } table.grid.pol .pill { padding: 1px 6px; } table.grid.pol .pill::before { display: none; } }
+.st-sw { width: 34px; height: 20px; border-radius: 10px; border: 0; padding: 0; background: var(--line); position: relative; cursor: pointer; vertical-align: middle; }
+.st-sw i { position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.st-sw[aria-checked="true"] { background: var(--ok); }
+.st-sw[aria-checked="true"] i { transform: translateX(14px); }
+
+/* ---------- Security profiles page: tables wrap inside their cards, no nested scrollbars ---------- */
+.prof-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 14px; }
+.prof-grid .tablewrap { overflow: visible; border: 0; }
+.prof-grid table.grid { table-layout: fixed; }
+.prof-grid table.grid th:nth-child(1) { width: 34%; } .prof-grid table.grid th:nth-child(3) { width: 26%; }
+
+/* ---------- Selection and copy: values select cleanly, chrome does not get dragged along ---------- */
+button, .btn, .ibtn, .tbtn, .pill, .tabs, .crumb, .widget h2, table.grid th, .kv dt, .sub-h, .tier, .rail, .top, .sec-tag, .badge, svg, .cpy { -webkit-user-select: none; user-select: none; }
+.kv dd, table.grid td, .evt > span, .mono, .v, .story, .hint, .why, pre, input, textarea { -webkit-user-select: text; user-select: text; }
+.cv { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; min-width: 0; vertical-align: top; }
+.cv > .v { min-width: 0; overflow-wrap: anywhere; }
+.cpy { flex: none; display: inline-grid; place-items: center; width: 20px; height: 20px; padding: 0; border-radius: 4px; border: 1px solid transparent; background: transparent; color: var(--muted); cursor: pointer; opacity: .55; position: relative; }
+.cpy svg { width: 12px; height: 12px; }
+.cpy:hover, .cpy:focus-visible { opacity: 1; border-color: var(--line); background: var(--panel-2); color: var(--ink); }
+tr:hover .cpy, .kv dd:hover .cpy, .cv:hover .cpy { opacity: 1; }
+.cpy.done { opacity: 1; color: var(--ok); }
+.cpy.done::after { content: "Copied"; position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--panel); font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; white-space: nowrap; pointer-events: none; z-index: 5; }
+@media (hover: none) { .cpy { opacity: 1; } }
+
+/* ---------- Background lattice: a 1px SVG pattern (the old 0.5px gradient lines vanished at some sizes and zoom levels) ---------- */
+:root { --pz-lattice-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='110.85' viewBox='0 0 64 110.85'%3E%3Cpath d='M0 0L64 110.85M64 0L0 110.85M0 55.425H64' fill='none' stroke='rgba(39,36,29,.085)' stroke-width='1'/%3E%3C/svg%3E"); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --pz-lattice-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='110.85' viewBox='0 0 64 110.85'%3E%3Cpath d='M0 0L64 110.85M64 0L0 110.85M0 55.425H64' fill='none' stroke='rgba(243,238,230,.05)' stroke-width='1'/%3E%3C/svg%3E"); } }
+:root[data-theme="dark"] { --pz-lattice-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='110.85' viewBox='0 0 64 110.85'%3E%3Cpath d='M0 0L64 110.85M64 0L0 110.85M0 55.425H64' fill='none' stroke='rgba(243,238,230,.05)' stroke-width='1'/%3E%3C/svg%3E"); }
+.main { background-color: var(--bg); background-image: var(--pz-lattice-img); background-size: 64px 110.85px; background-repeat: repeat; background-attachment: local; }
+</style>
+
 <div class="app" id="app">
   <header class="top">
     <button class="tbtn menu-btn" id="menuBtn" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
     <div class="brand"><b id="hostLbl">FW-DEFAULT</b><span id="modelLbl">NGFW-VM04 · lab simulation</span></div>
     <div class="viewsw" role="group" aria-label="Portal"><button type="button" id="vFG" aria-pressed="true">FortiGate</button><button type="button" id="vAZ" aria-pressed="false">Azure</button></div>
     <div class="spacer"></div>
-    <span class="save-dot" id="saveDot"><i></i><span class="txt">Saved</span></span>
+    <div class="tb-save" id="saveLive">
+      <span class="save-dot" id="saveDot" aria-live="polite"><i></i><span class="txt">No changes yet</span></span>
+      <div class="save-split"><button class="tbtn save-btn" id="saveBtn" type="button" title="Save to this browser (Ctrl+S)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg><span class="lbl">Save</span><i class="udot" id="saveUdot" hidden></i></button><button class="tbtn save-more" id="saveMore" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="saveMenu" title="More save options" aria-label="More save options"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+        <div class="save-menu" id="saveMenu" role="menu" hidden>
+          <button type="button" role="menuitem" data-save="now"><b>Save now</b><small>Config and mission progress, in this browser · Ctrl+S</small></button>
+          <button type="button" role="menuitem" data-save="file"><b>Export or import a file…</b><small>System → Backup &amp; Reset: move your lab to another computer</small></button>
+          <button type="button" role="menuitem" data-save="forget"><b>Forget the saved copy…</b><small>Next visit starts fresh. The lab you have open stays as it is.</small></button>
+        </div>
+      </div>
+      <button class="tbtn live-sw" id="liveBtn" type="button" role="switch" aria-checked="false" title="Live Mode is off: the lab is paused on a snapshot. Click to start live traffic."><span class="ld" aria-hidden="true"></span><span class="lt">Paused</span><span class="sr-only"> (Live Mode)</span></button>
+    </div>
     <button class="tbtn" id="lookupBtn" title="Policy Lookup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><span class="lbl">Policy Lookup</span></button>
     <button class="tbtn" id="cliBtn" title="CLI Console"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l6-5-6-5M12 19h8"/></svg><span class="lbl">CLI</span></button>
     <button class="tbtn" id="nmBtn" title="Nightmare mode: random production incidents" aria-label="Nightmare mode"><svg class="nm-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c-4.4 0-8 3.2-8 7.4 0 2.4 1.2 4.4 3 5.7V19a1 1 0 0 0 1 1h1.5v-2h1v2h3v-2h1v2H16a1 1 0 0 0 1-1v-2.9c1.8-1.3 3-3.3 3-5.7C20 6.2 16.4 3 12 3z"/><circle cx="9" cy="11" r="1.6"/><circle cx="15" cy="11" r="1.6"/></svg><span>Nightmare</span></button>
@@ -622,14 +762,28 @@ SIM.svcMatch = (st, name, proto, port, depth = 0) => {
   if (g) return g.members.some(m => SIM.svcMatch(st, m, proto, port, depth + 1));
   return false;
 };
+/* ---------- the firewall clock: one time source, shown in the configured time zone ---------- */
+SIM.TZ = { 'US/Central': 'America/Chicago', 'US/Eastern': 'America/New_York', 'US/Mountain': 'America/Denver', 'US/Pacific': 'America/Los_Angeles', UTC: 'UTC' };
+SIM.clock = (() => {
+  const cache = {};
+  const fmt = tz => cache[tz] || (cache[tz] = (() => { try { return new Intl.DateTimeFormat('en-US', { timeZone: SIM.TZ[tz] || tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', weekday: 'short' }); } catch (e) { return null; } })());
+  /* parts of a moment as the firewall sees it: {y, mo, d, h, mi, s, dow (0 = Sunday)} */
+  return (ts, tz) => {
+    const dt = new Date(ts == null ? Date.now() : ts), f = fmt(tz || 'US/Central');
+    if (!f) return { y: dt.getFullYear(), mo: dt.getMonth() + 1, d: dt.getDate(), h: dt.getHours(), mi: dt.getMinutes(), s: dt.getSeconds(), dow: dt.getDay() };
+    const o = {}; for (const p of f.formatToParts(dt)) o[p.type] = p.value;
+    return { y: +o.year, mo: +o.month, d: +o.day, h: +o.hour % 24, mi: +o.minute, s: +o.second, dow: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(o.weekday) };
+  };
+})();
+SIM.fmtTime = (ts, tz) => { const c = SIM.clock(ts, tz), p = n => String(n).padStart(2, '0'); return `${c.y}-${p(c.mo)}-${p(c.d)} ${p(c.h)}:${p(c.mi)}:${p(c.s)}`; };
 SIM.schedMatch = (st, name, date) => {
   const s = st.schedules.find(x => x.name === name);
   if (!s) return false;
   if (name === 'always') return true;
-  const d = date || new Date();
-  const day = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][d.getDay()];
+  const c = SIM.clock(date || Date.now(), st.system && st.system.timezone);
+  const day = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][c.dow];
   if (!s.days.includes(day)) return false;
-  const mins = d.getHours() * 60 + d.getMinutes();
+  const mins = c.h * 60 + c.mi;
   const [sh, sm] = s.start.split(':').map(Number), [eh, em] = s.end.split(':').map(Number);
   const a = sh * 60 + sm, b = eh * 60 + em;
   if (a === b) return true;
@@ -934,10 +1088,12 @@ SIM.record = (st, q, R) => {
   if (R.logged || R.policyId === 0 || R.verdict === 'blocked') {
     st.logs.traffic.unshift({ ts: Date.now(), srcintf: q.srcintf, srcip: q.srcip, dstintf: R.egress || '', dstip: R.dnat ? R.dnat.to : q.dstip, proto: q.proto, port: R.dnat ? R.dnat.port : (+q.port || 0), policyid: R.policyId, action: R.verdict, nat: R.natIp || '', msg: R.verdict === 'blocked' ? R.reason : (R.dnat ? 'VIP ' + R.dnat.vip : '') });
   }
-  if (st.logs.traffic.length > 1500) st.logs.traffic.length = 1500;
-  if (st.logs.local.length > 600) st.logs.local.length = 600;
+  /* live buffers are capped so a long session never slows down (Live Mode addendum) */
+  if (st.logs.traffic.length > SIM.LOG_CAP) st.logs.traffic.length = SIM.LOG_CAP;
+  if (st.logs.local.length > SIM.LOG_CAP) st.logs.local.length = SIM.LOG_CAP;
 };
-SIM.event = (st, sub, level, msg) => { st.logs.event.unshift({ ts: Date.now(), sub, level, msg }); if (st.logs.event.length > 600) st.logs.event.length = 600; };
+SIM.LOG_CAP = 500;
+SIM.event = (st, sub, level, msg) => { st.logs.event.unshift({ ts: Date.now(), sub, level, msg }); if (st.logs.event.length > SIM.LOG_CAP) st.logs.event.length = SIM.LOG_CAP; };
 
 /* reference checks before delete */
 SIM.usedBy = (st, kind, name) => {
@@ -3728,7 +3884,7 @@ const LIVE = (() => {
     if (R.verdict === 'accept' && !R.local) {
       const life = q.port === 445 || q.port === 3389 || q.port === 4444 ? 40000 + rnd(90000) : q.port === 53 ? 4000 + rnd(3000) : 8000 + rnd(40000);
       st.sessions.unshift({ id: ++st.sessionSeq, ts: Date.now(), expires: Date.now() + life, srcintf: q.srcintf, srcip: q.srcip, dstintf: R.egress, dstip: R.dnat ? R.dnat.to : q.dstip, proto: q.proto, port: R.dnat ? R.dnat.port : q.port, policyid: R.policyId, nat: R.natIp || '', bytes: bytesFor(q.proto, q.port), app: SVC(q.proto, q.port), origin: origin || '' });
-      if (st.sessions.length > 300) st.sessions.length = 300;
+      if (st.sessions.length > 500) st.sessions.length = 500;
     }
     return R;
   }
@@ -3781,6 +3937,11 @@ const LIVE = (() => {
     THREATS, threatById, SVC,
     start(st, hooks) { E.st = st; E.hooks = hooks || {}; E.startedAt = Date.now(); E.killed = {}; clearInterval(E.timer); E.timer = setInterval(tick, 1600); tick(); },
     stop() { clearInterval(E.timer); E.timer = null; },
+    /* Live Mode: pause() freezes traffic, sessions, logs and hit counts; resume() picks up from now */
+    pause() { clearInterval(E.timer); E.timer = null; },
+    resume() { if (E.timer || !E.st) return; E.timer = setInterval(tick, 1600); tick(); },
+    /* a few quiet ticks (no UI hook) so a paused lab still opens on a realistic snapshot of logs and sessions */
+    prime(n) { const h = E.hooks; E.hooks = Object.assign({}, h, { onTick: null }); try { for (let i = 0; i < n; i++) tick(); } finally { E.hooks = h; } },
     running: () => !!E.timer,
     setState(st) { E.st = st; E.nextThreat = {}; E.killed = {}; },
     elapsed: () => E.startedAt ? Date.now() - E.startedAt : 0,
@@ -3989,6 +4150,37 @@ const TELE = (() => {
 if (typeof module !== 'undefined') module.exports = TELE;
 </script>
 
+<style id="sec-css">
+/* ---------- Mission sections: picker, locked cards, section nav ---------- */
+.sec-list { display: grid; gap: 8px; padding-top: 6px; }
+.sec-card { display: grid; gap: 5px; width: 100%; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); padding: 10px 12px; font: inherit; color: var(--ink); }
+button.sec-card { cursor: pointer; }
+button.sec-card:hover, button.sec-card:focus-visible { border-color: var(--accent); }
+.sec-card.done { border-color: color-mix(in srgb, var(--ok) 45%, var(--line)); }
+.sec-card.locked { background: var(--panel-2); border-style: dashed; }
+.sec-card.locked .sec-name, .sec-card.locked .sec-idx { color: var(--muted); }
+.sec-card.nm-card { border-left: 4px solid #B43A2C; }
+.sec-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.sec-idx { width: 22px; height: 22px; flex: none; border-radius: 50%; display: grid; place-items: center; font-family: var(--f-mono); font-size: 11.5px; font-weight: 600; background: var(--panel-2); border: 1px solid var(--line); }
+.sec-name { flex: 1; min-width: 0; font-family: var(--f-head); font-weight: 600; font-size: 15px; }
+.sec-num { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); }
+.sec-meta { font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+.sec-blurb { font-size: 12.5px; color: var(--muted); }
+.sec-bar { height: 4px; border-radius: 2px; background: var(--line-2); overflow: hidden; }
+.sec-bar i { display: block; height: 100%; background: var(--accent); }
+.sec-card.done .sec-bar i { background: var(--ok); }
+.sec-tag { display: inline-flex; align-items: center; gap: 4px; flex: none; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: var(--accent-soft); color: var(--accent); }
+.sec-tag.ok { background: var(--ok-soft); color: var(--ok); }
+.sec-tag.lock { background: var(--warn-soft); color: var(--warn); }
+.sec-tag.next { background: var(--accent); color: var(--accent-ink); }
+.sec-ic { width: 12px; height: 12px; }
+.sec-why { display: grid; gap: 5px; margin-top: 2px; font-size: 12.5px; background: var(--warn-soft); border-radius: 6px; padding: 8px 10px; }
+.sec-why ul { margin: 0; padding-left: 18px; display: grid; gap: 3px; }
+.sec-link { border: 0; background: none; padding: 0; font: inherit; font-weight: 600; color: var(--accent); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; text-align: left; }
+.sec-all { padding: 12px 0 0; }
+.sec-nav { display: flex; align-items: center; gap: 10px; padding: 6px 2px 0; font-size: 12px; }
+.sec-fin { display: grid; gap: 8px; margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: var(--ok-soft); border: 1px solid color-mix(in srgb, var(--ok) 45%, var(--line)); font-size: 13px; }
+</style>
 <style id="nm-css">
 /* ---------- Nightmare mode ---------- */
 .tbtn.nm-on { background: #B43A2C; border-color: #B43A2C; color: #FFFFFF; }
@@ -4674,7 +4866,9 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const KEY = 'talvex-fwlab-v1';
   const pad = n => String(n).padStart(2, '0');
-  const fmtTs = ts => { const d = new Date(ts); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
+  /* One clock for the whole lab: every timestamp (dashboard, logs, events, sessions, Azure activity) is shown in the
+     firewall's configured time zone (System → Settings), not the browser's, so they always agree with "System time". */
+  const fmtTs = ts => SIM.fmtTime(ts, S && S.system && S.system.timezone);
   const cidr = (ip, b) => ip === '0.0.0.0' && !b ? '0.0.0.0/0' : `${ip}/${b}`;
 
   /* ---------- state + persistence ---------- */
@@ -4700,8 +4894,54 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
   let S = SIM.seed();
   const UI = { started: false, page: 'dashboard', tab: {}, drawer: false, open: null, termOpen: false, lookup: null, lookupForm: { srcintf: 'port2', srcip: '10.10.10.20', dstip: '8.8.8.8', proto: 'tcp', port: '443', category: '', record: true }, filter: '', status: {}, view: 'fg', last: { fg: 'dashboard', azure: 'az-home' }, azVnet: '', azRg: '' };
   const NMS = { on: false, level: 1, count: 0, inc: null, from: '', stats: { resolved: 0, failed: 0, streak: 0, best: 0, points: 0 } };
-  function setSave() { }
-  function scheduleSave() { }
+  /* ---------- Save (Phase 2) ----------
+     Save writes the whole lab (config, logs, mission progress, hint and section choices, Live Mode) to localStorage under
+     KEY, and the lab loads it on the next visit. Every change marks the lab dirty: commit() (forms, CLI, restore), hints,
+     answers and completed missions. Live traffic alone does not, so the dot means "you changed something".
+     Nightmare runs are never saved: they replace the config with a generated network. */
+  const SAVE = { dirty: false, at: 0, has: false };
+  const LOG_KEEP = 500;
+  function storeGet() { try { return window.localStorage.getItem(KEY); } catch (e) { return null; } }
+  function storeSet(v) { window.localStorage.setItem(KEY, v); }
+  function storeDel() { try { window.localStorage.removeItem(KEY); } catch (e) { } }
+  function saveBlob() {
+    const o = JSON.parse(JSON.stringify(S));
+    o.sessions = [];
+    for (const k of ['traffic', 'local', 'event']) if (o.logs && Array.isArray(o.logs[k]) && o.logs[k].length > LOG_KEEP) o.logs[k].length = LOG_KEEP;
+    return JSON.stringify({ v: 1, savedAt: Date.now(), prefs: { live: !!UI.live }, state: o });
+  }
+  function readSaved() {
+    const raw = storeGet(); if (!raw) return null;
+    try {
+      const o = JSON.parse(raw); if (!o || o.v !== 1 || !o.state) return null;
+      const st = o.state; SIM.AZ.migrate(st); if (!valid(st)) return null;
+      learnFix(st); st.sessions = []; st.threats = st.threats || {};
+      return { st, at: +o.savedAt || 0, prefs: o.prefs && typeof o.prefs === 'object' ? o.prefs : {} };
+    } catch (e) { return null; }
+  }
+  function saveNow(why) {
+    if (NMS.on) { toast('Not saved', 'Nightmare runs are practice and are never saved. Your saved lab is untouched.', 'bad'); return false; }
+    try { storeSet(saveBlob()); }
+    catch (e) { toast('Save failed', 'This browser blocked local storage or it is full. Use System → Backup & Reset → Export to keep a file instead.', 'bad'); return false; }
+    SAVE.dirty = false; SAVE.at = Date.now(); SAVE.has = true; renderSave();
+    toast('Saved', why || 'Your config and mission progress are saved in this browser.', 'ok');
+    return true;
+  }
+  function markDirty() { if (!SAVE.dirty) { SAVE.dirty = true; renderSave(); } }
+  function renderSave() {
+    const dot = document.getElementById('saveDot'), btn = document.getElementById('saveBtn'), u = document.getElementById('saveUdot'); if (!dot || !btn) return;
+    const t = SAVE.at ? fmtTs(SAVE.at).slice(11, 16) : '';
+    const [cls, txt] = NMS.on ? ['none', 'Nightmare runs are not saved'] : SAVE.dirty ? ['dirty', 'Unsaved changes'] : SAVE.has ? ['clean', `Saved ${t}`] : ['none', 'No changes yet'];
+    dot.className = 'save-dot ' + cls;
+    const span = dot.querySelector('.txt'); if (span && span.textContent !== txt) span.textContent = txt;
+    if (u) u.hidden = !(SAVE.dirty && !NMS.on);
+    btn.disabled = NMS.on;
+    const tip = NMS.on ? 'Nightmare runs are not saved' : SAVE.dirty ? 'Unsaved changes: save to this browser (Ctrl+S)' : 'Save to this browser (Ctrl+S)';
+    if (btn.title !== tip) btn.title = tip;
+    btn.setAttribute('aria-label', SAVE.dirty && !NMS.on ? 'Save (unsaved changes)' : 'Save');
+  }
+  function scheduleSave() { markDirty(); }
+  function setSave() { renderSave(); }
   function fmtElapsed(ms) { const t = Math.floor(ms / 1000); return `${pad(Math.floor(t / 60))}:${pad(t % 60)}`; }
 
   /* ---------- missions ---------- */
@@ -4713,7 +4953,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
       UI.status[m.id] = r;
       const ok = r.every(x => x.ok);
       const rec = S.missions[m.id] || (S.missions[m.id] = { hints: 0 });
-      if (ok && !rec.done) { rec.done = Date.now(); if (!silent) toast('Mission complete', `${m.title} (${MISSIONS.filter(x => S.missions[x.id] && S.missions[x.id].done).length}/${MISSIONS.length})`, 'ok'); }
+      if (ok && !rec.done) { rec.done = Date.now(); markDirty(); if (!silent) toast('Mission complete', `${m.title} (${MISSIONS.filter(x => S.missions[x.id] && S.missions[x.id].done).length}/${MISSIONS.length})`, 'ok'); }
     }
   }
   /* both sides see the same link: log every tunnel state change to the FortiGate event log and the Azure activity log */
@@ -4753,6 +4993,8 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     if (was && !busy) { evaluate(); renderAll(); }
   }, 1000);
   const isDone = m => !!(S.missions[m.id] && S.missions[m.id].done);
+  /* open mission cards: UI.open is the one the lab opens for you (first unfinished, a picked section); UI.opens are the ones you opened */
+  const misOpen = id => UI.open === id || (UI.opens || (UI.opens = new Set())).has(id);
   const doneCount = () => MISSIONS.filter(isDone).length;
 
   /* security: no string in the config may carry markup. Every change (forms, CLI, backup restore) goes through commit(),
@@ -4820,7 +5062,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
 
   /* ---------- shared bits ---------- */
   const pill = (txt, kind) => `<span class="pill ${kind}">${esc(txt)}</span>`;
-  const chips = (arr, cls) => `<div class="chips">${(arr || []).map(a => `<span class="chip ${cls || 'ref'}">${esc(a)}</span>`).join('')}</div>`;
+  const chips = (arr, cls) => `<div class="chips">${(arr || []).map(a => `<span class="chip ${cls || 'ref'}" title="${esc(a)}">${esc(a)}</span>`).join('')}</div>`;
   const actBtn = (act, id, icon, title) => `<button class="ibtn" data-act="${act}" data-id="${esc(id)}" title="${esc(title)}" aria-label="${esc(title)}">${icon}</button>`;
   const head = (desc) => { const [g0, t] = pageTitle(UI.page); const g = UI.view === 'azure' ? ['Azure', g0].filter(Boolean).join(' › ') : g0; return `<div class="crumb">${esc(g)}</div><h1>${esc(t)}</h1>${desc ? `<p class="lede">${desc}</p>` : ''}`; };
   const tabs = (key, list) => { const cur = UI.tab[key] || list[0][0]; return `<div class="tabs" role="tablist">${list.map(([k, l]) => `<button role="tab" class="${k === cur ? 'on' : ''}" data-act="tab" data-key="${key}" data-id="${k}">${esc(l)}</button>`).join('')}</div>`; };
@@ -4871,21 +5113,21 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     return head('Status of the Talvex perimeter firewall. Everything here is a simulation: change it freely, it cannot break anything real.') + `
     <div class="dash">${topoHtml()}
       <section class="card widget"><h2>System Information</h2><dl class="kv">
-        <dt>Hostname</dt><dd class="mono">${esc(S.system.hostname)}</dd>
-        <dt>Serial number</dt><dd class="mono">${esc(S.system.serial)}</dd>
+        <dt>Hostname</dt><dd class="mono">${cv(S.system.hostname, 'hostname')}</dd>
+        <dt>Serial number</dt><dd class="mono">${cv(S.system.serial, 'serial number')}</dd>
         <dt>Model</dt><dd>${esc(S.system.model)}</dd>
         <dt>Firmware</dt><dd>${esc(S.system.osver)} ${pill('Update available', 'warn')}</dd>
         <dt>Mode</dt><dd>NAT</dd>
         <dt>System time</dt><dd class="num">${fmtTs(Date.now())} (${esc(S.system.timezone)})</dd>
         <dt>Uptime</dt><dd class="num">${Math.floor(up / 86400)} days ${Math.floor(up % 86400 / 3600)} hours</dd>
       </dl></section>
-      <section class="card widget"><h2>Network Ports</h2><div class="ports">${S.interfaces.filter(i => i.type === 'physical').map(i => `<div class="port ${i.status === 'up' ? 'up' : ''}"><div class="jack"></div><b class="mono">${esc(i.name)}</b><div class="muted">${esc(i.alias || i.role)}</div></div>`).join('')}</div>
+      <section class="card widget"><h2>Network Ports</h2><div class="ports">${S.interfaces.filter(i => i.type === 'physical').map(i => `<div class="port ${i.status === 'up' ? 'up' : ''}"><div class="jack"></div><b class="mono">${esc(i.name)}</b><div class="muted">${esc(i.alias || (i.role && i.role !== 'undefined' ? i.role.toUpperCase() : ''))}&nbsp;</div></div>`).join('')}</div>
         <p class="help" style="margin:10px 0 0">${ifs.filter(i => i.type === 'vlan').length} VLAN interface(s), ${ifs.filter(i => i.type === 'tunnel').length} tunnel interface(s)</p></section>
       ${resourcesCard()}${bandwidthCard()}
       <section class="card widget"><h2>IPsec</h2>${tunnels.length ? tunnels.map(({ p, t }) => `<div style="display:flex;gap:8px;align-items:center;justify-content:space-between"><span class="mono">${esc(p.name)} → ${esc(p.remoteGw)}</span>${pill(t.up ? 'Up' : 'Down', t.up ? 'ok' : 'bad')}</div>${tunStats(p.name)}`).join('') : '<p class="muted" style="margin:0">No tunnels configured.</p>'}</section>
       <section class="card widget"><h2>Live Traffic</h2><dl class="kv"><dt>Active sessions</dt><dd class="num">${S.sessions.length}</dd><dt>Flows since start</dt><dd class="num">${LIVE.flows().toLocaleString()}</dd><dt>Lab time</dt><dd class="num">${fmtElapsed(LIVE.elapsed())}</dd><dt>Active threats</dt><dd class="num">${LIVE.THREATS.filter(t => (S.threats[t.id] || {}).active).length} of ${LIVE.THREATS.length} unlocked</dd></dl><p style="margin:10px 0 0"><button class="btn" data-act="nav" data-id="sessions">View sessions</button></p></section>
       <section class="card widget"><h2>Scavenger Hunt</h2><p style="margin:0 0 8px"><b class="num" style="font-size:22px">${done}</b> <span class="muted">of ${MISSIONS.length} missions complete</span></p><div class="meter"><i style="width:${Math.round(done / MISSIONS.length * 100)}%;background:var(--ok)"></i></div><p style="margin:12px 0 0"><button class="btn primary" data-act="open-missions">${I.flag} Open missions</button></p></section>
-      <section class="card widget" style="grid-column:1/-1"><h2>Recent System Events</h2><div class="evt">${S.logs.event.slice(0, 7).map(e => `<span class="muted num mono">${fmtTs(e.ts)}</span><span>${pill(e.level, e.level === 'alert' ? 'bad' : e.level === 'warning' ? 'warn' : e.level === 'notice' ? 'info' : 'mute')} ${esc(e.msg)}</span>`).join('')}</div></section>
+      <section class="card widget" style="grid-column:1/-1"><h2>Recent System Events</h2><div class="evt">${S.logs.event.slice(0, 7).map(e => `<span class="muted num mono"${rk(e, 't')}>${fmtTs(e.ts)}</span><span${rk(e, 'm')}>${pill(e.level, e.level === 'alert' ? 'bad' : e.level === 'warning' ? 'warn' : e.level === 'notice' ? 'info' : 'mute')} ${esc(e.msg)}</span>`).join('')}</div></section>
     </div>`;
   };
 
@@ -4903,7 +5145,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
   };
   function ifRow(i, r, sub) {
     return `<tr class="${sub ? 'sub' : ''}"><td class="mono">${sub ? '└ ' : ''}${esc(i.name)}</td><td>${esc(i.alias)}</td><td>${esc(i.type === 'vlan' ? 'VLAN ' + i.vlanid : i.type === 'tunnel' ? 'IPsec tunnel' : 'Physical')}</td><td>${esc(i.role === 'undefined' ? '' : i.role.toUpperCase())}</td>
-    <td class="mono num">${i.ip === '0.0.0.0' ? '<span class="muted">0.0.0.0/0</span>' : esc(i.ip + '/' + i.bits)}${i.type === 'tunnel' && i.remoteIp ? `<div class="help">remote ${esc(i.remoteIp)}</div>` : ''}</td><td>${chips(i.allowaccess.map(a => a.toUpperCase()), '')}</td>
+    <td class="mono num">${i.ip === '0.0.0.0' ? '<span class="muted">0.0.0.0/0</span>' : cv(i.ip + '/' + i.bits, i.name + ' address')}${i.type === 'tunnel' && i.remoteIp ? `<div class="help">remote ${esc(i.remoteIp)}</div>` : ''}</td><td>${chips(i.allowaccess.map(a => a.toUpperCase()), '')}</td>
     <td>${pill(i.status === 'up' ? 'Up' : 'Down', i.status === 'up' ? 'ok' : 'mute')}</td><td class="num">${(c => c ? `${fmtBytes(c.rx)} / ${fmtBytes(c.tx)}<div>${spark(c.hist, 'sm', i.name + ' bandwidth')} <span class="help">${fmtRate(c.rate)}</span></div>` : '<span class="muted">-</span>')(TELE.iface(i.name))}</td><td class="num">${r}</td>
     <td class="acts">${actBtn('if-edit', i.name, I.edit, 'Edit ' + i.name)}${i.type === 'vlan' ? actBtn('if-del', i.name, I.del, 'Delete ' + i.name) : ''}</td></tr>`;
   }
@@ -4925,20 +5167,26 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     const list = S.policies;
     const prof = p => p.utm ? [p.prof.av && 'AV:' + p.prof.av, p.prof.webfilter && 'WEB:' + p.prof.webfilter, p.prof.ips && 'IPS:' + p.prof.ips, p.prof.app && 'APP:' + p.prof.app, p.prof.ssl && 'SSL:' + p.prof.ssl].filter(Boolean) : [];
     const logTxt = { all: 'All', utm: 'Security Events', disable: 'Disabled' };
-    const rows = list.map((p, i) => `<tr class="${p.status === 'disable' ? 'off' : ''}">
-      <td class="acts" style="text-align:left">${i > 0 ? actBtn('pol-up', p.id, I.up, 'Move up') : '<span class="ibtn"></span>'}${i < list.length - 1 ? actBtn('pol-down', p.id, I.down, 'Move down') : ''}</td>
-      <td class="num muted">${i + 1}</td><td class="num"><b>${esc(p.id)}</b></td><td class="pname">${esc(p.name)}${p.comments ? `<div class="help">${esc(p.comments)}</div>` : ''}</td>
-      <td>${chips(p.srcintf)}</td><td>${chips(p.dstintf)}</td><td>${chips(p.srcaddr)}</td><td>${chips(p.dstaddr)}</td><td>${chips(p.service)}</td>
+    /* Fits the pane: arrows share the Seq cell, chips truncate with a tooltip, and as the table's own width shrinks the
+       Log, Security Profiles, NAT and Hits columns fold into a line under the policy name (container queries, fit-css). */
+    const meta = p => {
+      const pr = prof(p);
+      return `<div class="pmeta">${p.action === 'accept' && p.nat ? `<span class="m-nat">${pill('NAT', 'info')}</span>` : ''}${pr.length ? `<span class="m-prof">${chips(pr, '')}</span>` : ''}<span class="m-log chip" title="Log: ${esc(logTxt[p.logtraffic] || '')}">${esc({ all: 'Log all', utm: 'Log UTM', disable: 'No log' }[p.logtraffic] || '')}</span><span class="m-hits chip num" title="Hits">${esc(Number(p.hits || 0).toLocaleString())} hits</span></div>`;
+    };
+    const rows = list.map((p, i) => `<tr class="${p.status === 'disable' ? 'off' : ''}" data-k="pol${esc(p.id)}">
+      <td class="seq c-seq"><span class="mv">${i > 0 ? actBtn('pol-up', p.id, I.up, 'Move up') : '<span class="ibtn" aria-hidden="true"></span>'}${i < list.length - 1 ? actBtn('pol-down', p.id, I.down, 'Move down') : '<span class="ibtn" aria-hidden="true"></span>'}</span><span class="num">${i + 1}</span></td>
+      <td class="num">${cv(p.id, 'policy ID ' + p.id, 'b')}</td><td class="pname">${esc(p.name)}${p.comments ? `<div class="help">${esc(p.comments)}</div>` : ''}${meta(p)}</td>
+      <td>${chips(p.srcintf)}<div class="m-to">→ ${chips(p.dstintf)}</div></td><td class="c-to">${chips(p.dstintf)}</td><td>${chips(p.srcaddr)}</td><td>${chips(p.dstaddr)}</td><td>${chips(p.service)}</td>
       <td>${pill(p.action === 'accept' ? 'ACCEPT' : 'DENY', p.action === 'accept' ? 'ok' : 'bad')}</td>
-      <td>${p.action === 'accept' ? (p.nat ? pill('NAT', 'info') : '<span class="muted">Off</span>') : ''}</td>
-      <td>${chips(prof(p), '')}</td><td>${logTxt[p.logtraffic]}</td><td class="num">${esc(Number(p.hits || 0).toLocaleString())}</td>
-      <td><button class="btn" style="height:26px" data-act="pol-toggle" data-id="${esc(p.id)}">${p.status === 'enable' ? 'Enabled' : 'Disabled'}</button></td>
+      <td class="c-nat">${p.action === 'accept' ? (p.nat ? pill('NAT', 'info') : '<span class="muted">Off</span>') : ''}</td>
+      <td class="c-prof">${chips(prof(p), '')}</td><td class="c-log">${logTxt[p.logtraffic]}</td><td class="num c-hits">${esc(Number(p.hits || 0).toLocaleString())}</td>
+      <td><button class="st-sw" role="switch" aria-checked="${p.status === 'enable'}" data-act="pol-toggle" data-id="${esc(p.id)}" title="${p.status === 'enable' ? 'Enabled: click to disable' : 'Disabled: click to enable'}" aria-label="Policy ${esc(p.id)} ${p.status === 'enable' ? 'enabled' : 'disabled'}"><i></i></button></td>
       <td class="acts">${actBtn('pol-edit', p.id, I.edit, 'Edit policy ' + p.id)}${actBtn('pol-clone', p.id, I.copy, 'Clone policy ' + p.id)}${actBtn('pol-del', p.id, I.del, 'Delete policy ' + p.id)}</td></tr>`).join('');
     return head('Policies are checked from the top down. The first one that matches decides what happens. Anything that matches nothing is dropped by the implicit deny.') +
       lookupCard() +
       `<div class="toolbar"><button class="btn primary" data-act="pol-new">${I.plus} Create New</button><span class="help">Sequence order is what matters, not the ID number. Use the arrows to reorder.</span></div>
-      <div class="tablewrap"><table class="grid"><thead><tr><th></th><th>Seq</th><th>ID</th><th>Name</th><th>From</th><th>To</th><th>Source</th><th>Destination</th><th>Service</th><th>Action</th><th>NAT</th><th>Security Profiles</th><th>Log</th><th>Hits</th><th>Status</th><th></th></tr></thead><tbody>${rows}
-      <tr class="off"><td></td><td></td><td class="num"><b>0</b></td><td>Implicit Deny</td><td>${chips(['any'])}</td><td>${chips(['any'])}</td><td>${chips(['all'])}</td><td>${chips(['all'])}</td><td>${chips(['ALL'])}</td><td>${pill('DENY', 'bad')}</td><td></td><td></td><td>Disabled</td><td></td><td></td><td></td></tr></tbody></table></div>`;
+      <div class="tablewrap pol"><table class="grid pol"><thead><tr><th class="c-seq">Seq</th><th>ID</th><th>Name</th><th>From</th><th class="c-to">To</th><th>Source</th><th>Destination</th><th>Service</th><th>Action</th><th class="c-nat">NAT</th><th class="c-prof">Security Profiles</th><th class="c-log">Log</th><th class="c-hits">Hits</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody>${rows}
+      <tr class="off" data-k="pol-implicit"><td class="c-seq"></td><td class="num"><b>0</b></td><td class="pname">Implicit Deny</td><td>${chips(['any'])}<div class="m-to">→ ${chips(['any'])}</div></td><td class="c-to">${chips(['any'])}</td><td>${chips(['all'])}</td><td>${chips(['all'])}</td><td>${chips(['ALL'])}</td><td>${pill('DENY', 'bad')}</td><td class="c-nat"></td><td class="c-prof"></td><td class="c-log">Disabled</td><td class="c-hits"></td><td></td><td></td></tr></tbody></table></div>`;
   };
   function lookupCard() {
     const f = UI.lookupForm, R = UI.lookup;
@@ -4994,8 +5242,8 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
   P.webfilter = () => head('Web filter profiles block sites by category. Apply a profile on a policy (with an SSL inspection profile) for it to take effect.') + `<div class="toolbar"><button class="btn primary" data-act="wf-new">${I.plus} Create New</button></div><div class="tablewrap"><table class="grid"><thead><tr><th>Name</th><th>Blocked categories</th><th>Ref.</th><th>Comments</th><th></th></tr></thead><tbody>${S.profiles.webfilter.map(w => `<tr><td class="mono">${esc(w.name)}</td><td>${SIM.wfBlocked(w).length ? chips(SIM.wfBlocked(w).map(c => `${c} (${SIM.CAT_ID[c]})`), '') : '<span class="muted">None (monitor only)</span>'}${w.urlfilterTable ? `<div class="help">URL filter: ${esc(((S.urlfilters || []).find(u => u.id === w.urlfilterTable) || {}).name || w.urlfilterTable)}</div>` : ''}</td><td class="num">${SIM.usedBy(S, 'wf', w.name).length}</td><td>${esc(w.comment)}</td><td class="acts">${actBtn('wf-edit', w.name, I.edit, 'Edit')}${w.builtin ? '' : actBtn('wf-del', w.name, I.del, 'Delete')}</td></tr>`).join('')}</tbody></table></div>`;
 
   P.profiles = () => {
-    const sec = (title, list, field, note) => `<section class="card widget"><h2>${esc(title)}</h2><p class="help" style="margin:0 0 8px">${note}</p><div class="tablewrap" style="border:0"><table class="grid"><thead><tr><th>Profile</th><th>Description</th><th>Used by</th></tr></thead><tbody>${list.map(x => { const n = S.policies.filter(p => p.utm && p.prof[field] === x.name).map(p => p.id); return `<tr><td class="mono">${esc(x.name)}</td><td>${esc(x.comment)}</td><td>${n.length ? chips(n.map(i => 'policy ' + i), '') : '<span class="muted">-</span>'}</td></tr>`; }).join('')}</tbody></table></div></section>`;
-    return head('Built-in security profiles. Attach them to accept policies under Security Profiles.') + `<div class="dash">${sec('AntiVirus', S.profiles.av, 'av', 'Scans files in allowed sessions.')}${sec('Intrusion Prevention (IPS)', S.profiles.ips, 'ips', 'Matches traffic against attack signatures. Put one in front of anything internet-facing.')}${sec('Application Control', S.profiles.app, 'app', 'Identifies applications regardless of port.')}${sec('SSL/SSH Inspection', S.profiles.ssl, 'ssl', 'Required whenever any other profile is applied. Certificate inspection reads the site name without decrypting.')}</div>`;
+    const sec = (title, list, field, note) => `<section class="card widget"><h2>${esc(title)}</h2><p class="help" style="margin:0 0 8px">${note}</p><div class="tablewrap"><table class="grid"><thead><tr><th>Profile</th><th>Description</th><th>Used by</th></tr></thead><tbody>${list.map(x => { const n = S.policies.filter(p => p.utm && p.prof[field] === x.name).map(p => p.id); return `<tr><td class="mono">${esc(x.name)}</td><td>${esc(x.comment)}</td><td>${n.length ? chips(n.map(i => 'policy ' + i), '') : '<span class="muted">-</span>'}</td></tr>`; }).join('')}</tbody></table></div></section>`;
+    return head('Built-in security profiles. Attach them to accept policies under Security Profiles.') + `<div class="prof-grid">${sec('AntiVirus', S.profiles.av, 'av', 'Scans files in allowed sessions.')}${sec('Intrusion Prevention (IPS)', S.profiles.ips, 'ips', 'Matches traffic against attack signatures. Put one in front of anything internet-facing.')}${sec('Application Control', S.profiles.app, 'app', 'Identifies applications regardless of port.')}${sec('SSL/SSH Inspection', S.profiles.ssl, 'ssl', 'Required whenever any other profile is applied. Certificate inspection reads the site name without decrypting.')}</div>`;
   };
 
   P.ipsec = () => head('Site-to-site IPsec tunnels. Each tunnel becomes an interface you can route to and write policies for.') + `<div class="toolbar"><button class="btn primary" data-act="vpn-new">${I.plus} Create New Tunnel</button><span class="help">Azure side: gateway 198.51.100.25 · IKEv2 · route-based · ${S.azure.policy === 'custom' ? '<b>custom IPsec/IKE policy</b> (IKE AES256/SHA256/DH14, IPsec AES256GCM, PFS 14)' : 'default IPsec/IKE policy'}</span></div>
@@ -5019,7 +5267,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
 
   P.accprofiles = () => head('Admin profiles define what an administrator account can see and change. Create one per job, not one per person.') +
     `<div class="toolbar"><button class="btn primary" data-act="ap-new">${I.plus} Create New</button></div>
-    <div class="tablewrap"><table class="grid"><thead><tr><th>Name</th><th>System</th><th>Network</th><th>Firewall</th><th>Log & Report</th><th>Security Profiles</th><th>VPN</th><th>Used by</th><th></th></tr></thead><tbody>${(S.accprofiles || []).map(a => { const lv = v => v === 'read-write' ? pill('Read/Write', 'ok') : v === 'read' ? pill('Read', 'info') : pill('None', 'mute'); return `<tr><td class="mono">${esc(a.name)}${a.builtin ? '' : ' ' + pill('custom', 'info')}<div class="help">${esc(a.comment)}</div></td><td>${lv(a.sysgrp)}</td><td>${lv(a.netgrp)}</td><td>${lv(a.fwgrp)}</td><td>${lv(a.loggrp)}</td><td>${lv(a.utmgrp)}</td><td>${lv(a.vpngrp)}</td><td class="num">${SIM.usedBy(S, 'accprofile', a.name).length}</td><td class="acts">${a.builtin ? '' : actBtn('ap-edit', a.name, I.edit, 'Edit') + actBtn('ap-del', a.name, I.del, 'Delete')}</td></tr>`; }).join('')}</tbody></table></div>`;
+    <div class="tablewrap"><table class="grid"><thead><tr><th>Name</th><th>System</th><th>Network</th><th>Firewall</th><th>Log & Report</th><th>Security Profiles</th><th>VPN</th><th>Used by</th><th></th></tr></thead><tbody>${(S.accprofiles || []).map(a => { const lv = v => v === 'read-write' ? pill('Read/\u200bWrite', 'ok') : v === 'read' ? pill('Read', 'info') : pill('None', 'mute'); return `<tr><td class="mono">${esc(a.name)}${a.builtin ? '' : ' ' + pill('custom', 'info')}<div class="help">${esc(a.comment)}</div></td><td>${lv(a.sysgrp)}</td><td>${lv(a.netgrp)}</td><td>${lv(a.fwgrp)}</td><td>${lv(a.loggrp)}</td><td>${lv(a.utmgrp)}</td><td>${lv(a.vpngrp)}</td><td class="num">${SIM.usedBy(S, 'accprofile', a.name).length}</td><td class="acts">${a.builtin ? '' : actBtn('ap-edit', a.name, I.edit, 'Edit') + actBtn('ap-del', a.name, I.del, 'Delete')}</td></tr>`; }).join('')}</tbody></table></div>`;
 
   P.logsettings = () => {
     const y = S.logset.syslog; const r = y.server && SIM.isIp(y.server) ? SIM.routeLookup(S, y.server) : null;
@@ -5048,9 +5296,9 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
   P.backup = () => {
     const full = CLI.PATHS.map(p => CLI.showTable(S, p)).join('\n');
     return head('Save, restore and reset the lab.') + `<div class="dash">
-      <section class="card widget"><h2>Nothing is saved automatically</h2><p style="margin:0">Closing or reloading this page resets the firewall and the hunt. If you have to step away, copy a backup here and paste it into Restore when you come back. Live traffic and sessions start fresh either way.</p><p class="help">Lab time: ${fmtElapsed(LIVE.elapsed())}</p></section>
-      <section class="card widget"><h2>Backup</h2><p class="help" style="margin-top:0">Copies the whole lab (config, logs and mission progress) as JSON.</p><button class="btn" data-act="bk-copy">${I.copy} Copy configuration</button></section>
-      <section class="card widget"><h2>Restore</h2><textarea class="inp mono" id="bkIn" placeholder="Paste a configuration backup here" style="min-height:80px"></textarea><p style="margin:8px 0 0"><button class="btn" data-act="bk-restore">Restore</button></p></section>
+      <section class="card widget"><h2>Saving</h2><p style="margin:0">The <b>Save</b> button in the top bar (or Ctrl+S) keeps your config and mission progress in this browser, and the lab picks up where you left off next time. ${SAVE.has ? `Last saved ${esc(fmtTs(SAVE.at))}.` : 'Nothing saved yet.'}${SAVE.dirty ? ' <b>You have unsaved changes.</b>' : ''}</p><p class="help">To move your lab to another computer or browser, export a file here and import it there. Live traffic and sessions start fresh either way. Lab time: ${fmtElapsed(LIVE.elapsed())}</p><p style="margin:8px 0 0"><button class="btn primary" data-act="bk-save">Save now</button></p></section>
+      <section class="card widget"><h2>Export</h2><p class="help" style="margin-top:0">The whole lab (config, logs and mission progress) as a JSON file, or copied to the clipboard.</p><div class="toolbar" style="margin:0"><button class="btn" data-act="bk-export">${I.down} Export file</button><button class="btn" data-act="bk-copy">${I.copy} Copy configuration</button></div></section>
+      <section class="card widget"><h2>Import</h2><p class="help" style="margin-top:0">Load an exported file, or paste a copied backup below.</p><div class="toolbar" style="margin:0 0 8px"><button class="btn" data-act="bk-import">${I.up} Import file…</button><input type="file" id="bkFile" accept=".json,application/json" hidden></div><textarea class="inp mono" id="bkIn" placeholder="Paste a configuration backup here" style="min-height:80px"></textarea><p style="margin:8px 0 0"><button class="btn" data-act="bk-restore">Restore</button></p></section>
       <section class="card widget"><h2>Reset lab</h2><p class="help" style="margin-top:0">Puts the firewall back to how the old IT guy left it and clears mission progress.</p><button class="btn danger" data-act="bk-reset">Reset lab…</button></section>
       <section class="card widget" style="grid-column:1/-1"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h2>Full configuration (CLI)</h2><button class="btn" data-act="bk-copycli">${I.copy} Copy</button></div><pre class="mono" style="margin:10px 0 0;max-height:420px;overflow:auto;background:var(--term-bg);color:var(--term-ink);padding:12px;border-radius:6px;font-size:12px" id="fullCfg">${esc(full)}</pre></section></div>`;
   };
@@ -5063,7 +5311,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     const top = Object.entries(bySrc).sort((a, b) => b[1] - a[1]).slice(0, 5);
     return head('Sessions the firewall is forwarding right now. Killing a session ends it; if the host is still allowed by policy, it can start a new one.') +
       `<div class="toolbar"><input class="search" id="sessFilter" placeholder="Filter (IP, interface, app, policy)…" value="${esc(UI.filter)}" aria-label="Filter sessions"><span class="help num">${S.sessions.length} active · refreshes live</span><span class="grow"></span><span class="help">Top talkers: ${top.map(([ip, n]) => `<span class="chip ref">${esc(ip)} ×${n}</span>`).join(' ') || '-'}</span></div>
-      <div class="tablewrap"><table class="grid"><thead><tr><th>Source</th><th>Src Intf</th><th>Destination</th><th>Dst Intf</th><th>Application</th><th>Policy</th><th>NAT</th><th>Duration</th><th>Bytes</th><th></th></tr></thead><tbody>${rows.map(x => `<tr><td class="mono">${esc(x.srcip)}${SIM.HOSTS[x.srcip] ? `<div class="help">${esc(SIM.HOSTS[x.srcip])}</div>` : ''}</td><td class="mono">${esc(x.srcintf)}</td><td class="mono">${esc(x.dstip)}:${x.port}${SIM.HOSTS[x.dstip] ? `<div class="help">${esc(SIM.HOSTS[x.dstip])}</div>` : ''}</td><td class="mono">${esc(x.dstintf)}</td><td>${esc(x.app)}</td><td class="num">${esc(x.policyid)}</td><td class="mono">${esc(x.nat)}</td><td class="num">${fmtElapsed(now - x.ts)}</td><td class="num">${esc(TELE.sessBytes(x, now).toLocaleString())}</td><td class="acts"><button class="btn danger" style="height:26px" data-act="sess-kill" data-id="${esc(x.id)}">Kill</button></td></tr>`).join('') || '<tr><td colspan="10" class="empty">No active sessions match.</td></tr>'}</tbody></table></div>`;
+      <div class="tablewrap"><table class="grid"><thead><tr><th>Source</th><th>Src Intf</th><th>Destination</th><th>Dst Intf</th><th>Application</th><th>Policy</th><th>NAT</th><th>Duration</th><th>Bytes</th><th></th></tr></thead><tbody>${rows.map(x => `<tr data-k="s${esc(x.id)}"><td class="mono">${cv(x.srcip, 'source IP')}${SIM.HOSTS[x.srcip] ? `<div class="help">${esc(SIM.HOSTS[x.srcip])}</div>` : ''}</td><td class="mono">${esc(x.srcintf)}</td><td class="mono">${cv(x.dstip + ':' + x.port, 'destination')}${SIM.HOSTS[x.dstip] ? `<div class="help">${esc(SIM.HOSTS[x.dstip])}</div>` : ''}</td><td class="mono">${esc(x.dstintf)}</td><td>${esc(x.app)}</td><td class="num">${cv(x.policyid, 'policy ID')}</td><td class="mono">${esc(x.nat)}</td><td class="num">${fmtElapsed(now - x.ts)}</td><td class="num">${esc(TELE.sessBytes(x, now).toLocaleString())}</td><td class="acts"><button class="btn danger" style="height:26px" data-act="sess-kill" data-id="${esc(x.id)}">Kill</button></td></tr>`).join('') || '<tr><td colspan="10" class="empty">No active sessions match.</td></tr>'}</tbody></table></div>`;
   };
   P.logs = () => {
     const t = curTab('logs', 'traffic');
@@ -5072,16 +5320,16 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     let body;
     if (t === 'traffic') {
       const rows = S.logs.traffic.filter(match).slice(0, 250);
-      body = `<div class="tablewrap"><table class="grid"><thead><tr><th>Date/Time</th><th>Src Intf</th><th>Source</th><th>Dst Intf</th><th>Destination</th><th>Service</th><th>Policy</th><th>Action</th><th>NAT IP</th><th>Message</th></tr></thead><tbody>${rows.map(l => `<tr><td class="mono num">${fmtTs(l.ts)}</td><td class="mono">${esc(l.srcintf)}</td><td class="mono">${esc(l.srcip)}</td><td class="mono">${esc(l.dstintf)}</td><td class="mono">${esc(l.dstip)}</td><td class="mono">${esc(l.proto.toUpperCase() + (l.proto === 'icmp' ? '' : '/' + l.port))}</td><td class="num">${esc(l.policyid)}</td><td>${pill(l.action, l.action === 'accept' ? 'ok' : 'bad')}</td><td class="mono">${esc(l.nat)}</td><td>${esc(l.msg)}</td></tr>`).join('') || '<tr><td colspan="10" class="empty">No matching log entries.</td></tr>'}</tbody></table></div>`;
+      body = `<div class="tablewrap"><table class="grid"><thead><tr><th>Date/Time</th><th>Src Intf</th><th>Source</th><th>Dst Intf</th><th>Destination</th><th>Service</th><th>Policy</th><th>Action</th><th>NAT IP</th><th>Message</th></tr></thead><tbody>${rows.map(l => `<tr${rk(l)}><td class="mono num">${fmtTs(l.ts)}</td><td class="mono">${esc(l.srcintf)}</td><td class="mono">${cv(l.srcip, 'source IP')}</td><td class="mono">${esc(l.dstintf)}</td><td class="mono">${cv(l.dstip, 'destination IP')}</td><td class="mono">${esc(l.proto.toUpperCase() + (l.proto === 'icmp' ? '' : '/' + l.port))}</td><td class="num">${cv(l.policyid, 'policy ID')}</td><td>${pill(l.action, l.action === 'accept' ? 'ok' : 'bad')}</td><td class="mono">${esc(l.nat)}</td><td>${esc(l.msg)}</td></tr>`).join('') || '<tr><td colspan="10" class="empty">No matching log entries.</td></tr>'}</tbody></table></div>`;
     } else if (t === 'local') {
       const rows = S.logs.local.filter(match).slice(0, 200);
-      body = `<p class="help">Traffic addressed to the firewall itself (management access, ping).</p><div class="tablewrap"><table class="grid"><thead><tr><th>Date/Time</th><th>Interface</th><th>Source</th><th>Destination</th><th>Service</th><th>Action</th><th>Message</th></tr></thead><tbody>${rows.map(l => `<tr><td class="mono num">${fmtTs(l.ts)}</td><td class="mono">${esc(l.srcintf)}</td><td class="mono">${esc(l.srcip)}</td><td class="mono">${esc(l.dstip)}</td><td class="mono">${esc(String(l.proto).toUpperCase() + '/' + l.port)}</td><td>${pill(l.action, l.action === 'accept' ? 'ok' : 'bad')}</td><td>${esc(l.msg)}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">No matching log entries.</td></tr>'}</tbody></table></div>`;
+      body = `<p class="help">Traffic addressed to the firewall itself (management access, ping).</p><div class="tablewrap"><table class="grid"><thead><tr><th>Date/Time</th><th>Interface</th><th>Source</th><th>Destination</th><th>Service</th><th>Action</th><th>Message</th></tr></thead><tbody>${rows.map(l => `<tr${rk(l)}><td class="mono num">${fmtTs(l.ts)}</td><td class="mono">${esc(l.srcintf)}</td><td class="mono">${cv(l.srcip, 'source IP')}</td><td class="mono">${cv(l.dstip, 'destination IP')}</td><td class="mono">${esc(String(l.proto).toUpperCase() + '/' + l.port)}</td><td>${pill(l.action, l.action === 'accept' ? 'ok' : 'bad')}</td><td>${esc(l.msg)}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">No matching log entries.</td></tr>'}</tbody></table></div>`;
     } else {
       const rows = S.logs.event.filter(match).slice(0, 200);
-      body = `<div class="tablewrap"><table class="grid"><thead><tr><th>Date/Time</th><th>Level</th><th>Message</th></tr></thead><tbody>${rows.map(e => `<tr><td class="mono num">${fmtTs(e.ts)}</td><td>${pill(e.level, e.level === 'alert' ? 'bad' : e.level === 'warning' ? 'warn' : e.level === 'notice' ? 'info' : 'mute')}</td><td>${esc(e.msg)}</td></tr>`).join('') || '<tr><td colspan="3" class="empty">No matching events.</td></tr>'}</tbody></table></div>`;
+      body = `<div class="tablewrap"><table class="grid"><thead><tr><th>Date/Time</th><th>Level</th><th>Message</th></tr></thead><tbody>${rows.map(e => `<tr${rk(e)}><td class="mono num">${fmtTs(e.ts)}</td><td>${pill(e.level, e.level === 'alert' ? 'bad' : e.level === 'warning' ? 'warn' : e.level === 'notice' ? 'info' : 'mute')}</td><td>${cv(e.msg, 'event message')}</td></tr>`).join('') || '<tr><td colspan="3" class="empty">No matching events.</td></tr>'}</tbody></table></div>`;
     }
     return head('Forward traffic, local traffic and system events. Newest first.') + tabs('logs', [['traffic', 'Forward Traffic'], ['local', 'Local Traffic'], ['event', 'System Events']]) +
-      `<div class="toolbar"><input class="search" id="logFilter" placeholder="Filter (IP, policy, text)…" value="${esc(UI.filter)}" aria-label="Filter logs"></div>` + body;
+      `<div class="toolbar"><input class="search" id="logFilter" placeholder="Filter (IP, policy, text)…" value="${esc(UI.filter)}" aria-label="Filter logs"><span class="grow"></span><span class="live-off-note">${UI.live ? `Live · keeps the newest ${SIM.LOG_CAP}` : 'Paused snapshot · turn on Live Mode for new entries'}</span>${t === 'event' ? '' : '<button class="btn sm" data-act="logs-clear" title="Clear forward and local traffic logs">Clear logs</button>'}</div>` + body;
   };
 
   /* ================= AZURE PAGES ================= */
@@ -5114,7 +5362,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
       <section class="card widget" style="grid-column:1/-1"><h2>Recent activity</h2>${azActivityTable(z.activity.slice(0, 6))}</section>
     </div>`;
   };
-  const azActivityTable = rows => `<div class="tablewrap"><table class="grid"><thead><tr><th>Operation name</th><th>Status</th><th>Time</th><th>Resource</th><th>Resource group</th><th>Event initiated by</th></tr></thead><tbody>${rows.map(a => `<tr><td>${esc(a.op)}</td><td>${pill(a.status, a.status === 'Succeeded' || a.status === 'Resolved' ? 'ok' : a.status === 'Active' ? 'warn' : 'bad')}</td><td class="mono num">${fmtTs(a.ts)}</td><td class="mono">${esc(a.resource)}</td><td class="mono">${esc(a.rg)}</td><td class="mono">${esc(a.by)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">No activity.</td></tr>'}</tbody></table></div>`;
+  const azActivityTable = rows => `<div class="tablewrap"><table class="grid"><thead><tr><th>Operation name</th><th>Status</th><th>Time</th><th>Resource</th><th>Resource group</th><th>Event initiated by</th></tr></thead><tbody>${rows.map(a => `<tr${rk(a)}><td>${esc(a.op)}</td><td>${pill(a.status, a.status === 'Succeeded' || a.status === 'Resolved' ? 'ok' : a.status === 'Active' ? 'warn' : 'bad')}</td><td class="mono num">${fmtTs(a.ts)}</td><td class="mono">${esc(a.resource)}</td><td class="mono">${esc(a.rg)}</td><td class="mono">${esc(a.by)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">No activity.</td></tr>'}</tbody></table></div>`;
 
   P['az-resources'] = () => {
     const z = S.azure, rgf = UI.azRg;
@@ -5167,7 +5415,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
       body = `<div class="toolbar"><button class="btn primary" data-act="az-sub-new" data-id="${esc(id)}">${I.plus} Subnet</button><span class="help">Azure reserves 5 addresses in every subnet: the first four and the last.</span></div>
         <div class="tablewrap"><table class="grid"><thead><tr><th>Name</th><th>IPv4</th><th>Usable range</th><th>Available IPs</th><th>Devices</th><th></th></tr></thead><tbody>${v.subnets.map(s => { const i = AZ.subnetInfo(s), u = AZ.usage(S, v, s); return `<tr><td class="mono">${esc(s.name)}${AZ.SPECIAL[s.name] ? `<div class="help">reserved for ${esc(AZ.SPECIAL[s.name].purpose)}</div>` : ''}</td><td class="mono">${esc(AZ.fmt(s))}</td><td class="mono">${esc(i.first)} - ${esc(i.last)}</td><td class="num">${u.available}</td><td class="num">${u.used}</td><td class="acts">${actBtn('az-sub-del', `${id}/${s.name}`, I.del, 'Delete subnet')}</td></tr>`; }).join('') || '<tr><td colspan="6" class="empty">No subnets yet.</td></tr>'}</tbody></table></div>`;
     } else {
-      body = `<div class="tablewrap"><table class="grid"><thead><tr><th>Device</th><th>Type</th><th>IP address</th><th>Subnet</th><th>Attached to</th></tr></thead><tbody>${vms.map(m => `<tr><td class="mono">${esc(m.name)}-nic</td><td>Network interface</td><td class="mono">${esc(m.privateIp)} <span class="help">(${esc(m.ipAlloc)})</span></td><td class="mono">${esc(m.subnet)}</td><td class="mono">${esc(m.name)}</td></tr>`).join('') || '<tr><td colspan="5" class="empty">Nothing is connected to this virtual network.</td></tr>'}</tbody></table></div>`;
+      body = `<div class="tablewrap"><table class="grid"><thead><tr><th>Device</th><th>Type</th><th>IP address</th><th>Subnet</th><th>Attached to</th></tr></thead><tbody>${vms.map(m => `<tr><td class="mono">${esc(m.name)}-nic</td><td>Network interface</td><td class="mono">${cv(m.privateIp, m.name + ' private IP')} <span class="help">(${esc(m.ipAlloc)})</span></td><td class="mono">${esc(m.subnet)}</td><td class="mono">${esc(m.name)}</td></tr>`).join('') || '<tr><td colspan="5" class="empty">Nothing is connected to this virtual network.</td></tr>'}</tbody></table></div>`;
     }
     return `<div class="crumb">Azure › Networking › Virtual networks</div><h1>${esc(v.name)}</h1><p class="lede">Virtual network · ${esc(v.rg)} · ${azRegion(v.location)}</p>
       <div class="toolbar"><button class="btn" data-act="nav" data-id="az-vnets">← All virtual networks</button><span class="grow"></span><button class="btn danger" data-act="az-vnet-del" data-id="${esc(id)}">${I.del} Delete</button></div>` +
@@ -5179,7 +5427,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     const rows = z.vms.filter(m => fmatch(m.name, m.rg, m.privateIp, m.vnet, m.subnet, m.location));
     return head('Virtual machines and the private IP their NIC holds. Stopping (deallocating) a VM stops compute billing; its private IP stays reserved.') +
       `<div class="toolbar"><button class="btn primary" data-act="az-vm-new">${I.plus} Create</button>${azFilter('Filter virtual machines…')}</div>
-      <div class="tablewrap"><table class="grid"><thead><tr><th>Name</th><th>Status</th><th>Resource group</th><th>Location</th><th>Image</th><th>Size</th><th>CPU (avg)</th><th>Network in / out</th><th>Private IP</th><th>Virtual network / subnet</th><th></th></tr></thead><tbody>${rows.map(m => { const img = AZ.image(m.image); const id = `${m.rg}/${m.name}`; return `<tr><td class="mono">${esc(m.name)}</td><td>${vmStatus(m)}</td><td class="mono">${esc(m.rg)}</td><td>${azRegion(m.location)}</td><td>${esc(img ? img.label : m.image)}</td><td class="mono">${esc(m.size)}</td>${(v => m.power === 'running' && v && TELE.started() ? `<td class="num">${v.cpu.toFixed(0)}%${spark(v.cpuHist, 'sm', m.name + ' CPU')}</td><td class="num">${fmtBytes(v.inB)} / ${fmtBytes(v.outB)}</td>` : `<td class="muted">-</td><td class="${v && v.inB ? 'num' : 'muted'}">${v && v.inB ? fmtBytes(v.inB) + ' / ' + fmtBytes(v.outB) : '-'}</td>`)(TELE.vm(m.rg, m.name))}<td class="mono">${esc(m.privateIp)} <span class="help">(${esc(m.ipAlloc)})</span></td><td class="mono">${esc(m.vnet)} / ${esc(m.subnet)}</td><td class="acts">${m.power === 'running' ? `<button class="ibtn" data-act="az-vm-power" data-id="${esc(id)}" data-name="deallocated" title="Stop" aria-label="Stop ${esc(m.name)}">${I.stop}</button>` : `<button class="ibtn" data-act="az-vm-power" data-id="${esc(id)}" data-name="running" title="Start" aria-label="Start ${esc(m.name)}">${I.play}</button>`}${actBtn('az-vm-del', id, I.del, 'Delete virtual machine')}</td></tr>`; }).join('') || '<tr><td colspan="11" class="empty">No virtual machines.</td></tr>'}</tbody></table></div>`;
+      <div class="tablewrap"><table class="grid"><thead><tr><th>Name</th><th>Status</th><th>Resource group</th><th>Location</th><th>Image</th><th>Size</th><th>CPU (avg)</th><th>Network in / out</th><th>Private IP</th><th>Virtual network / subnet</th><th></th></tr></thead><tbody>${rows.map(m => { const img = AZ.image(m.image); const id = `${m.rg}/${m.name}`; return `<tr><td class="mono">${esc(m.name)}</td><td>${vmStatus(m)}</td><td class="mono">${esc(m.rg)}</td><td>${azRegion(m.location)}</td><td>${esc(img ? img.label : m.image)}</td><td class="mono">${esc(m.size)}</td>${(v => m.power === 'running' && v && TELE.started() ? `<td class="num">${v.cpu.toFixed(0)}%${spark(v.cpuHist, 'sm', m.name + ' CPU')}</td><td class="num">${fmtBytes(v.inB)} / ${fmtBytes(v.outB)}</td>` : `<td class="muted">-</td><td class="${v && v.inB ? 'num' : 'muted'}">${v && v.inB ? fmtBytes(v.inB) + ' / ' + fmtBytes(v.outB) : '-'}</td>`)(TELE.vm(m.rg, m.name))}<td class="mono">${cv(m.privateIp, m.name + ' private IP')} <span class="help">(${esc(m.ipAlloc)})</span></td><td class="mono">${esc(m.vnet)} / ${esc(m.subnet)}</td><td class="acts">${m.power === 'running' ? `<button class="ibtn" data-act="az-vm-power" data-id="${esc(id)}" data-name="deallocated" title="Stop" aria-label="Stop ${esc(m.name)}">${I.stop}</button>` : `<button class="ibtn" data-act="az-vm-power" data-id="${esc(id)}" data-name="running" title="Start" aria-label="Start ${esc(m.name)}">${I.play}</button>`}${actBtn('az-vm-del', id, I.del, 'Delete virtual machine')}</td></tr>`; }).join('') || '<tr><td colspan="11" class="empty">No virtual machines.</td></tr>'}</tbody></table></div>`;
   };
 
   P['az-vpn'] = () => {
@@ -5738,9 +5986,27 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     'adm-del': d => del('system admin', d.id, () => { const a = S.admins.find(x => x.name === d.id); if (a.profile === 'super_admin' && S.admins.filter(x => x.profile === 'super_admin').length <= 1) return 'Cannot delete the last super_admin account.'; S.admins = S.admins.filter(x => x.name !== d.id); }),
     'bk-copy': () => copyText(JSON.stringify(S), 'Configuration copied'),
     'bk-copycli': () => copyText($('#fullCfg').textContent, 'CLI configuration copied'),
-    'bk-restore': () => { NMS.on = false; NMS.inc = null; let o; try { o = JSON.parse($('#bkIn').value); } catch (e) { toast('Restore failed', 'That is not valid backup JSON.', 'bad'); return; } SIM.AZ.migrate(o); if (!valid(o)) { toast('Restore failed', 'That backup is not from this lab.', 'bad'); return; } learnFix(o); S = o; S.sessions = []; S.threats = S.threats || {}; LIVE.setState(S); evaluate(true); commit('configuration restored from backup'); toast('Restored', 'Backup loaded.', 'ok'); },
-    'bk-reset': () => confirmBox('Reset the lab?', 'This puts the firewall back to its starting state and clears all mission progress. It cannot be undone unless you copied a backup.', 'Reset lab', () => { NMS.on = false; NMS.inc = null; const keep = learnOf(); S = SIM.seed(); S.learn = Object.assign({}, keep, { pending: false }); LIVE.setState(S); UI.lookup = null; evaluate(true); setTimeout(() => toast('Lab reset', 'Back to how the old IT guy left it.'), 50); }),
-    'mis-open': d => { UI.open = UI.open === d.id ? null : d.id; if (UI.open) UI.openedAt = { id: d.id, t: Date.now() }; renderDrawer(); },
+    'bk-save': () => saveNow(),
+    'bk-export': () => {
+      try {
+        const c = SIM.clock(Date.now(), S.system.timezone), p = n => String(n).padStart(2, '0');
+        const name = `talvex-lab-${c.y}${p(c.mo)}${p(c.d)}-${p(c.h)}${p(c.mi)}.json`;
+        const url = URL.createObjectURL(new Blob([JSON.stringify(S)], { type: 'application/json' }));
+        const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2000); toast('Exported', name, 'ok');
+      } catch (e) { toast('Export failed', 'Use Copy configuration instead.', 'bad'); }
+    },
+    'bk-import': () => { const i = $('#bkFile'); if (i) { i.value = ''; i.click(); } },
+    'bk-restore': () => restoreText($('#bkIn').value),
+    'bk-reset': () => confirmBox('Reset the lab?', 'This puts the firewall back to its starting state and clears all mission progress. Your saved copy stays as it was until you press Save, so reloading the page brings it back.', 'Reset lab', () => { NMS.on = false; NMS.inc = null; const keep = learnOf(); S = SIM.seed(); S.learn = Object.assign({}, keep, { pending: false }); LIVE.setState(S); UI.lookup = null; evaluate(true); markDirty(); setTimeout(() => toast('Lab reset', 'Back to how the old IT guy left it.'), 50); }),
+    /* several cards can stay open; the card you clicked stays where it was on screen */
+    'mis-open': d => {
+      const was = misOpen(d.id), sel = `#drawer .mis > button.head[data-id="${CSS.escape(d.id)}"]`, h0 = document.querySelector(sel), y0 = h0 ? h0.getBoundingClientRect().top : null;
+      if (was) { UI.opens.delete(d.id); if (UI.open === d.id) UI.open = null; } else { UI.opens.add(d.id); UI.openedAt = { id: d.id, t: Date.now() }; }
+      renderDrawer();
+      const h1 = document.querySelector(sel), sc = document.querySelector('#drawer .scroll');
+      if (h1 && sc && y0 != null) sc.scrollTop += h1.getBoundingClientRect().top - y0;
+    },
     'mis-hint': d => { const m = MISSIONS.find(x => x.id === d.id); if (!m) return; learnAsk(m); scheduleSave(); renderDrawer(); },
     'learn-yes': () => { learnSetMode('guided', 'offer'); scheduleSave(); renderDrawer(); },
     'learn-no': () => { learnSetMode('standard', 'offer'); scheduleSave(); renderDrawer(); toast('Short hints it is', 'Switch to Guided at the top of the missions panel any time.'); },
@@ -5749,12 +6015,19 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     'mis-cli': d => { const r = S.missions[d.id] || (S.missions[d.id] = { hints: 0 }); r.showCli = true; scheduleSave(); renderDrawer(); },
     'mis-ans': d => { const inp = document.getElementById('ans_' + d.id); S.answers[d.id] = inp.value; const ok = MISSIONS.find(m => m.id === d.id).check(S).every(x => x.ok); if (!ok) toast('Not quite', 'Check again and resubmit.', 'bad'); commit(); },
     'drawer-close': () => { UI.drawer = false; renderAll(); },
-    'nm-start': () => { NMS.on = true; NMS.level = 1; NMS.count = 0; NMS.stats = { resolved: 0, failed: 0, streak: 0, best: 0, points: 0 }; nmNew(); },
+    'nm-start': () => { if (!UI.live) liveOn('Nightmare runs need live traffic, so Live Mode is now on. Pause it from the top bar any time.'); if (SAVE.dirty && !NMS.on) saveNow('Your lab was saved before Nightmare mode replaced the config. Leaving Nightmare brings it back.'); NMS.on = true; NMS.level = 1; NMS.count = 0; NMS.stats = { resolved: 0, failed: 0, streak: 0, best: 0, points: 0 }; nmNew(); },
     'nm-hint': () => { const inc = NMS.inc; if (!inc || inc.status !== 'open') return; if (inc.hints >= 3) nmFail(); else { inc.hints++; renderDrawer(); } },
     'nm-giveup': () => nmFail(),
     'nm-fix': () => { if (!NMS.inc) return; NIGHTMARE.applyFix(S, NMS.inc); commit('Nightmare walkthrough: fix applied'); },
     'nm-next': () => { const inc = NMS.inc; NMS.level = inc && inc.status === 'resolved' ? inc.level + 1 : (inc ? inc.level : 1); nmNew(); },
-    'nm-exit': () => { NMS.on = false; NMS.inc = null; UI.drawerMode = 'missions'; evaluate(true); renderAll(); toast('Nightmare mode off', 'Missions are back. The lab keeps the current configuration.'); },
+    /* leaving Nightmare brings back the saved lab (Nightmare replaced the config); with nothing saved it keeps the current config as before */
+    'nm-exit': () => {
+      NMS.on = false; NMS.inc = null; UI.drawerMode = 'missions';
+      const sv = readSaved();
+      if (sv) { S = sv.st; LIVE.setState(S); UI.lookup = null; UI.link = {}; SAVE.dirty = false; }
+      evaluate(true); renderAll();
+      toast('Nightmare mode off', sv ? 'Your saved lab and mission progress are back.' : 'Missions are back. The lab keeps the current configuration.');
+    },
     'lk-run': () => runLookup(),
     'li-new': () => ED.localin(), 'li-edit': d => ED.localin(d.id), 'li-del': d => del('firewall local-in-policy', 'local-in policy ' + d.id, () => void S.localin.splice(S.localin.findIndex(l => l.id === +d.id), 1)),
     'ap-new': () => ED.accprofile(), 'ap-edit': d => ED.accprofile(d.id), 'ap-del': d => del('system accprofile', d.id, () => refErr('accprofile', d.id) || void S.accprofiles.splice(S.accprofiles.findIndex(a => a.name === d.id), 1)),
@@ -5778,6 +6051,11 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     'az-vm-del': d => { const [rg, n] = d.id.split('/'); azDel(`virtual machine ${n} and its network interface`, () => AZ.deleteVm(S, rg, n)); },
     'az-vm-power': d => { const [rg, n] = d.id.split('/'); const e = AZ.setPower(S, rg, n, d.name); if (e) toast('Failed', e, 'bad'); else toast(d.name === 'running' ? 'Started' : 'Stopped (deallocated)', n, 'ok'); commit(); }
   };
+  function restoreText(txt) { NMS.on = false; NMS.inc = null; let o; try { o = JSON.parse(txt); if (o && o.v === 1 && o.state && !o.system) o = o.state; } catch (e) { toast('Restore failed', 'That is not valid backup JSON.', 'bad'); return; } SIM.AZ.migrate(o); if (!valid(o)) { toast('Restore failed', 'That backup is not from this lab.', 'bad'); return; } learnFix(o); S = o; S.sessions = []; S.threats = S.threats || {}; LIVE.setState(S); evaluate(true); commit('configuration restored from backup'); toast('Restored', 'Backup loaded.', 'ok'); }
+  document.addEventListener('change', e => {
+    if (!e.target || e.target.id !== 'bkFile' || !e.target.files || !e.target.files[0]) return;
+    const fr = new FileReader(); fr.onload = () => restoreText(String(fr.result || '')); fr.onerror = () => toast('Import failed', 'That file could not be read.', 'bad'); fr.readAsText(e.target.files[0]);
+  });
   function copyText(t, msg) { try { navigator.clipboard.writeText(t).then(() => toast(msg, ''), () => toast('Copy blocked', 'Select the text and copy it manually.', 'bad')); } catch (e) { toast('Copy blocked', 'Select the text and copy it manually.', 'bad'); } }
   function runLookup() {
     const f = UI.lookupForm; const q = { srcintf: f.srcintf, srcip: f.srcip.trim(), dstip: f.dstip.trim(), proto: f.proto, port: f.proto === 'icmp' ? 0 : +f.port, category: f.category, host: (f.host || '').trim() };
@@ -5944,6 +6222,8 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     tfKeep(() => commit());
   }, 1000);
 
+  /* click-to-copy buttons win over any clickable row they sit in */
+  document.addEventListener('click', e => { const c = e.target.closest && e.target.closest('.cpy'); if (!c) return; e.preventDefault(); e.stopPropagation(); copyVal(c); }, true);
   /* ---------- delegated events (main + drawer) ---------- */
   document.addEventListener('click', e => {
     const b = e.target.closest('[data-act]'); if (!b || b.closest('#modalRoot')) return;
@@ -6269,7 +6549,28 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     return html;
   }
 
-  function renderDrawer() { if (UI.drawerMode === 'nm') return renderNmDrawer(); return renderMissionDrawer(); }
+  /* The drawer renderers (missions, sections, Nightmare, and wrappers added by other features) all write to #drawer with
+     innerHTML. paintDrawer lets them do that into an off-screen stand-in that briefly owns the #drawer id, then morphs the
+     real panel to match. So the panel keeps its scroll position (top and left), open cards and any highlight across every
+     live check, while none of the renderers had to change. Switching section or mode still starts at the top. */
+  const ghostHost = document.createElement('div'); ghostHost.hidden = true; ghostHost.setAttribute('aria-hidden', 'true'); document.body.appendChild(ghostHost);
+  function paintDrawer(fn) {
+    const real = document.getElementById('drawer'); if (!real) return fn();
+    const ghost = document.createElement('aside'); ghost.className = real.className; ghost.hidden = real.hidden;
+    Object.assign(ghost.dataset, real.dataset);
+    const before = (UI.drawerMode || '') + '|' + (real.dataset.sec || '');
+    real.removeAttribute('id'); ghost.id = 'drawer'; ghostHost.appendChild(ghost);
+    try { fn(); } finally { ghost.removeAttribute('id'); real.id = 'drawer'; }
+    real.hidden = ghost.hidden;
+    for (const k of Object.keys(real.dataset)) if (!(k in ghost.dataset)) delete real.dataset[k];
+    Object.assign(real.dataset, ghost.dataset);
+    if (!ghost.hidden && ghost.childNodes.length) {
+      morph(real, ghost.innerHTML);
+      if (before !== (UI.drawerMode || '') + '|' + (real.dataset.sec || '')) { const s = real.querySelector('.scroll'); if (s) { s.scrollTop = 0; s.scrollLeft = 0; } }
+    }
+    ghost.remove();
+  }
+  function renderDrawer() { UI.liveAsk = false; paintDrawer(() => UI.drawerMode === 'nm' ? renderNmDrawer() : renderMissionDrawer()); if (UI.liveAsk && UI.drawer && UI.drawerMode !== 'nm') setTimeout(livePrompt, 0); }
   function renderMissionDrawer() {
     const d = $('#drawer'); d.hidden = !UI.drawer; if (!UI.drawer) return;
     const sc = d.querySelector('.scroll') ? d.querySelector('.scroll').scrollTop : 0;
@@ -6282,10 +6583,11 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
       html += `<div class="tier"><span>${esc(tier)}</span><span class="num">${td}/${ms.length}</span></div>${MISSIONS.TIER_NOTES[tier] ? `<p class="tier-note">${esc(MISSIONS.TIER_NOTES[tier])}</p>` : ''}`;
       for (const m of ms) {
         const st = UI.status[m.id] || []; const ok = isDone(m); const part = !ok && st.some(x => x.ok) && m.type === 'config';
-        const rec = S.missions[m.id] || { hints: 0 }; const open = UI.open === m.id;
+        const rec = S.missions[m.id] || { hints: 0 }; const open = misOpen(m.id);
         const hot = m.type === 'threat' && (S.threats[m.id] || {}).lastAccepted && Date.now() - S.threats[m.id].lastAccepted < 45000;
-        html += `<div class="mis ${ok ? 'done' : hot ? 'hot' : part ? 'part' : ''} ${m.followup ? 'fu' : ''}"><button class="head" data-act="mis-open" data-id="${m.id}" aria-expanded="${open}"><span class="badge">${ok ? '✓' : ''}</span><span>${m.followup ? '<span class="fu-tag">follow-up</span> ' : ''}${m.view === 'azure' ? '<span class="fu-tag">Azure</span> ' : ''}<b>${esc(m.title)}</b><br><small>${m.type === 'answer' ? 'find & answer' : m.type === 'threat' && !(S.threats[m.id] || {}).active ? 'locked' : m.type === 'threat' ? ((S.threats[m.id] || {}).lastAccepted && Date.now() - S.threats[m.id].lastAccepted < 45000 ? 'ACTIVE · succeeding' : 'active') : st.filter(x => x.ok).length + '/' + st.length + ' checks'}</small></span><span class="muted">${open ? '−' : '+'}</span></button>`;
+        html += `<div class="mis ${ok ? 'done' : hot ? 'hot' : part ? 'part' : ''} ${m.followup ? 'fu' : ''}"><button class="head" data-act="mis-open" data-id="${m.id}" aria-expanded="${open}"><span class="badge">${ok ? '✓' : ''}</span><span>${m.followup ? '<span class="fu-tag">follow-up</span> ' : ''}${m.view === 'azure' ? '<span class="fu-tag">Azure</span> ' : ''}${m.needs_live ? '<span class="fu-tag live-tag" title="Needs Live Mode">Live</span> ' : ''}<b>${esc(m.title)}</b><br><small>${m.type === 'answer' ? 'find & answer' : m.type === 'threat' && !(S.threats[m.id] || {}).active ? 'locked' : m.type === 'threat' ? ((S.threats[m.id] || {}).lastAccepted && Date.now() - S.threats[m.id].lastAccepted < 45000 ? 'ACTIVE · succeeding' : 'active') : st.filter(x => x.ok).length + '/' + st.length + ' checks'}</small></span><span class="muted">${open ? '−' : '+'}</span></button>`;
         if (open) {
+          if (m.needs_live && !UI.live) { UI.liveAsk = true; html += `<div class="content">${liveBanner()}<div class="story">${esc(m.story)}</div>`; } else
           html += `<div class="content"><div class="story">${esc(m.story)}</div><div><div class="sub-h">Your tasks</div><ul>${m.tasks.map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>`;
           if (m.view === 'azure' && UI.view !== 'azure') html += `<div><button class="btn" data-act="view" data-id="azure">Switch to the Azure view</button></div>`;
           if (m.type === 'answer') html += `<div class="ans"><input class="inp mono" id="ans_${m.id}" value="${esc(S.answers[m.id] || '')}" placeholder="Your answer" aria-label="Answer for ${esc(m.title)}"><button class="btn primary" data-act="mis-ans" data-id="${m.id}">Submit</button></div>`;
@@ -6309,6 +6611,138 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     d.innerHTML = html;
     const s = d.querySelector('.scroll'); if (s) s.scrollTop = sc;
   }
+
+  /* ================= SECTIONS: pick where to start =================
+     The missions are grouped by tier into named sections. The drawer opens on a section picker; picking one shows only
+     that section's missions. A section locks only where it genuinely depends on lab state from another one (the objects,
+     interfaces, policies or Azure resources its checks use), and the locked card says which missions unlock it.
+     The choice lives in S.sections, so it rides along in backups; it is sanitized on every read (restore, reset and
+     Nightmare all replace S wholesale), so a hand-edited backup can only ever fall back to the picker.
+     Kept in its own block, wrapping renderMissionDrawer rather than editing it, because other work edits that function. */
+  const SECTIONS = {
+    Recon: { blurb: 'Read the box before you touch it: serial number, admin logins, the rule that eats everything. No config changes.' },
+    Interfaces: { blurb: 'Hostname, WAN management lockdown, the DMZ and the Engineering VLAN.' },
+    Objects: { blurb: 'Addresses, the Internal-Nets group and a custom CAD license service. Policies are built from these.' },
+    Policies: {
+      blurb: 'Kill the any-to-any rule, rebuild outbound, segment Engineering and publish the supplier portal.',
+      needs: ['n3', 'n4', 'o1', 'o2', 'o3'],
+      why: 'These policies use the DMZ and Engineering VLAN interfaces, and the address objects, group and CAD-License service from Objects. Their checks cannot pass until those exist.'
+    },
+    'VPN to Azure': {
+      blurb: 'Bring up the IPsec tunnel to Azure, route through it, write the tunnel policies and move to BGP.',
+      needs: ['n4', 'o1', 'o2', 'p1'],
+      why: 'The tunnel policies use ENG-VLAN20, Internal-Nets and File-Server, and the any-to-any temp rule has to be gone or "RDP denied" can never pass.'
+    },
+    Hardening: {
+      blurb: 'Web filtering, named admins with MFA, least-privilege help desk access, syslog and a second WAN circuit.',
+      needs: ['p2'],
+      why: 'The web filter and the failover circuit both hang off the outbound internet policy you rebuild in Policies.'
+    },
+    'Live Threats': {
+      blurb: 'Attacks that show up in the live traffic as you progress. Find each one in the logs and stop it.',
+      needs: ['r3'],
+      why: 'Threats only start once you can read the logs. The first appears after Recon; the rest arrive as you finish other sections.'
+    },
+    'Azure Foundations': { blurb: 'Azure view. Resource group, hub VNet, GatewaySubnet, workload subnet and the first VM.' },
+    'Hybrid connectivity': {
+      blurb: 'Azure view. Build your own VPN gateway, describe the office and cut the live tunnel over to it.',
+      needs: ['a1', 'a3', 'a4', 'a5', 'a6', 'v1', 'v3', 'm4'],
+      why: 'Your gateway deploys into the hub and GatewaySubnet from Azure Foundations, and the cutover is proven end to end: the FortiGate tunnel, its policies and BGP from VPN to Azure must already work, and AZ-VM-APP01 must exist to answer.'
+    },
+    'Infrastructure as Code': {
+      blurb: 'Azure view. Terraform (JSON): init, fix, apply, import the hub, lock down snet-app and handle drift.',
+      needs: ['a1', 'a3', 'a5'],
+      why: 'Two of these missions import and protect the hub resource group, VNet and snet-app that you build by hand in Azure Foundations.'
+    }
+  };
+  const secMis = t => MISSIONS.filter(m => m.tier === t);
+  const secTiers = () => MISSIONS.TIERS.filter(t => secMis(t).length);
+  const misById = id => MISSIONS.find(m => m.id === id);
+  const secNeeds = t => ((SECTIONS[t] || {}).needs || []).filter(misById);
+  const secMissing = t => secNeeds(t).filter(id => !isDone(misById(id)));
+  const secLocked = t => secMissing(t).length > 0;
+  const secDone = t => secMis(t).every(isDone);
+  function secState() {
+    const o = S.sections, c = o && typeof o === 'object' && !Array.isArray(o) ? o.current : null;
+    const ok = c === '*' || (typeof c === 'string' && secTiers().includes(c) && !secLocked(c));
+    S.sections = { current: ok ? c : null };
+    return S.sections;
+  }
+  const secNext = after => { const L = secTiers(), i = after ? L.indexOf(after) : -1; return L.slice(i + 1).concat(L.slice(0, i + 1)).find(t => t !== after && !secLocked(t) && !secDone(t)) || null; };
+  const secView = t => { const ms = secMis(t); return ms.every(m => m.view === 'azure') ? 'azure' : ms.some(m => m.view === 'azure') ? 'both' : 'fg'; };
+  function secPick(t, misId) {
+    if (t !== '*' && (!secTiers().includes(t) || secLocked(t))) { S.sections = { current: null }; renderAll(); return; }
+    S.sections = { current: t }; UI.drawerMode = 'missions'; UI.drawer = true;
+    if (t !== '*') {
+      const ms = secMis(t), first = ms.find(m => !isDone(m)) || ms[0];
+      UI.open = misId && ms.some(m => m.id === misId) ? misId : first ? first.id : null;
+      const v = secView(t); if ((v === 'azure') !== (UI.view === 'azure') && v !== 'both') { switchView(v); return; }
+    }
+    renderAll();
+  }
+  Object.assign(A, {
+    'sec-pick': d => secPick(d.id, d.mis),
+    'sec-list': () => { S.sections = { current: null }; UI.drawerMode = 'missions'; UI.drawer = true; renderAll(); },
+    'sec-nm': () => { UI.drawerMode = 'nm'; UI.drawer = true; renderAll(); }
+  });
+  const lockIc = '<svg class="sec-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>';
+  function secCard(t, i, rec) {
+    const ms = secMis(t), n = ms.filter(isDone).length, pct = Math.round(n / ms.length * 100), info = SECTIONS[t] || {};
+    const v = secView(t), where = v === 'azure' ? 'Azure view' : v === 'both' ? 'FortiGate + Azure' : 'FortiGate';
+    const head = `<span class="sec-top"><span class="sec-idx">${i + 1}</span><span class="sec-name">${esc(t)}</span>`;
+    const meta = `<span class="sec-meta">${ms.length} mission${ms.length === 1 ? '' : 's'} · ${where}</span>${info.blurb ? `<span class="sec-blurb">${esc(info.blurb)}</span>` : ''}`;
+    if (secLocked(t)) {
+      const miss = secMissing(t);
+      const items = miss.map(id => {
+        const m = misById(id), open = !secLocked(m.tier);
+        return `<li>${open ? `<button class="sec-link" data-act="sec-pick" data-id="${esc(m.tier)}" data-mis="${esc(m.id)}">${esc(m.title)}</button>` : `<b>${esc(m.title)}</b>`} <span class="muted">· ${esc(m.tier)}${open ? '' : ' (locked too)'}</span></li>`;
+      }).join('');
+      return `<div class="sec-card locked" role="group" aria-label="${esc(t)}, locked">${head}<span class="sec-tag lock">${lockIc}Locked</span></span>${meta}
+        <div class="sec-why"><span><b>Why it is locked.</b> ${esc(info.why || 'It builds on work from an earlier section.')}</span><span class="sub-h">Finish ${miss.length === 1 ? 'this mission' : `these ${miss.length} missions`} to unlock it</span><ul>${items}</ul></div></div>`;
+    }
+    const done = n === ms.length, tag = done ? '<span class="sec-tag ok">✓ Done</span>' : t === rec ? '<span class="sec-tag next">Suggested next</span>' : n ? '<span class="sec-tag">In progress</span>' : '';
+    return `<button class="sec-card ${done ? 'done' : ''}" data-act="sec-pick" data-id="${esc(t)}" aria-label="Start ${esc(t)}: ${n} of ${ms.length} done">${head}${tag}<span class="sec-num">${n}/${ms.length}</span></span>${meta}<span class="sec-bar"><i style="width:${pct}%"></i></span></button>`;
+  }
+  function renderSectionPicker(d) {
+    const sc = d.dataset.sec === 'pick' && d.querySelector('.scroll') ? d.querySelector('.scroll').scrollTop : 0;
+    const L = secTiers(), rec = secNext(null), locked = L.filter(secLocked).length;
+    let html = `<header><div style="display:flex;align-items:center;gap:8px"><h2 style="flex:1">Choose a section</h2><button class="ibtn" data-act="drawer-close" aria-label="Close missions">✕</button></div><p>Start wherever you like. ${doneCount()} of ${MISSIONS.length} missions done.${locked ? ` ${locked} section${locked === 1 ? ' is' : 's are'} locked until the work ${locked === 1 ? 'it builds' : 'they build'} on exists; each one says what to finish.` : ''}</p></header><div class="scroll"><div class="sec-list">`;
+    html += L.map((t, i) => secCard(t, i, rec)).join('');
+    html += `<button class="sec-card nm-card" data-act="sec-nm" aria-label="Open Nightmare mode"><span class="sec-top"><span class="sec-idx">☠</span><span class="sec-name">Nightmare mode</span><span class="sec-tag">Any time</span></span><span class="sec-meta">Random incidents · FortiGate + Azure</span><span class="sec-blurb">A working production network with random faults planted. Never locked: it builds its own network, and replaces your current configuration when it starts.</span></button>`;
+    html += `</div><div class="sec-all"><button class="btn" data-act="sec-pick" data-id="*">Show every mission in one list</button></div></div>`;
+    d.innerHTML = html; d.dataset.sec = 'pick';
+    const s = d.querySelector('.scroll'); if (s) s.scrollTop = sc;
+  }
+  function secNav(t) {
+    const L = secTiers(), i = L.indexOf(t);
+    return `<div class="sec-nav"><button class="btn" data-act="sec-list">◂ All sections</button><span class="muted">${t === '*' ? 'Every mission, one list' : `Section ${i + 1} of ${L.length}`}</span></div>`;
+  }
+  function secFoot(t) {
+    if (t === '*' || !secDone(t)) return '';
+    const nx = secNext(t), opened = secTiers().filter(x => x !== t && secNeeds(x).some(id => misById(id).tier === t) && !secLocked(x) && !secDone(x));
+    return `<div class="sec-fin"><b>${esc(t)} is complete.</b>${opened.length ? `<span>This unlocked: ${opened.map(esc).join(', ')}.</span>` : ''}<div class="nm-row">${nx ? `<button class="btn primary" data-act="sec-pick" data-id="${esc(nx)}">Next: ${esc(nx)}</button>` : '<span>Every open section is done. Try Nightmare mode.</span>'}<button class="btn" data-act="sec-list">All sections</button></div></div>`;
+  }
+  const baseMissionDrawer = renderMissionDrawer;
+  renderMissionDrawer = function () {
+    const d = $('#drawer'); d.hidden = !UI.drawer; if (!UI.drawer) return;
+    const cur = secState().current;
+    if (!cur) return renderSectionPicker(d);
+    const old = d.querySelector('.scroll'), sc = old && d.dataset.sec === cur ? old.scrollTop : 0;
+    const all = MISSIONS.TIERS;
+    if (cur !== '*') MISSIONS.TIERS = [cur];
+    try { baseMissionDrawer(); } finally { MISSIONS.TIERS = all; }
+    d.dataset.sec = cur;
+    const s = d.querySelector('.scroll');
+    if (s) { s.insertAdjacentHTML('afterbegin', secNav(cur)); s.insertAdjacentHTML('beforeend', secFoot(cur)); s.scrollTop = sc; }
+  };
+  /* tell the learner when finishing something opens a section, wherever they are in the lab */
+  let secWasLocked = null;
+  setInterval(() => {
+    if (!UI.started || NMS.on) { secWasLocked = null; return; }
+    const now = secTiers().filter(secLocked);
+    if (secWasLocked) for (const t of secWasLocked) if (!now.includes(t)) toast('Section unlocked', `${t} is open. Pick it from the section list any time.`, 'ok');
+    secWasLocked = now;
+  }, 1500);
 
   /* ================= TERMINAL ================= */
   const shell = new CLI.Shell(() => S, msg => commit(msg, 'CLI'));
@@ -6349,7 +6783,7 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     const pts = v.map((y, i) => `${(i * step).toFixed(1)},${(29 - y / max * 27).toFixed(1)}`).join(' ');
     return `<svg class="spark ${cls || ''}" viewBox="0 0 100 30" preserveAspectRatio="none" role="img" aria-label="${esc(label || 'trend')}"><polygon points="0,30 ${pts} 100,30"/><polyline points="${pts}"/></svg>`;
   }
-  const waiting = () => TELE.started() ? '' : '<span class="muted">starts with the lab</span>';
+  const waiting = () => TELE.started() ? '' : `<span class="muted">${UI.live || !UI.started ? 'starts with the lab' : 'paused: turn on Live Mode for live counters'}</span>`;
 
   /* BGP neighbors (FortiGate): the table only, so the AS/router-id form above it is left alone */
   function bgpTable() {
@@ -6414,11 +6848,77 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     $('#modelLbl').textContent = az ? 'Azure subscription · lab simulation' : 'NGFW-VM04 · lab simulation';
     $('#vFG').setAttribute('aria-pressed', String(!az)); $('#vAZ').setAttribute('aria-pressed', String(az));
     $('#lookupBtn').hidden = az;
-    $('#saveDot').innerHTML = `<i></i><span class="txt">Not saved · </span><span class="num">${fmtElapsed(LIVE.elapsed())}</span>`;
+    renderSave();
     const d = doneCount(); $('#progTxt').textContent = `${d}/${MISSIONS.length}`; $('#progBar').style.width = Math.round(d / MISSIONS.length * 100) + '%';
     $('#misBtn').classList.toggle('on', UI.drawer && UI.drawerMode !== 'nm'); $('#nmBtn').classList.toggle('nm-on', NMS.on || (UI.drawer && UI.drawerMode === 'nm')); $('#lookupBtn').classList.toggle('on', UI.page === 'policy');
   }
-  function renderMain() { const m = $('#main'); const sc = m.scrollTop; m.innerHTML = (P[UI.page] || P.dashboard)(); m.scrollTop = sc; }
+  /* ---------- in-place updates (Phase 1) ----------
+     Re-rendering used to replace #main and the drawer wholesale with innerHTML every live tick. That destroyed the nodes
+     a highlight lived in, reset sideways scroll, and closed whatever the user had open. morph() builds the new markup
+     off-screen and changes only what differs: a text node whose value changed, an attribute, a row that appeared.
+     Everything else (and so any selection, scroll offset, focus or caret in it) stays the same DOM node.
+     Rows carrying data-k are matched by key, so a log row keeps its node when newer rows are added above it. */
+  const morphTpl = document.createElement('template');
+  const keyOf = n => n.nodeType === 1 ? n.getAttribute('data-k') : null;
+  function morphAttrs(o, n) {
+    const oa = o.attributes, na = n.attributes;
+    for (let i = oa.length - 1; i >= 0; i--) { const a = oa[i]; if (!n.hasAttribute(a.name)) o.removeAttribute(a.name); }
+    for (let i = 0; i < na.length; i++) { const a = na[i]; if (o.getAttribute(a.name) !== a.value) o.setAttribute(a.name, a.value); }
+  }
+  function morphNode(o, n) {
+    if (o.nodeType !== 1) { if (o.nodeValue !== n.nodeValue) o.nodeValue = n.nodeValue; return; }
+    morphAttrs(o, n);
+    const tag = o.tagName, focused = o === document.activeElement;
+    if (tag === 'TEXTAREA') { if (!focused && o.defaultValue !== n.defaultValue) { o.defaultValue = n.defaultValue; o.value = n.defaultValue; } return; }
+    morphKids(o, n);
+    if (tag === 'INPUT') {
+      if (o.type === 'checkbox' || o.type === 'radio') { if (o.checked !== n.hasAttribute('checked')) o.checked = n.hasAttribute('checked'); }
+      else if (!focused && o.value !== (n.getAttribute('value') || '')) o.value = n.getAttribute('value') || '';
+    } else if (tag === 'SELECT' && !focused) {
+      const want = Array.from(n.options).findIndex(x => x.hasAttribute('selected'));
+      const idx = want < 0 ? 0 : want; if (o.selectedIndex !== idx) o.selectedIndex = idx;
+    } else if (tag === 'DETAILS') { /* keep the user's open/closed choice */ }
+  }
+  function morphKids(o, n) {
+    const kids = Array.from(n.childNodes);
+    let keyed = null;
+    for (const c of o.childNodes) { const k = keyOf(c); if (k != null) (keyed || (keyed = new Map())).set(k, c); }
+    let cur = o.firstChild;
+    for (const nc of kids) {
+      const k = keyOf(nc);
+      let match = null;
+      if (k != null && keyed && keyed.has(k)) { match = keyed.get(k); keyed.delete(k); }
+      else if (k == null && cur && keyOf(cur) == null && cur.nodeType === nc.nodeType && (cur.nodeType !== 1 || cur.tagName === nc.tagName)) match = cur;
+      if (match) {
+        if (match !== cur) o.insertBefore(match, cur);
+        else cur = cur.nextSibling;
+        morphNode(match, nc);
+      } else {
+        o.insertBefore(nc, cur); // move the freshly parsed node in as-is
+      }
+    }
+    while (cur) { const nx = cur.nextSibling; o.removeChild(cur); cur = nx; }
+  }
+  function morph(el, html) {
+    if (!el) return;
+    morphTpl.innerHTML = html;
+    morphKids(el, morphTpl.content);
+    morphTpl.innerHTML = '';
+  }
+  /* rows in logs and sessions get a stable key so a highlighted row keeps its node as newer rows arrive above it */
+  const rowKeys = new WeakMap(); let rowSeq = 0;
+  const rk = (o, pre) => { if (!o || typeof o !== 'object') return ''; let k = rowKeys.get(o); if (!k) { k = 'r' + (++rowSeq); rowKeys.set(o, k); } return ` data-k="${pre || ''}${k}"`; };
+  /* click-to-copy next to the values trainees paste into answers */
+  const cpIc = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg>';
+  const cpBtn = (v, what) => v === '' || v == null ? '' : `<button type="button" class="cpy" data-act="copy-val" data-copy="${esc(v)}" title="Copy ${esc(what || v)}" aria-label="Copy ${esc(what || v)}">${cpIc}</button>`;
+  const cv = (v, what, cls) => `<span class="cv"><span class="v ${cls || ''}">${esc(v)}</span>${cpBtn(v, what)}</span>`;
+  function copyVal(btn) {
+    const v = btn.getAttribute('data-copy') || '';
+    const flash = () => { btn.classList.add('done'); clearTimeout(btn._t); btn._t = setTimeout(() => btn.classList.remove('done'), 1200); };
+    const fallback = () => { try { const t = document.createElement('textarea'); t.value = v; t.setAttribute('readonly', ''); t.style.cssText = 'position:fixed;left:-9999px;top:0'; document.body.appendChild(t); t.select(); const ok = document.execCommand('copy'); t.remove(); if (ok) flash(); else toast('Copy blocked', 'Select the text and copy it manually.', 'bad'); } catch (e) { toast('Copy blocked', 'Select the text and copy it manually.', 'bad'); } };
+    try { if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(v).then(flash, fallback); else fallback(); } catch (e) { fallback(); }
+  }
+  function renderMain() { const m = $('#main'); const sc = m.scrollTop; morph(m, (P[UI.page] || P.dashboard)()); if (m.scrollTop !== sc) m.scrollTop = sc; }
   function renderAll() { renderHeader(); renderRail(); renderMain(); renderDrawer(); termPrompt(); }
   function go(p) {
     if (!PAGES.includes(p)) p = 'dashboard';
@@ -6437,14 +6937,35 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
   $('#nmBtn').addEventListener('click', () => { const open = UI.drawer && UI.drawerMode === 'nm'; UI.drawerMode = 'nm'; UI.drawer = !open; renderAll(); });
   $('#lookupBtn').addEventListener('click', () => { go('policy'); setTimeout(() => { const c = $('#lookupCard'); if (c) { c.scrollIntoView({ block: 'start' }); const i = $('#lk_srcip'); if (i) i.focus(); } }, 30); });
 
-  // boot
+  /* ---------- Save button, menu, Ctrl+S, leave warning ---------- */
+  const saveMenu = $('#saveMenu'), saveMore = $('#saveMore');
+  const menuOpen = on => { saveMenu.hidden = !on; saveMore.setAttribute('aria-expanded', String(on)); if (on) { const b = saveMenu.querySelector('button'); if (b) b.focus(); } };
+  $('#saveBtn').addEventListener('click', () => saveNow());
+  saveMore.addEventListener('click', e => { e.stopPropagation(); menuOpen(saveMenu.hidden); });
+  document.addEventListener('click', e => { if (!saveMenu.hidden && !e.target.closest('#saveMenu')) menuOpen(false); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !saveMenu.hidden) { menuOpen(false); saveMore.focus(); }
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 's' || e.key === 'S')) { e.preventDefault(); if (UI.started) saveNow(); }
+  });
+  saveMenu.addEventListener('click', e => {
+    const b = e.target.closest('[data-save]'); if (!b) return; menuOpen(false);
+    if (b.dataset.save === 'now') saveNow();
+    else if (b.dataset.save === 'file') go('backup');
+    else if (b.dataset.save === 'forget') confirmBox('Forget the saved copy?', 'Your next visit starts from the beginning. The lab you have open right now is not changed, and you can press Save again any time.', 'Forget it', () => { storeDel(); SAVE.has = false; SAVE.at = 0; SAVE.dirty = true; renderSave(); setTimeout(() => toast('Saved copy removed', 'Press Save to keep this lab again.'), 50); });
+  });
+  window.addEventListener('beforeunload', e => { if (UI.started && SAVE.dirty && !NMS.on) { e.preventDefault(); e.returnValue = ''; return ''; } });
+
+  // boot: pick up the saved lab, if there is one
+  const SAVED = readSaved();
+  if (SAVED) { S = SAVED.st; SAVE.has = true; SAVE.at = SAVED.at; UI.savedPrefs = SAVED.prefs; }
+  else if (storeGet()) UI.savedBroken = true;
   evaluate(true);
   UI.page = PAGES.includes(location.hash.slice(1)) && location.hash.slice(1) !== 'az-vnet' ? location.hash.slice(1) : 'dashboard';
   UI.view = viewOf(UI.page); UI.last[UI.view] = UI.page;
   UI.drawer = window.innerWidth > 1100;
   { const first = MISSIONS.find(m => !isDone(m)); UI.open = first ? first.id : null; }
   renderAll(); renderTerm();
-  $('#saveDot').className = 'save-dot offline';
+  renderSave();
 
   const liveSet = new Set(['dashboard', 'logs', 'sessions', 'policy', 'interfaces', 'routes', 'ipsec', 'az-home', 'az-vpn', 'az-vms', 'az-nsgs', 'az-activity']);
   let lastDone = -1;
@@ -6458,21 +6979,74 @@ if (typeof module !== 'undefined') module.exports = NIGHTMARE;
     const d = doneCount();
     const inDrawer = ae && ae.closest && ae.closest('#drawer') && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName);
     const anyThreat = LIVE.THREATS.some(t => (S.threats[t.id] || {}).active);
-    if (UI.drawer && !inDrawer && (d !== lastDone || anyThreat) && !selHeld($('#drawer'))) { renderDrawer(); lastDone = d; }
+    /* the drawer is morphed in place, so its live checks can refresh every tick without moving anything */
+    if (UI.drawer && !inDrawer && !selHeld($('#drawer'))) { renderDrawer(); lastDone = d; }
     else if (!UI.drawer) lastDone = d;
+    void anyThreat;
   }
   function onThreat(t) { toast('New activity in the logs', `${t.name}. A new Live Threats mission is open.`, 'bad'); SIM.event(S, 'system', 'warning', `Anomaly detector: unusual traffic pattern observed (${t.name.toLowerCase()})`); }
   function startLab() {
     UI.started = true; $('#startRoot').innerHTML = '';
     LIVE.start(S, { onTick, onThreat, onAzure: () => { toast('Tunnel down', 'The Azure team applied a custom IPsec/IKE policy. See the follow-up mission.', 'bad'); renderAll(); } });
-    toast('Traffic is flowing', 'Logs, sessions and hit counts now update live.');
+    if (UI.live) { toast('Traffic is flowing', 'Live Mode is on: logs, sessions and hit counts update live.'); }
+    else { LIVE.pause(); primeSnapshot(); renderAll(); toast('Live Mode is off', 'The lab is a calm, fixed snapshot. Missions that need live traffic will ask you to turn it on.'); }
+    renderLive();
   }
+  /* ---------- Live Mode (addendum) ----------
+     Off by default. Off = LIVE's timer is stopped: no new sessions, traffic logs, events, hit counts or timed checks, and no
+     auto-refresh. Config changes still go through commit(), which re-runs the mission checks and re-renders. On = the live
+     simulation as before. The choice rides along with Save (prefs.live). */
+  const NEEDS_LIVE = ['r3', 'v1', 'v1b', 'hy3'];
+  for (const m of MISSIONS) if (NEEDS_LIVE.includes(m.id) || m.type === 'threat') m.needs_live = true;
+  function primeSnapshot() {
+    // a short burst of quiet ticks, then spread their timestamps over the last couple of minutes so the snapshot reads like real logs
+    const n0 = { t: S.logs.traffic.length, l: S.logs.local.length, s: S.sessions.length };
+    LIVE.prime(24);
+    const now = Date.now(), back = (arr, n) => { const k = Math.max(0, arr.length - n); for (let i = 0; i < k; i++) { const d = Math.round((i / Math.max(1, k)) * 150000 + Math.random() * 3000); arr[i].ts = now - d; if (arr[i].expires) arr[i].expires = Math.max(arr[i].expires - d, now + 30000); } };
+    back(S.logs.traffic, n0.t); back(S.logs.local, n0.l); back(S.sessions, n0.s);
+  }
+  function renderLive() {
+    document.documentElement.setAttribute('data-live', UI.live ? 'on' : 'off');
+    const b = document.getElementById('liveBtn'); if (!b) return;
+    b.setAttribute('aria-checked', String(!!UI.live));
+    const t = b.querySelector('.lt'), txt = UI.live ? 'LIVE' : 'Paused'; if (t.textContent !== txt) t.textContent = txt;
+    b.title = UI.live ? 'Live Mode is on: traffic, sessions, logs and timed checks are running. Click to pause on a snapshot.' : 'Live Mode is off: the lab is paused on a snapshot. Click to start live traffic.';
+  }
+  function setLive(on, why) {
+    on = !!on; if (UI.live === on) { renderLive(); return; }
+    UI.live = on;
+    if (UI.started) { if (on) LIVE.resume(); else LIVE.pause(); }
+    renderLive(); renderAll();
+    // remember the choice in the saved copy without flagging "unsaved changes"
+    try { const raw = storeGet(); if (raw) { const o = JSON.parse(raw); if (o && o.v === 1) { o.prefs = Object.assign({}, o.prefs, { live: on }); storeSet(JSON.stringify(o)); } } } catch (e) { }
+    toast(on ? 'Live Mode on' : 'Live Mode off', why || (on ? 'Traffic, sessions, logs and timed checks are running.' : 'Paused on a snapshot. Your config changes still update everything and missions still check.'), on ? 'ok' : '');
+  }
+  const liveOn = why => setLive(true, why);
+  try { window.liveOn = liveOn; } catch (e) { } // Nightmare (PR 10) may call it from another script block
+  $('#liveBtn').addEventListener('click', () => setLive(!UI.live));
+  /* the first time a mission that needs live traffic is open while Live Mode is off, say so once with a modal; the card keeps a banner */
+  const liveBanner = () => `<div class="live-banner" role="note"><p><b>Hey, you're about to begin the live training portion of the lab.</b> Toggle Live Mode on here to start this portion.</p><button class="btn primary sm" data-act="live-on">Turn on Live Mode</button></div>`;
+  function livePrompt() {
+    if (UI.live || UI.livePrompted || !UI.started || document.querySelector('#modalRoot .modal-back')) return;
+    UI.livePrompted = true;
+    const root = $('#modalRoot'), prev = root.innerHTML;
+    root.insertAdjacentHTML('beforeend', `<div class="modal-back" id="livePromptBack"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="livePromptH"><header><h2 id="livePromptH">Live training starts here</h2></header><div class="body"><p style="margin:0"><b>Hey, you're about to begin the live training portion of the lab.</b> Toggle Live Mode on here to start this portion.</p><p class="help" style="margin:0">Live Mode streams traffic, sessions and logs and runs the timed checks. You can switch it off again any time from the top bar.</p></div><footer><button class="btn" type="button" id="livePromptNo">Not yet</button><button class="btn primary" type="button" id="livePromptYes">Turn on Live Mode</button></footer></div></div>`);
+    const close = () => { const b = document.getElementById('livePromptBack'); if (b) b.remove(); void prev; };
+    $('#livePromptYes').addEventListener('click', () => { close(); setLive(true); });
+    $('#livePromptNo').addEventListener('click', close);
+    $('#livePromptYes').focus();
+  }
+  A['live-on'] = () => setLive(true);
+  A['logs-clear'] = () => { S.logs.traffic.length = 0; S.logs.local.length = 0; SIM.event(S, 'system', 'notice', 'Forward and local traffic logs cleared by admin via GUI(10.10.10.20)'); renderAll(); toast('Logs cleared', 'Forward and local traffic logs are empty. System events are kept.'); };
+  UI.live = !!(UI.savedPrefs && UI.savedPrefs.live);
+  renderLive();
   $('#startRoot').innerHTML = `<div class="modal-back"><div class="modal start" role="dialog" aria-modal="true" aria-label="Start the lab"><header><h2>Talvex Firewall Lab</h2></header><div class="body">
     <p style="margin:0">You are taking over the Talvex Components firewall as the old IT guy left it. The ${MISSIONS.length} missions walk you from reading the logs to a hardened box with a site-to-site tunnel into Azure, and then into building the Azure side itself, while live traffic and a few live attackers keep the logs moving.</p>
-    <div class="notice"><b>Nothing is saved.</b> Closing or reloading this page resets the firewall, the missions and the traffic. Plan on one sitting of about 60 to 75 minutes. If you must step away, System → Backup &amp; Reset can copy your config to paste back later.</div>
+    ${SAVED ? `<div class="notice ok-note"><b>Welcome back.</b> Your saved lab from ${esc(fmtTs(SAVED.at))} is loaded: ${doneCount()} of ${MISSIONS.length} missions done. <button class="linkbtn" type="button" id="startFresh">Start fresh instead</button> (your saved copy stays until you press Save).</div>` : `<div class="notice"><b>Press Save to keep your work.</b> The <b>Save</b> button in the top bar (or Ctrl+S) stores your config and mission progress in this browser, and the lab picks up where you left off next time. Nothing saves on its own, and the lab warns you before you leave with unsaved changes. To move to another computer, export a file from System → Backup &amp; Reset.${UI.savedBroken ? ' <b>A saved copy was found but could not be read</b>, so this is a fresh lab.' : ''}</div>`}
     <ul style="margin:0;padding-left:18px"><li>Missions open on the right. Checks run live as you work.</li><li>Policy Lookup shows which rule handles any packet.</li><li>The CLI button opens a console that shares the same config.</li><li>The FortiGate | Azure switch at the top flips between the firewall and a simulated Azure subscription.</li><li>New threats unlock as you progress. Watch the logs.</li><li>The FortiGate and Azure sides are live: build your own Azure VPN gateway and both ends negotiate for real.</li><li>Want it harder? <b>Nightmare</b> (top bar) throws random, escalating production incidents at you.</li></ul><p style="margin:12px 0 0;font-size:12px;opacity:.75">Independent training simulation by Joshua Richard. Not affiliated with or endorsed by Fortinet; FortiGate, FortiOS and FortiGuard are trademarks of Fortinet, Inc. Talvex is a fictional company and all data here is made up. <a href="../../">Back to the portfolio</a></p>
   </div><footer><button class="btn primary" id="startBtn" type="button">Start the lab</button></footer></div></div>`;
   $('#startBtn').addEventListener('click', startLab);
+  { const fr = $('#startFresh'); if (fr) fr.addEventListener('click', () => { const keep = learnOf(); S = SIM.seed(); S.learn = Object.assign({}, keep, { pending: false }); UI.lookup = null; SAVE.dirty = false; evaluate(true); { const first = MISSIONS.find(m => !isDone(m)); UI.open = first ? first.id : null; } renderAll(); startLab(); toast('Fresh start', 'Your saved copy is still there until you press Save.'); }); }
   $('#startBtn').focus();
 
   /* Node test hook: inert in the browser (nothing defines __labTestHook). tests/ui-render.test.js uses it
