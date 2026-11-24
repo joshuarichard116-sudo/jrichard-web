@@ -4335,6 +4335,198 @@ const TELE = (() => {
 if (typeof module !== 'undefined') module.exports = TELE;
 </script>
 
+<style id="fx-css">
+/* ---------- FortiOS 7.6 dashboards & monitors: real layout, sleek HUD finish (hairlines, soft glow, slow scan) ---------- */
+.fx { --fx-line: color-mix(in srgb, var(--line) 72%, var(--accent) 28%); --fx-band: color-mix(in srgb, #6c72d9 34%, var(--panel)); --fx-glow: color-mix(in srgb, var(--accent) 45%, transparent); container-type: inline-size; }
+:root[data-theme="light"] .fx { --fx-band: color-mix(in srgb, #6c72d9 18%, var(--panel)); }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .fx { --fx-band: color-mix(in srgb, #6c72d9 18%, var(--panel)); } }
+.fx .grow { flex: 1; }
+.fx-ph { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; min-height: 30px; }
+.fx-ph h1 { font-family: var(--f-ui); font-weight: 400; font-size: 19px; letter-spacing: .01em; color: var(--ink); margin: 0; }
+.fx-ph h1::after { content: ""; display: block; height: 1px; width: 56px; margin-top: 4px; background: linear-gradient(90deg, var(--accent), transparent); }
+.fx-lab { font-size: 12px; }
+.fx-add { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 1px solid var(--fx-line); border-radius: 3px; background: transparent; color: var(--ink); cursor: pointer; font-size: 13px; }
+.fx-add:hover { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.fx-add svg { width: 13px; height: 13px; }
+.fx-ib { width: 28px; height: 28px; display: inline-grid; place-items: center; border: 1px solid transparent; border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer; padding: 0; flex: none; }
+button.fx-ib:hover { color: var(--ink); border-color: var(--fx-line); }
+.fx-ib svg { width: 15px; height: 15px; }
+.fx-mn { width: auto; display: inline-flex; gap: 1px; padding: 0 3px; }
+.fx-mn svg + svg { width: 10px; height: 10px; }
+.fx-dd { font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+/* widget frame: thin tinted border, a glowing hairline along the top and HUD corner ticks */
+.fx-w { position: relative; min-width: 0; background: linear-gradient(180deg, color-mix(in srgb, var(--panel) 94%, var(--accent)) 0%, var(--panel) 55%); border: 1px solid var(--fx-line); border-radius: 5px; }
+.fx-w::before { content: ""; position: absolute; left: 16px; right: 16px; top: -1px; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: .6; pointer-events: none; }
+.fx-w::after { content: ""; position: absolute; inset: -1px; border-radius: 5px; pointer-events: none; opacity: .7;
+  background: linear-gradient(var(--accent), var(--accent)) left top / 9px 1px no-repeat, linear-gradient(var(--accent), var(--accent)) left top / 1px 9px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) right bottom / 9px 1px no-repeat, linear-gradient(var(--accent), var(--accent)) right bottom / 1px 9px no-repeat; }
+.fx-wh { display: flex; align-items: center; gap: 6px; padding: 8px 8px 2px 12px; min-width: 0; }
+.fx-wh h2 { font-family: var(--f-ui); font-weight: 500; font-size: 15px; letter-spacing: .01em; text-transform: none; color: var(--ink); margin: 0; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; }
+.fx-sub { font-size: 12px; color: var(--muted); font-weight: 400; }
+.fx-tools { display: inline-flex; align-items: center; gap: 2px; flex: none; }
+.fx-wb { padding: 6px 12px 12px; min-width: 0; }
+.fx-i { display: inline-grid; place-items: center; width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--muted); color: var(--muted); font-size: 9.5px; font-style: italic; font-family: Georgia, serif; cursor: help; }
+
+/* Status grid: 6 columns wide, folding to 3, 2 and 1 as the pane narrows */
+.fx-g6 { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+.fx-c1 { grid-column: span 1; } .fx-c2 { grid-column: span 2; } .fx-c4 { grid-column: span 4; } .fx-c6 { grid-column: 1 / -1; }
+.fx-c6 > .card { margin: 0; }
+@container (max-width: 1360px) { .fx-g6 { grid-template-columns: repeat(3, minmax(0, 1fr)); } .fx-g6 .fx-c2 { grid-column: span 1; } .fx-g6 .fx-c4 { grid-column: span 2; } }
+@container (max-width: 860px) { .fx-g6 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .fx-g6 .fx-c4 { grid-column: 1 / -1; } }
+@container (max-width: 520px) { .fx-g6 { grid-template-columns: minmax(0, 1fr); } .fx-g6 > * { grid-column: 1 / -1 !important; } }
+.fx-g3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@container (max-width: 1100px) { .fx-g3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container (max-width: 640px) { .fx-g3 { grid-template-columns: minmax(0, 1fr); } }
+
+.fx-kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 5px 14px; font-size: 13px; margin: 4px 0 0; }
+.fx-kv dt { color: var(--muted); }
+.fx-kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.fx-kv dd svg { width: 14px; height: 14px; flex: none; }
+.fx u, .fx-w u { text-decoration: underline dotted color-mix(in srgb, var(--ink) 45%, transparent); text-underline-offset: 3px; }
+.fx-lic { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 4px; }
+.fx-lt { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; height: 56px; border-radius: 4px; font-size: 11.5px; color: #fff; text-align: center; cursor: help; min-width: 0; overflow: hidden;
+  background: linear-gradient(160deg, #46bf65, #2b8a45); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 0 16px -6px #3fb45f; }
+.fx-lt.warn { background: linear-gradient(160deg, #f59a4a, #d46d1e); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 0 16px -6px #f28a3a; }
+.fx-lt i { display: block; width: 22px; height: 22px; }
+.fx-lt i svg { width: 22px; height: 22px; display: block; }
+.fx-grid td svg { width: 14px; height: 14px; vertical-align: -2px; flex: none; }
+.fx-grid td .help svg { margin: 0 3px; }
+.fx-tok { display: grid; gap: 3px; margin-top: 10px; font-size: 12.5px; }
+.fx-tbar { position: relative; height: 18px; border: 1px solid var(--fx-line); border-radius: 3px; background: color-mix(in srgb, var(--bg) 60%, var(--panel)); overflow: hidden; }
+.fx-tbar i { position: absolute; inset: 0 auto 0 0; background: var(--ok); }
+.fx-tbar b { position: absolute; left: 8px; top: 0; font-size: 11.5px; line-height: 16px; }
+.fx-fab { display: grid; gap: 6px; font-size: 12.5px; }
+.fx-fh { text-align: center; font-weight: 600; padding: 3px; border-radius: 2px; background: color-mix(in srgb, var(--ink) 9%, transparent); border-bottom: 1px solid var(--fx-line); }
+.fx-fg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 8px; }
+.fx-fg span { display: inline-flex; align-items: center; gap: 5px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fx-fg.dim span, .fx-fg span.dim { opacity: .5; }
+.fx-badge { display: inline-grid; place-items: center; min-width: 18px; height: 17px; padding: 0 5px; border-radius: 9px; background: var(--ink); color: var(--panel); font-size: 10.5px; font-weight: 600; font-style: normal; flex: none; }
+.fx-fg .fx-badge, .fx-adm .fx-badge { background: #6c72d9; color: #fff; box-shadow: 0 0 8px -1px #6c72d9; }
+.fx-adm { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 13px; }
+.fx-adm span { display: inline-flex; align-items: center; gap: 5px; }
+.fx-adl { display: grid; gap: 3px; margin-top: 8px; font-size: 12.5px; }
+.fx-me { font-size: 10.5px; padding: 0 6px; border-radius: 8px; border: 1px solid var(--fx-line); color: var(--muted); }
+.fx-cur { text-align: center; margin: 6px 0 0; font-size: 12.5px; display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 14px; }
+.fx-cur b { margin-left: 4px; }
+.fx-k { display: inline-flex; align-items: center; gap: 5px; }
+.fx-k i { width: 9px; height: 9px; border-radius: 2px; }
+.fx-big { font-size: 24px; font-family: var(--f-mono); }
+.fx-wb .evt { font-size: 12.5px; }
+.fx-wb .spark { width: 100%; }
+
+/* charts */
+.fx-ch { display: grid; grid-template-columns: 40px minmax(0, 1fr); grid-template-rows: var(--h) 18px; padding: 6px 8px 0 0; }
+.fx-ya { position: relative; }
+.fx-ya span { position: absolute; right: 7px; transform: translateY(-50%); font: 10.5px var(--f-mono); color: var(--muted); white-space: nowrap; }
+.fx-pl { position: relative; overflow: hidden; border-left: 1px solid var(--fx-line); border-bottom: 1px solid var(--fx-line); }
+.fx-pl svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.fx-gh { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed color-mix(in srgb, var(--line) 75%, transparent); }
+.fx-gv { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed color-mix(in srgb, var(--line) 75%, transparent); }
+.fx-ln { fill: none; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+.fx-lng { fill: none; stroke-width: 6; opacity: .16; stroke-linejoin: round; }
+.fx-scan { position: absolute; top: 0; bottom: 0; left: 0; width: 22%; pointer-events: none; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 13%, transparent) 85%, color-mix(in srgb, var(--accent) 40%, transparent)); animation: fxscan 7s linear infinite; }
+@keyframes fxscan { from { transform: translateX(-100%); } to { transform: translateX(460%); } }
+.fx-xa { grid-column: 2; position: relative; font-size: 10.5px; color: var(--muted); }
+.fx-xa span { position: absolute; top: 3px; transform: translateX(-50%); white-space: nowrap; }
+.fx-xa span:nth-child(1) { left: 25%; } .fx-xa span:nth-child(2) { left: 50%; } .fx-xa span:nth-child(3) { left: 75%; } .fx-xa span:nth-child(4) { left: 100%; transform: translateX(-100%); }
+
+/* donuts */
+.fx-donut { display: block; overflow: visible; }
+.fx-donut .fx-track { fill: none; stroke: color-mix(in srgb, var(--line) 55%, transparent); stroke-width: 18; }
+.fx-donut .fx-arc { fill: none; stroke-width: 18; transition: stroke-dasharray .7s ease, stroke-dashoffset .7s ease; }
+.fx-donut .fx-glow .fx-arc { stroke-width: 30; opacity: .13; pointer-events: none; }
+.fx-donut .fx-ticks { fill: none; stroke: var(--accent); stroke-width: .9; stroke-dasharray: 1 3.5; opacity: .5; transform-origin: 60px 60px; animation: fxspin 90s linear infinite; }
+.fx-donut .fx-inner { fill: color-mix(in srgb, var(--bg) 50%, transparent); stroke: color-mix(in srgb, var(--accent) 35%, transparent); stroke-width: .7; }
+.fx-dv { font: 600 19px var(--f-mono); text-anchor: middle; fill: var(--ink); }
+.fx-ds { font: 8.5px var(--f-ui); text-anchor: middle; fill: var(--muted); }
+@keyframes fxspin { to { transform: rotate(360deg); } }
+.fx-lg { min-width: 0; flex: 1; }
+.fx-lg h3 { display: inline-block; font-size: 13px; font-weight: 500; margin: 0 0 6px; padding-bottom: 3px; border-bottom: 1px solid var(--accent); }
+.fx-li { display: grid; grid-template-columns: 9px minmax(0, 1fr) auto; gap: 7px; align-items: center; font-size: 12.5px; line-height: 1.6; }
+.fx-li i { width: 9px; height: 9px; border-radius: 50%; }
+.fx-li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fx-li b { display: inline-grid; place-items: center; min-width: 20px; height: 16px; padding: 0 5px; border-radius: 8px; background: var(--ink); color: var(--panel); font-size: 10.5px; }
+.fx-more { font-size: 12px; text-decoration: underline dotted; text-underline-offset: 3px; cursor: help; margin-top: 2px; }
+.fx-wd { display: flex; align-items: center; gap: 20px; padding: 6px 6px 8px; min-width: 0; }
+.fx-wd .fx-donut { width: min(190px, 46%); flex: none; }
+.fx-strip { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; }
+.fx-dc { flex: 1 1 270px; max-width: 400px; display: flex; align-items: center; gap: 16px; padding: 10px 14px; }
+.fx-dc .fx-donut { width: 118px; flex: none; }
+.fx-gear { border-color: var(--fx-line); }
+
+/* toolbar, search, tables */
+.fx-tb { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0 8px; }
+.fx-tb.fx-inline { margin-top: 4px; }
+.fx-btn { height: 30px; border-radius: 3px; border-color: var(--fx-line); background: transparent; }
+.fx-btn.on { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.fx-btn.sm { height: 26px; padding: 0 9px; font-size: 12px; }
+.fx-search { flex: 1 1 260px; display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 8px; border: 1px solid var(--fx-line); border-radius: 3px; background: color-mix(in srgb, var(--bg) 55%, var(--panel)); min-width: 0; }
+.fx-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft), 0 0 18px -6px var(--accent); }
+.fx-search input { flex: 1; min-width: 0; border: 0; background: transparent; outline: none; height: 100%; font-size: 13px; }
+.fx-search > svg { width: 14px; height: 14px; color: var(--muted); flex: none; }
+.fx-fi svg { width: 15px; height: 15px; color: #6c72d9; display: block; }
+.fx-seg { display: inline-flex; border: 1px solid var(--fx-line); border-radius: 3px; overflow: hidden; font-size: 12.5px; }
+.fx-seg > * { padding: 5px 10px; }
+.fx-seg b { background: #6c72d9; color: #fff; font-weight: 500; }
+.fx-seg span { color: var(--muted); }
+.fx-tw-wrap { border: 1px solid var(--fx-line); border-radius: 4px; overflow: auto; background: var(--panel); max-height: max(420px, calc(100vh - 330px)); }
+.fx-wb .fx-tw-wrap { max-height: 260px; }
+.fx-grid { width: 100%; border-collapse: collapse; font-size: 13px; }
+.fx-grid th { position: sticky; top: 0; z-index: 1; background: color-mix(in srgb, var(--panel-2) 90%, var(--accent)); font-weight: 500; font-size: 12.5px; color: var(--ink); text-align: center; padding: 7px 10px; white-space: nowrap; border-right: 1px solid var(--line-2); box-shadow: inset 0 -1px 0 var(--fx-line); }
+.fx-th { display: inline-flex; align-items: center; gap: 5px; border: 0; background: none; padding: 0; cursor: pointer; color: inherit; font: inherit; }
+.fx-th:hover { color: var(--accent); }
+.fx-so::before { content: "⇅"; font-size: 11px; opacity: .45; }
+.fx-so.asc::before { content: "▲"; font-size: 8px; opacity: 1; color: var(--accent); }
+.fx-so.desc::before { content: "▼"; font-size: 8px; opacity: 1; color: var(--accent); }
+.fx-grid td { padding: 6px 10px; border-bottom: 1px solid var(--line-2); vertical-align: middle; white-space: nowrap; }
+.fx-grid td .help { white-space: normal; margin-top: 0; font-size: 11.5px; line-height: 1.3; }
+.fx-grid td.r { text-align: right; }
+.fx-grid td.muted { color: var(--muted); }
+.fx-grid tbody tr:not(.fx-grp):hover td { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.fx-grid tr.fx-on td { background: color-mix(in srgb, var(--bad) 20%, transparent); }
+.fx-grid tr.fx-hit td { background: color-mix(in srgb, var(--ok) 16%, transparent); box-shadow: inset 0 1px 0 var(--ok), inset 0 -1px 0 var(--ok); }
+.fx-grid tr.off td { opacity: .55; }
+.fx-grp td { background: var(--fx-band) !important; font-weight: 500; padding: 4px 8px; box-shadow: inset 0 -1px 0 color-mix(in srgb, #6c72d9 55%, transparent); }
+.fx-grp td > * { vertical-align: middle; }
+.fx-grp td > svg { width: 14px; height: 14px; margin: 0 6px 0 6px; }
+.fx-grp .fx-badge { margin-left: 8px; }
+.fx-ck { width: 34px; text-align: center !important; }
+.fx-cb { width: 15px; height: 15px; padding: 0; border: 1px solid color-mix(in srgb, var(--ink) 55%, transparent); border-radius: 2px; background: transparent; display: inline-grid; place-items: center; font-size: 11px; line-height: 1; cursor: pointer; color: var(--accent-ink); vertical-align: middle; }
+.fx-cb[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 8px -2px var(--accent); }
+.fx-tw { font-weight: 700; color: var(--ink); font-size: 12px; }
+.fx-foot { display: flex; align-items: center; gap: 8px; justify-content: flex-end; padding: 5px 12px; border-top: 1px solid var(--fx-line); font-size: 12px; color: var(--muted); background: var(--panel-2); position: sticky; bottom: 0; left: 0; }
+.fx-pg b { display: inline-grid; place-items: center; min-width: 20px; height: 20px; border-radius: 3px; background: #6c72d9; color: #fff; }
+.fx-empty { text-align: center; color: var(--muted); padding: 28px !important; white-space: normal !important; }
+.fx-st { display: inline-flex; align-items: center; gap: 6px; }
+.fx-st svg, .fx-dev svg, .fx-if svg, .fx-rlr svg, .fx-why svg, .fx-grid td u + svg { width: 14px; height: 14px; flex: none; }
+.fx-dev { display: inline-flex; align-items: center; gap: 6px; }
+.fx-dev svg { color: var(--muted); }
+.fx-if { display: inline-flex; align-items: center; gap: 6px; padding: 1px 6px; border-radius: 3px; border: 1px solid transparent; }
+.fx-if svg { color: var(--ok); }
+.fx-if.wan { border-color: color-mix(in srgb, var(--warn) 75%, transparent); background: color-mix(in srgb, var(--warn) 12%, transparent); box-shadow: 0 0 10px -5px var(--warn); }
+.fx-inact { font-size: 11.5px; color: var(--bad); }
+.fx-bar { display: flex; align-items: center; gap: 8px; min-width: 190px; }
+.fx-bar > span { min-width: 78px; text-align: right; }
+.fx-bar > i { flex: 1; min-width: 70px; height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--line) 65%, transparent); overflow: hidden; display: block; }
+.fx-bar > i b { display: block; height: 100%; border-radius: 3px; transition: width .6s ease; }
+.fx-sig { display: inline-flex; align-items: center; gap: 4px; }
+.fx-sb { display: inline-flex; align-items: flex-end; gap: 1px; height: 13px; }
+.fx-sb i { width: 4px; border: 1px solid color-mix(in srgb, var(--ink) 45%, transparent); border-radius: 1px; }
+.fx-sb i[style*="background"] { border-color: transparent; }
+.fx-note { color: var(--muted); font-size: 12.5px; margin: 10px 2px 0; max-width: 110ch; }
+.fx-rl { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; padding: 10px 12px; margin: 0 0 8px; border: 1px solid var(--accent); border-radius: 4px; background: color-mix(in srgb, var(--accent) 6%, var(--panel)); }
+.fx-rl label { display: grid; gap: 3px; font-size: 12px; color: var(--muted); }
+.fx-rl .inp { width: 200px; height: 30px; }
+.fx-rlr { flex: 1 1 320px; display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; min-height: 30px; }
+.fx-why { margin-top: 10px; padding: 8px 12px; border: 1px solid color-mix(in srgb, var(--bad) 45%, transparent); border-left-width: 3px; border-radius: 4px; background: color-mix(in srgb, var(--bad) 7%, var(--panel)); font-size: 12.5px; }
+.fx-why p { margin: 2px 0; display: flex; gap: 6px; align-items: flex-start; }
+/* rail: a hairline between the dashboards and the monitors, like the FortiOS menu */
+.rail a.fx-sep { margin-top: 9px; position: relative; }
+.rail a.fx-sep::before { content: ""; position: absolute; left: 10px; right: 10px; top: -5px; height: 1px; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--rail-ink) 35%, transparent), transparent); }
+@media (prefers-reduced-motion: reduce) { .fx-scan, .fx-donut .fx-ticks { animation: none; } .fx-scan { display: none; } }
+:root[data-live="off"] .fx-scan { animation-play-state: paused; opacity: .4; }
+</style>
 <style id="sec-css">
 /* ---------- Mission sections: picker, locked cards, section nav ---------- */
 .sec-list { display: grid; gap: 8px; padding-top: 6px; }
@@ -5465,7 +5657,7 @@ end`;
       key: 'route-distance', side: 'FortiGate', slot: 'routes', title: 'Backup default route got a lower distance than the primary',
       inject: (st, rng) => { const r = st.routes.find(x => x.bits === 0 && x.device === 'port4'), d = rng.pick([1, 5, 8]); r.distance = d; fgEvent(st, `admin via CLI(10.10.10.77): router static ${r.seq} distance ${d}`); return { seq: r.seq, d }; },
       ticket: () => 'Internet is slow for the whole office and our public IP looks different on whatismyip. The ISP says our main circuit is fine.',
-      steps: p => ['Dashboard → Network → Routing (or get router info routing-table all): the active default route is via port4 (ISP2).', `Static Routes: the backup route ${p.seq} has distance ${p.d}, lower than the primary's 10, so it wins.`, `CLI: config router static → edit ${p.seq} → set distance 20 → next → end.`],
+      steps: p => ['Dashboard → Routing Monitor (or get router info routing-table all): the active default route is via port4 (ISP2).', `Static Routes: the backup route ${p.seq} has distance ${p.d}, lower than the primary's 10, so it wins.`, `CLI: config router static → edit ${p.seq} → set distance 20 → next → end.`],
       fix: (st, p) => { const r = st.routes.find(x => x.seq === p.seq); if (r) r.distance = 20; },
       why: 'Lower distance wins. A backup route that beats the primary sends everything over the slow circuit and changes the source IP partners see.'
     }],
@@ -6224,7 +6416,7 @@ if (typeof module !== 'undefined') module.exports = CATS;
   });
   /* FortiOS 7.4 menu order. Groups collapse like the real GUI; the one holding the open page stays expanded. */
   const NAV = [
-    { grp: 'Dashboard', icon: I.dash, items: [['dashboard', 'Status'], ['route-monitor', 'Network'], ['sessions', 'Sessions']] },
+    { grp: 'Dashboard', icon: I.dash, items: [['dashboard', 'Status'], ['dash-wifi', 'WiFi'], ['sessions', 'FortiView Sessions'], ['assets', 'Device Inventory Monitor'], ['route-monitor', 'Routing Monitor'], ['dhcp-mon', 'DHCP Monitor'], ['sdwan-mon', 'SD-WAN Monitor'], ['ipsec-mon', 'IPsec Monitor'], ['fap-clients', 'FortiAP Clients Monitor']] },
     { grp: 'Network', icon: I.net, items: [['interfaces', 'Interfaces'], ['dns', 'DNS'], ['pcap', 'Packet Capture'], ['sdwan', 'SD-WAN'], ['routes', 'Static Routes'], ['pbr', 'Policy Routes'], ['bgp', 'BGP']] },
     { grp: 'Policy & Objects', icon: I.pol, items: [['policy', 'Firewall Policy'], ['localin', 'Local-In Policy'], ['addresses', 'Addresses'], ['services', 'Services'], ['schedules', 'Schedules'], ['vips', 'Virtual IPs']] },
     { grp: 'Security Profiles', icon: I.shield, items: [['prof-av', 'AntiVirus'], ['webfilter', 'Web Filter'], ['prof-app', 'Application Control'], ['prof-ips', 'Intrusion Prevention'], ['prof-ssl', 'SSL/SSH Inspection']] },
@@ -6293,33 +6485,6 @@ if (typeof module !== 'undefined') module.exports = CATS;
     return `<section class="card widget topo-card"><div class="topo-head"><h2>Live topology</h2>${flow ? pill('Traffic flows end to end', 'ok') : pill('End-to-end path broken', 'bad')}<span class="muted topo-hint">Click a box to open it. Hover a link for its exact status.</span></div>
       <svg class="topo" viewBox="0 0 1000 104" role="img" aria-label="Path from the office LAN through the firewall and IPsec tunnel to the Azure app server">${svg}</svg></section>`;
   }
-  P.dashboard = () => {
-    const up = Math.floor((Date.now() - S.system.bootedAt) / 1000);
-    const ifs = SIM.allIfaces(S);
-    const enabled = S.policies.filter(p => p.status === 'enable');
-    const done = doneCount();
-    const tunnels = S.vpn.phase1.map(p => ({ p, t: SIM.tunnel(S, p.name) }));
-    return head('Status of the Talvex perimeter firewall. Everything here is a simulation: change it freely, it cannot break anything real.') + `
-    <div class="dash">${topoHtml()}
-      <section class="card widget"><h2>System Information</h2><dl class="kv">
-        <dt>Hostname</dt><dd class="mono">${cv(S.system.hostname, 'hostname')}</dd>
-        <dt>Serial number</dt><dd class="mono">${cv(S.system.serial, 'serial number')}</dd>
-        <dt>Model</dt><dd>${esc(S.system.model)}</dd>
-        <dt>Firmware</dt><dd>${esc(S.system.osver)} ${fwNewer().length ? `<button class="linkbtn" data-act="nav" data-id="firmware">${pill('Update available', 'warn')}</button>` : ''}</dd>
-        <dt>Mode</dt><dd>NAT</dd>
-        <dt>System time</dt><dd class="num">${fmtTs(Date.now())} (${esc(S.system.timezone)})</dd>
-        <dt>Uptime</dt><dd class="num">${Math.floor(up / 86400)} days ${Math.floor(up % 86400 / 3600)} hours</dd>
-      </dl></section>
-      <section class="card widget"><h2>Network Ports</h2><div class="ports">${S.interfaces.filter(i => i.type === 'physical').map(i => `<div class="port ${i.status === 'up' ? 'up' : ''}"><div class="jack"></div><b class="mono">${esc(i.name)}</b><div class="muted">${esc(i.alias || (i.role && i.role !== 'undefined' ? i.role.toUpperCase() : ''))}&nbsp;</div></div>`).join('')}</div>
-        <p class="help" style="margin:10px 0 0">${ifs.filter(i => i.type === 'vlan').length} VLAN interface(s), ${ifs.filter(i => i.type === 'tunnel').length} tunnel interface(s)</p></section>
-      ${licensesCard()}${resourcesCard()}${bandwidthCard()}
-      <section class="card widget"><h2>IPsec</h2>${tunnels.length ? tunnels.map(({ p, t }) => `<div style="display:flex;gap:8px;align-items:center;justify-content:space-between"><span class="mono">${esc(p.name)} → ${esc(p.remoteGw)}</span>${pill(t.up ? 'Up' : 'Down', t.up ? 'ok' : 'bad')}</div>${tunStats(p.name)}`).join('') : '<p class="muted" style="margin:0">No tunnels configured.</p>'}</section>
-      <section class="card widget"><h2>Sessions</h2><dl class="kv"><dt>Active sessions</dt><dd class="num">${S.sessions.length}</dd><dt>Flows since start</dt><dd class="num">${LIVE.flows().toLocaleString()}</dd><dt>Lab time</dt><dd class="num">${fmtElapsed(LIVE.elapsed())}</dd><dt>Active threats</dt><dd class="num">${LIVE.THREATS.filter(t => (S.threats[t.id] || {}).active).length} of ${LIVE.THREATS.length} unlocked</dd></dl><p style="margin:10px 0 0"><button class="btn" data-act="nav" data-id="sessions">View sessions</button></p></section>
-      <section class="card widget"><h2>Scavenger Hunt</h2><p style="margin:0 0 8px"><b class="num" style="font-size:22px">${done}</b> <span class="muted">of ${MISSIONS.length} missions complete</span></p><div class="meter"><i style="width:${Math.round(done / MISSIONS.length * 100)}%;background:var(--ok)"></i></div><p style="margin:12px 0 0"><button class="btn primary" data-act="open-missions">${I.flag} Open missions</button></p></section>
-      <section class="card widget" style="grid-column:1/-1"><h2>Recent System Events</h2><div class="evt">${S.logs.event.slice(0, 7).map(e => `<span class="muted num mono"${rk(e, 't')}>${fmtTs(e.ts)}</span><span${rk(e, 'm')}>${pill(e.level, e.level === 'alert' ? 'bad' : e.level === 'warning' ? 'warn' : e.level === 'notice' ? 'info' : 'mute')} ${esc(e.msg)}</span>`).join('')}</div></section>
-    </div>`;
-  };
-
   function licensesCard() {
     const ago = m => { const t = Date.now() - m * 60000; return fmtTs(t).slice(0, 16); };
     const L = [['Support contract', 'Registered (lab)', 'ok'], ['Firmware & General Updates', 'Licensed', 'ok'], ['IPS', 'Licensed', 'ok', `updated ${ago(47)}`], ['AntiVirus', 'Licensed', 'ok', `updated ${ago(47)}`], ['Web Filtering', 'Licensed', 'ok'], ['Virtual machine', `${S.system.model} · 4 vCPU`, 'info']];
@@ -6343,7 +6508,7 @@ if (typeof module !== 'undefined') module.exports = CATS;
   }
 
   P.routes = () => {
-    const t = 'static'; // Routing Monitor moved to Dashboard > Network (route-monitor)
+    const t = 'static'; // Routing Monitor lives under Dashboard (route-monitor)
     let body;
     if (t === 'static') {
       const rt = SIM.routeTable(S).filter(r => r.type === 'S');
@@ -6516,16 +6681,6 @@ if (typeof module !== 'undefined') module.exports = CATS;
       <section class="card widget" style="grid-column:1/-1"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h2>Full configuration (CLI)</h2><button class="btn" data-act="bk-copycli">${I.copy} Copy</button></div><pre class="mono" style="margin:10px 0 0;max-height:420px;overflow:auto;background:var(--term-bg);color:var(--term-ink);padding:12px;border-radius:6px;font-size:12px" id="fullCfg">${esc(full)}</pre></section></div>`;
   };
 
-  P.sessions = () => {
-    const f = (UI.filter || '').toLowerCase();
-    const now = Date.now();
-    const rows = S.sessions.filter(x => !f || `${x.srcip} ${x.dstip} ${x.srcintf} ${x.dstintf} ${x.app} ${x.port} ${x.policyid}`.toLowerCase().includes(f));
-    const bySrc = {}; S.sessions.forEach(x => { bySrc[x.srcip] = (bySrc[x.srcip] || 0) + 1; });
-    const top = Object.entries(bySrc).sort((a, b) => b[1] - a[1]).slice(0, 5);
-    return head('Sessions the firewall is forwarding right now. Killing a session ends it; if the host is still allowed by policy, it can start a new one.') +
-      `<div class="toolbar"><input class="search" id="sessFilter" placeholder="Filter (IP, interface, app, policy)…" value="${esc(UI.filter)}" aria-label="Filter sessions"><span class="help num">${S.sessions.length} active · refreshes live</span><span class="grow"></span><span class="help">Top talkers: ${top.map(([ip, n]) => `<span class="chip ref">${esc(ip)} ×${n}</span>`).join(' ') || '-'}</span></div>
-      <div class="tablewrap"><table class="grid"><thead><tr><th>Source</th><th>Src Intf</th><th>Destination</th><th>Dst Intf</th><th>Application</th><th>Policy</th><th>NAT</th><th>Duration</th><th>Bytes</th><th></th></tr></thead><tbody>${rows.map(x => `<tr data-k="s${esc(x.id)}"><td class="mono">${cv(x.srcip, 'source IP')}${SIM.HOSTS[x.srcip] ? `<div class="help">${esc(SIM.HOSTS[x.srcip])}</div>` : ''}</td><td class="mono">${esc(x.srcintf)}</td><td class="mono">${cv(x.dstip + ':' + x.port, 'destination')}${SIM.HOSTS[x.dstip] ? `<div class="help">${esc(SIM.HOSTS[x.dstip])}</div>` : ''}</td><td class="mono">${esc(x.dstintf)}</td><td>${esc(x.app)}</td><td class="num">${cv(x.policyid, 'policy ID')}</td><td class="mono">${esc(x.nat)}</td><td class="num">${fmtElapsed(now - x.ts)}</td><td class="num">${esc(TELE.sessBytes(x, now).toLocaleString())}</td><td class="acts"><button class="btn danger" style="height:26px" data-act="sess-kill" data-id="${esc(x.id)}">Kill</button></td></tr>`).join('') || '<tr><td colspan="10" class="empty">No active sessions match.</td></tr>'}</tbody></table></div>`;
-  };
   /* ================= FortiOS 7.4 layout: split pages, new Network / System pages, IPsec wizard =================
      Every page below reads and writes S (defaults come from SIM.gui74), so Nightmare faults and mission checks see the same
      values the GUI shows. Old page ids (#logs, #profiles) still work through PAGE_ALIAS. */
@@ -6534,17 +6689,6 @@ if (typeof module !== 'undefined') module.exports = CATS;
   const routeFor = ip => { try { return SIM.routeLookup(S, ip); } catch (e) { return null; } };
   const ifUp = n => { const i = SIM.iface(S, n); return !!i && i.status === 'up' && i.ip && i.ip !== '0.0.0.0'; };
   const menuBtn = (id, label, items, primary) => `<div class="g74-split ${UI.menu === id ? 'open' : ''}" data-menu="${id}"><button class="btn ${primary ? 'primary' : ''}" data-act="${items[0][0]}" ${items[0][2] ? `data-id="${esc(items[0][2])}"` : ''}>${I.plus} ${esc(label)}</button><button class="btn ${primary ? 'primary' : ''} g74-caret" data-act="menu" data-id="${id}" aria-haspopup="menu" aria-expanded="${UI.menu === id}" aria-label="${esc(label)} options">${I.caret}</button>${UI.menu === id ? `<div class="g74-menu" role="menu">${items.map(([act, l, id2]) => `<button role="menuitem" data-act="${act}" ${id2 ? `data-id="${esc(id2)}"` : ''}>${esc(l)}</button>`).join('')}</div>` : ''}</div>`;
-
-  /* ---------- Dashboard > Network (Routing Monitor lives here, like FortiOS 7.4) ---------- */
-  P['route-monitor'] = () => {
-    const rt = SIM.routeTable(S).sort((a, b) => SIM.ip2n(a.dst) - SIM.ip2n(b.dst) || a.bits - b.bits);
-    const ifs = SIM.allIfaces(S).filter(i => i.type !== 'vlan' || i.status === 'up');
-    return head('Live network view: the routing table the firewall is using right now, and the state of every interface.') +
-      `<div class="dash"><section class="card widget" style="grid-column:1/-1"><div class="g74-wh"><h2>Routing Monitor</h2><span class="grow"></span><button class="btn" data-act="nav" data-id="routes">Static Routes</button><button class="btn" data-act="nav" data-id="pbr">Policy Routes</button></div>
-      <p class="help" style="margin:0 0 8px">Connected networks plus active static and BGP routes. Longest prefix wins, then lowest distance. CLI: <span class="mono">get router info routing-table all</span></p>
-      <div class="tablewrap" style="border:0"><table class="grid"><thead><tr><th>Type</th><th>Network</th><th>Gateway</th><th>Interface</th><th>Distance</th><th>In table</th></tr></thead><tbody>${rt.map(r => `<tr class="${r.active ? '' : 'off'}"><td>${r.type === 'C' ? 'Connected' : r.type === 'B' ? 'BGP' : 'Static'}</td><td class="mono">${esc(r.dst + '/' + r.bits)}</td><td class="mono">${esc(r.gateway || '0.0.0.0')}</td><td class="mono">${esc(r.device)}</td><td class="num">${esc(r.distance)}</td><td>${r.active ? pill('Yes', 'ok') : pill('No: ' + r.why, 'bad')}</td></tr>`).join('')}</tbody></table></div></section>
-      <section class="card widget" style="grid-column:1/-1"><h2>Interfaces</h2><div class="tablewrap" style="border:0"><table class="grid"><thead><tr><th>Interface</th><th>IP</th><th>Status</th><th>Rate</th></tr></thead><tbody>${ifs.map(i => { const c = TELE.iface(i.name); return `<tr><td class="mono">${esc(i.name)}${i.alias ? ` <span class="muted">(${esc(i.alias)})</span>` : ''}</td><td class="mono">${i.ip && i.ip !== '0.0.0.0' ? esc(i.ip + '/' + i.bits) : '<span class="muted">-</span>'}</td><td>${pill(i.status === 'up' ? 'Up' : 'Down', i.status === 'up' ? 'ok' : 'mute')}</td><td class="num">${c ? esc(fmtRate(c.rate)) : '-'}</td></tr>`; }).join('')}</tbody></table></div></section></div>`;
-  };
 
   /* ---------- Network > DNS ---------- */
   P.dns = () => {
@@ -8537,6 +8681,411 @@ if (typeof module !== 'undefined') module.exports = CATS;
   $('#termMax').addEventListener('click', () => { const t = $('#term'); t.classList.toggle('max'); $('#termMax').textContent = t.classList.contains('max') ? 'shrink' : 'expand'; });
   function renderTerm() { $('#term').hidden = !UI.termOpen; $('#cliBtn').classList.toggle('on', UI.termOpen); termPrompt(); if (UI.termOpen && !termOut.childNodes.length) termBanner(); }
 
+  /* ================= FortiOS 7.6 dashboards & monitors =================
+     Status and WiFi dashboards plus the Dashboard monitors, laid out like FortiOS 7.6: a strip of donut summaries, a
+     search bar, then a grouped table. Routing, IPsec, SD-WAN, sessions and the wired DHCP leases are read from S, so they
+     move when a mission changes the config. The wireless estate (FortiAPs, clients, rogue APs) and the asset inventory
+     around the lab hosts are simulated with fictional names, seeded so they stay the same between visits, with a little
+     live movement on every traffic tick. */
+  const FXC = { green: '#3fb45f', indigo: '#6c72d9', orange: '#f28a3a', pink: '#e2589c', yellow: '#f2bd2c', purple: '#a06bd8', red: '#e4606b', sky: '#3e9be0', ice: '#a8d5f5', teal: '#33b5c0', grey: '#7d8794' };
+  const FXP = [FXC.indigo, FXC.orange, FXC.pink, FXC.yellow, FXC.purple, FXC.sky, FXC.green, FXC.teal, FXC.red];
+  const FXI = {
+    refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 11a8 8 0 00-14.6-4.5L4 8M4 4v4h4M4 13a8 8 0 0014.6 4.5L20 16M20 20v-4h-4"/></svg>',
+    menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>',
+    gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>',
+    filter: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" opacity=".9"/><path d="M7 8h10l-4 5v4l-2-1v-3z" fill="var(--panel)"/></svg>',
+    up: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#3fb45f"/><path d="M12 17V8M8 11.5L12 7.5l4 4" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>',
+    down: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#e4606b"/><path d="M12 7v9M8 12.5l4 4 4-4" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>',
+    ok: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#3fb45f"/><path d="M7.5 12.5l3 3 6-6.5" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>',
+    no: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#e4606b"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>',
+    ap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="2"/><path d="M8 8a5.5 5.5 0 000 8M16 8a5.5 5.5 0 010 8M5 5a10 10 0 000 14M19 5a10 10 0 010 14"/></svg>',
+    win: '<svg viewBox="0 0 24 24" fill="#3e9be0"><path d="M3 5.5l7.5-1v7H3zM11.5 4.4L21 3v8.5h-9.5zM3 12.5h7.5v7L3 18.5zM11.5 12.5H21V21l-9.5-1.4z"/></svg>',
+    apple: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.6c0-2.4 2-3.5 2-3.6-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9s-1.8-.9-3-.8c-1.6 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.2.8 1.1 1.7 2.3 2.9 2.3 1.1 0 1.6-.7 3-.7s1.8.7 3 .7 2-1.1 2.8-2.2c.9-1.3 1.2-2.5 1.3-2.6-.1 0-2.5-1-2.5-3.7zM14.2 5.6c.6-.8 1-1.8.9-2.9-.9 0-2 .6-2.7 1.4-.6.7-1.1 1.8-1 2.8 1 .1 2.1-.5 2.8-1.3z"/></svg>',
+    android: '<svg viewBox="0 0 24 24" fill="#7cc35a"><path d="M6 10h12v7a1 1 0 01-1 1H7a1 1 0 01-1-1zM6.5 9a5.5 5 0 0111 0zM9 6.5a.6.6 0 100 1.2.6.6 0 000-1.2zm6 0a.6.6 0 100 1.2.6.6 0 000-1.2z"/></svg>',
+    dev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="12" rx="1.5"/><path d="M7 9h2M7 13h6"/></svg>',
+    port: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h7v4h9M4 17h7v-4"/><circle cx="20" cy="11" r="1.5"/></svg>',
+    tun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M13 9l3 3-3 3"/></svg>',
+    lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>'
+  };
+  const fxRng = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const fxHash = s => { let h = 2166136261; for (const c of String(s)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
+  /* locally administered MACs (second bit set): obviously not any real vendor's hardware */
+  const fxMac = r => Array.from({ length: 6 }, (_, i) => { let b = Math.floor(r() * 256); if (!i) b = (b & 0xfc) | 0x02; return b.toString(16).padStart(2, '0'); }).join(':');
+  const fmtN = n => Number(n || 0).toLocaleString();
+  const ifLabel = n => { const i = SIM.iface(S, n); return i && i.alias ? `${n} (${i.alias})` : n; };
+  const fxOsIcon = os => /windows/i.test(os) ? FXI.win : /ios|mac/i.test(os) ? FXI.apple : /android/i.test(os) ? FXI.android : /fortiap/i.test(os) ? FXI.ap : FXI.dev;
+
+  /* ---------- building blocks ---------- */
+  function fxDonut(segs, total, sub) {
+    const R = 46, C = 2 * Math.PI * R, live = segs.filter(s => s.v > 0), sum = live.reduce((a, s) => a + s.v, 0), gap = live.length > 1 ? 1.4 : 0;
+    let off = 0;
+    const arcs = live.map(s => { const len = s.v / sum * C, a = `<circle class="fx-arc" r="${R}" cx="60" cy="60" stroke="${s.c}" stroke-dasharray="${Math.max(0.01, len - gap).toFixed(2)} ${C.toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}"><title>${esc(s.l)}: ${fmtN(s.v)}</title></circle>`; off += len; return a; }).join('');
+    return `<svg class="fx-donut" viewBox="0 0 120 120" role="img" aria-label="${esc(total + ' ' + sub)}"><circle class="fx-ticks" r="57.5" cx="60" cy="60"/><circle class="fx-track" r="${R}" cx="60" cy="60"/><g class="fx-glow" transform="rotate(-90 60 60)" aria-hidden="true">${arcs.replace(/<title>.*?<\/title>/g, '')}</g><g transform="rotate(-90 60 60)">${arcs}</g><circle class="fx-inner" r="32" cx="60" cy="60"/><text x="60" y="62" class="fx-dv">${esc(total)}</text><text x="60" y="76" class="fx-ds">${esc(sub)}</text></svg>`;
+  }
+  const fxLegend = (title, segs) => { const shown = segs.filter(s => s.v > 0); const list = shown.length ? shown : [{ l: 'None', v: 0, c: FXC.grey }];
+    return `<div class="fx-lg"><h3>${esc(title)}</h3>${list.slice(0, 5).map(s => `<div class="fx-li"><i style="background:${s.c}"></i><span title="${esc(s.l)}">${esc(s.l)}</span><b class="num">${fmtN(s.v)}</b></div>`).join('')}${list.length > 5 ? `<div class="fx-more" title="${esc(list.slice(5).map(s => s.l + ': ' + s.v).join(', '))}">More...</div>` : ''}</div>`; };
+  /* monitor summary card: donut on the left, legend on the right (the strip above every monitor table) */
+  const fxDonutCard = (title, segs, sub, total) => `<section class="fx-w fx-dc">${fxDonut(segs, fmtN(total != null ? total : segs.reduce((a, s) => a + s.v, 0)), sub || 'Total')}${fxLegend(title, segs)}</section>`;
+  const fxStrip = cards => `<div class="fx-strip">${cards.join('')}<button class="fx-ib fx-gear" data-act="fx-refresh" title="Refresh" aria-label="Refresh">${FXI.gear}</button></div>`;
+  const fxTools = extra => `<span class="fx-tools">${extra || ''}<button class="fx-ib" data-act="fx-refresh" title="Refresh" aria-label="Refresh">${FXI.refresh}</button><span class="fx-ib fx-mn" aria-hidden="true">${FXI.menu}${I.caret}</span></span>`;
+  const fxWidget = (title, body, cls, extra) => `<section class="fx-w ${cls || ''}"><header class="fx-wh"><h2>${title}</h2>${fxTools(extra)}</header><div class="fx-wb">${body}</div></section>`;
+  const fxBar = (v, max, c, txt) => `<span class="fx-bar"><span class="num">${txt}</span><i><b style="width:${Math.max(v > 0 ? 1.5 : 0, Math.min(100, max ? v / max * 100 : 0)).toFixed(1)}%;background:${c}"></b></i></span>`;
+  const fxSig = dbm => { const n = dbm >= -60 ? 4 : dbm >= -67 ? 3 : dbm >= -75 ? 2 : 1, c = n >= 3 ? FXC.green : n === 2 ? FXC.orange : FXC.red; return `<span class="fx-sig num">${dbm} dBm<span class="fx-sb" aria-hidden="true">${[1, 2, 3, 4].map(k => `<i style="height:${k * 25}%;${k <= n ? `background:${c}` : ''}"></i>`).join('')}</span></span>`; };
+  const fxQ = () => ((UI.fxq || {})[UI.page] || '').toLowerCase();
+  const fxSearch = ph => `<div class="fx-search"><span class="fx-fi" aria-hidden="true">${FXI.filter}</span>${I.search}<input id="fxSearch" placeholder="${esc(ph || 'Search')}" value="${esc((UI.fxq || {})[UI.page] || '')}" aria-label="Search this table" autocomplete="off"></div>`;
+
+  /* generic monitor table: sortable headers, collapsible group rows (the purple bands), optional checkboxes, footer count */
+  function fxTable(cols, groups, o) {
+    o = o || {}; const q = fxQ(), page = UI.page, sort = (UI.fxSort || {})[page], closed = UI.fxClosed || {}, sel = ((UI.fxSel || {})[page]) || [];
+    const ord = rows => { if (!sort) return rows; const c = cols[sort.c]; if (!c || !c.s) return rows; return rows.slice().sort((a, b) => { const x = c.s(a), y = c.s(b); return (x < y ? -1 : x > y ? 1 : 0) * sort.d; }); };
+    let total = 0, shown = 0;
+    const span = cols.length + (o.check ? 1 : 0);
+    const body = groups.map(g => {
+      const rows = ord(g.rows.filter(r => !q || (o.text ? o.text(r) : '').toLowerCase().includes(q))); total += g.rows.length; shown += rows.length;
+      const key = page + ':' + (g.key || ''), c = !!closed[key];
+      const head = g.label ? `<tr class="fx-grp" data-k="${esc('g' + key)}"><td colspan="${span}"><button class="fx-cb fx-tw" data-act="fx-grp" data-id="${esc(key)}" aria-expanded="${!c}" aria-label="${c ? 'Expand' : 'Collapse'} ${esc(g.label)}">${c ? '+' : '−'}</button>${g.icon || ''}<span>${esc(g.label)}</span><b class="fx-badge num">${rows.length}</b></td></tr>` : '';
+      return head + (c ? '' : rows.map(r => { const id = o.check ? o.check(r) : null, on = id != null && sel.includes(String(id));
+        return `<tr class="${on ? 'fx-on' : ''} ${o.rowCls ? o.rowCls(r) : ''}" data-k="${esc(o.key ? o.key(r) : '')}">${o.check ? `<td class="fx-ck"><button class="fx-cb" data-act="fx-sel" data-id="${esc(id)}" aria-pressed="${on}" aria-label="Select row">${on ? '✓' : ''}</button></td>` : ''}${cols.map(cc => `<td class="${cc.cls || ''}">${cc.f(r)}</td>`).join('')}</tr>`; }).join(''));
+    }).join('');
+    const th = cols.map((c, i) => `<th class="${c.cls || ''}" ${c.w ? `style="width:${c.w}"` : ''}>${c.s ? `<button class="fx-th" data-act="fx-sort" data-id="${i}">${esc(c.h)}<span class="fx-so ${sort && sort.c === i ? (sort.d > 0 ? 'asc' : 'desc') : ''}" aria-hidden="true"></span></button>` : esc(c.h)}</th>`).join('');
+    return `<div class="fx-tw-wrap"><table class="fx-grid"><thead><tr>${o.check ? '<th class="fx-ck"><span class="fx-cb" aria-hidden="true"></span></th>' : ''}${th}</tr></thead><tbody>${body || ''}${!shown ? `<tr><td colspan="${span}" class="fx-empty">${q ? 'No matching entries.' : (o.empty || 'No entries.')}</td></tr>` : ''}</tbody></table>
+      <div class="fx-foot">${o.foot ? o.foot(shown, total) : `<span class="num">${shown === total ? fmtN(total) : `${fmtN(shown)} / ${fmtN(total)}`}</span>`}</div></div>`;
+  }
+  const fxPage = (title, inner, tools) => `<div class="fx"><div class="fx-ph"><h1>${esc(title)}</h1><span class="grow"></span>${tools || ''}<button class="fx-ib" data-act="fx-refresh" title="Refresh" aria-label="Refresh">${FXI.refresh}</button></div>${inner}</div>`;
+  const fxNote = t => `<p class="fx-note">${t}</p>`;
+
+  /* line / area chart. HTML axis labels around an SVG plot that stretches to the card, so text never distorts */
+  function fxChart(id, series, o) {
+    const W = 300, H = 100, n = Math.max(2, ...series.map(s => s.v.length));
+    const max = o.max || Math.max(o.min || 10, ...series.flatMap(s => s.v)) * 1.18;
+    const y = v => (H - Math.min(v, max) / max * H).toFixed(2);
+    const pts = s => s.v.map((v, i) => `${(i / (n - 1) * W).toFixed(2)},${y(v)}`).join(' ');
+    const ticks = o.ticks || [0, max / 4, max / 2, max * 3 / 4].map(t => Math.round(t / (max > 40 ? 10 : 1)) * (max > 40 ? 10 : 1));
+    const defs = series.map((s, k) => s.fill ? `<linearGradient id="${id}g${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${s.c}" stop-opacity="${s.op || .55}"/><stop offset="1" stop-color="${s.c}" stop-opacity="${(s.op || .55) * .25}"/></linearGradient>` : '').join('');
+    const body = series.map((s, k) => { const p = pts(s); return (s.fill ? `<polygon points="0,${H} ${p} ${W},${H}" fill="url(#${id}g${k})"/>` : '') + `<polyline class="fx-lng" points="${p}" stroke="${s.c}" vector-effect="non-scaling-stroke"/><polyline class="fx-ln" points="${p}" stroke="${s.c}" vector-effect="non-scaling-stroke"/>`; }).join('');
+    const xs = o.x || ['45 seconds ago', '30 seconds ago', '15 seconds ago', 'Now'];
+    return `<div class="fx-ch" style="--h:${o.h || 150}px"><div class="fx-ya">${ticks.map(t => `<span style="top:${(100 - Math.min(t, max) / max * 100).toFixed(1)}%">${esc(o.fmt ? o.fmt(t) : fmtN(t))}</span>`).join('')}</div>
+      <div class="fx-pl">${ticks.map(t => `<i class="fx-gh" style="top:${(100 - Math.min(t, max) / max * 100).toFixed(1)}%"></i>`).join('')}${[25, 50, 75].map(x => `<i class="fx-gv" style="left:${x}%"></i>`).join('')}<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${esc(o.label || 'chart')}"><defs>${defs}</defs>${body}</svg><span class="fx-scan" aria-hidden="true"></span></div>
+      <div class="fx-xa">${xs.map(x => `<span>${esc(x)}</span>`).join('')}</div></div>`;
+  }
+
+  /* one minute of samples per chart, pre-filled so a fresh page is not blank, then one sample per traffic tick */
+  const FXH = { t: 0, cpu: [[], [], [], []], mem: [], sess: [] };
+  function fxSample() {
+    const now = Date.now(); if (FXH.t && now - FXH.t < 1300) return; FXH.t = now;
+    const cpu = TELE.started() ? TELE.cpu() : 3, mem = TELE.started() ? TELE.mem() : 41, ss = S.sessions.length;
+    const jit = (b, a) => Math.max(0, b + (Math.random() - .5) * a);
+    if (!FXH.mem.length) for (let i = 0; i < 39; i++) { FXH.cpu.forEach((c, k) => c.push(jit(cpu + k * .6, 4))); FXH.mem.push(jit(mem, .6)); FXH.sess.push(ss); }
+    FXH.cpu.forEach((c, k) => { c.push(jit(cpu + k * .6, 4 + cpu * .2)); if (c.length > 40) c.shift(); });
+    FXH.mem.push(jit(mem, .5)); FXH.sess.push(ss); if (FXH.mem.length > 40) { FXH.mem.shift(); FXH.sess.shift(); }
+  }
+
+  /* ---------- simulated wireless estate + wired DHCP clients (seeded from the serial: stable between visits) ---------- */
+  let FXW_C = null;
+  function fxWifi() {
+    const seed = fxHash((S.system && S.system.serial) || 'tlx');
+    if (FXW_C && FXW_C.seed === seed) return FXW_C;
+    const r = fxRng(seed ^ 0x5a17), pick = a => a[Math.floor(r() * a.length)], now = Date.now();
+    const APS = [['TLX-AP-ENG-2F', 36, 6, 11], ['TLX-AP-LOBBY', 149, 1, 7], ['TLX-AP-SHOP', 44, 11, 7], ['TLX-AP-CONF-A', 157, 6, 6], ['TLX-AP-WHSE', 100, 1, 5]];
+    const aps = APS.map(([name, ch5, ch24, n], i) => ({ name, ch5, ch24, n, serial: 'FP231FTF23' + String(100000 + Math.floor(r() * 899999)), ip: '10.10.10.' + (240 + i), mac: fxMac(r), util5: 8 + Math.floor(r() * 30), util24: 14 + Math.floor(r() * 35), os: 'FortiAP OS' }));
+    const KIND = [['Windows', 'LAP-T14-', 'MSFT 5.0'], ['Windows', 'WS-ENG-', 'MSFT 5.0'], ['iOS', 'iPhone', ''], ['iOS', 'iPad-', ''], ['Android', 'Galaxy-', 'android-dhcp-14'], ['Android', 'Pixel-', 'android-dhcp-15'], ['macOS', 'MacBook-', ''], ['Unknown', 'SCAN-WH-', 'udhcp 1.36.1'], ['Unknown', '', 'udhcp 1.36.1']];
+    const clients = []; let ipn = 100;
+    aps.forEach(ap => { for (let k = 0; k < ap.n; k++) {
+      const [os, pre, vci] = pick(KIND), mac = fxMac(r);
+      const host = pre === 'iPhone' ? (r() < .5 ? 'iPhone' : `iPhone-${pick(['Dana', 'Lee', 'Sam', 'Kai', 'Rio', 'Ash'])}`) : pre ? pre + (pre.endsWith('-') ? String(Math.floor(r() * 90) + 10).padStart(2, '0') + pick(['A', 'B', 'C', '']) : '') : mac;
+      const band5 = r() < .64, sig = -45 - Math.floor(r() * (band5 ? 38 : 30));
+      clients.push({ ap: ap.name, host, os, vci, mac, ip: '10.10.10.' + (ipn++), ssid: 'Talvex-Corp', band: band5 ? '5 GHz' : '2.4 GHz', tech: band5 ? (r() < .55 ? '802.11ax' : '802.11ac') : '802.11n', ch: band5 ? ap.ch5 : ap.ch24, sig, noise: -95, bw: Math.floor(80 + r() * (r() < .2 ? 520000 : 9000)), assoc: now - Math.floor(r() * 30 * 86400000) % (r() < .6 ? 86400000 : 30 * 86400000), user: os === 'Windows' && r() < .5 ? pick(['dana.k', 'lee.m', 'sam.r', 'kai.t', 'rio.p']) : '' });
+    } });
+    /* wired desks fill 10.10.10.20-45 (the addresses the live traffic generator uses), so FortiView Sessions can name them */
+    const DEPT = ['ACCT', 'OPS', 'SHOP', 'ENG', 'HR', 'SALES', 'FRONT', 'QA'];
+    const wired = [];
+    for (let n = 20; n <= 45; n++) { const ip = '10.10.10.' + n; if (SIM.HOSTS[ip]) continue; const mac = r() < .12; wired.push({ host: mac ? `MacBook-${pick(DEPT)}${n}` : `WS-${pick(DEPT)}-${String(n).padStart(2, '0')}`, os: mac ? 'macOS' : 'Windows', vci: mac ? '' : 'MSFT 5.0', mac: fxMac(r), ip, online: true }); }
+    [['Unknown', 'PRN-OFFICE-01', 'PCL-Printer'], ['Unknown', 'VOIP-PH-01', 'sip-phone'], ['Unknown', 'VOIP-PH-02', 'sip-phone'], ['Unknown', 'CAM-DOCK-01', 'udhcp 1.36.1'], ['Unknown', 'CAM-DOCK-02', 'udhcp 1.36.1']].forEach(([os, host, vci], i) => wired.push({ host, os, vci, mac: fxMac(r), ip: '10.10.10.' + (170 + i), online: r() > .15 }));
+    const hist = [0, 1, 2].map(b => { const out = []; let w = 0; for (let i = 0; i < 40; i++) { w = w * .8 + (r() - .5) * .5; out.push(w); } return out; });
+    const rogue = { total: 0, good: 0, fair: 0 }; rogue.fair = 20 + Math.floor(r() * 30); rogue.good = 900 + Math.floor(r() * 1400); rogue.total = rogue.good + rogue.fair;
+    const fail = [{ ts: now - Math.floor(r() * 3600000), ssid: 'Talvex-Corp', host: 'Galaxy-' + Math.floor(r() * 90 + 10), mac: fxMac(r) }];
+    return (FXW_C = { seed, aps, clients, wired, hist, rogue, fail });
+  }
+  /* small live movement: throughput and signal wander a little on each render */
+  const fxLive = (base, amp) => Math.max(0, Math.round(base * (1 + (Math.random() - .5) * amp)));
+
+  /* DHCP leases: wireless clients and wired extras on the LAN, the lab's own named hosts, and the FortiAPs, for every
+     up LAN-side interface that has an address (port2 plus any VLAN the missions add) */
+  function fxLeases() {
+    const W = fxWifi(), ifs = SIM.allIfaces(S).filter(i => i.status === 'up' && i.ip && i.ip !== '0.0.0.0' && i.role !== 'wan' && i.type !== 'tunnel');
+    const lan = ifs.find(i => i.name === 'port2') || ifs.find(i => i.role === 'lan'); const out = [];
+    const inIf = ip => ifs.find(i => SIM.inNet(ip, SIM.n2ip(SIM.netOf(i.ip, i.bits)), i.bits));
+    const exp = (k, h) => Date.now() + (6 * 86400000) + (fxHash(k) % 86400000) * (h || 1);
+    const STATIC = new Set(['10.10.10.50', '10.10.10.60', '172.16.10.10']);
+    for (const [ip, name] of Object.entries(SIM.HOSTS)) { const i = inIf(ip); if (!i || STATIC.has(ip)) continue;
+      out.push({ ip, iface: i.name, host: name.replace(/ \(.*\)$/, ''), vci: /Printer/i.test(name) ? 'PCL-Printer' : 'MSFT 5.0', mac: fxMac(fxRng(fxHash(ip))), reserved: /Printer/i.test(name), exp: exp(ip), os: /Printer/i.test(name) ? 'Unknown' : 'Windows', wired: true }); }
+    if (lan && SIM.inNet('10.10.10.100', SIM.n2ip(SIM.netOf(lan.ip, lan.bits)), lan.bits)) {
+      W.aps.forEach(a => out.push({ ip: a.ip, iface: lan.name, host: a.name, vci: 'FortiAP-231F', mac: a.mac, reserved: true, exp: exp(a.ip), os: 'FortiAP OS', ap: true }));
+      W.wired.forEach(w => out.push({ ip: w.ip, iface: lan.name, host: w.host, vci: w.vci, mac: w.mac, reserved: false, exp: exp(w.ip), os: w.os, wired: true, online: w.online }));
+      W.clients.forEach(c => out.push({ ip: c.ip, iface: lan.name, bridge: c.ssid, host: c.host, vci: c.vci, mac: c.mac, reserved: false, exp: exp(c.ip, 0.3), os: c.os }));
+    }
+    return out.sort((a, b) => SIM.ip2n(a.ip) - SIM.ip2n(b.ip));
+  }
+  const fxHostOf = ip => { if (SIM.HOSTS[ip]) return SIM.HOSTS[ip]; const l = fxLeases().find(x => x.ip === ip); return l ? l.host : ''; };
+
+  /* ---------- Dashboard > Status ---------- */
+  P.dashboard = () => {
+    fxSample();
+    const up = Math.floor((Date.now() - S.system.bootedAt) / 1000), W = fxWifi(), ago = m => fmtTs(Date.now() - m * 60000);
+    const sys = `<dl class="fx-kv">
+        <dt>Hostname</dt><dd class="mono">${cv(S.system.hostname, 'hostname')}</dd>
+        <dt>Serial number</dt><dd class="mono">${cv(S.system.serial, 'serial number')}</dd>
+        <dt>Firmware</dt><dd>${esc(S.system.osver)} ${fwNewer().length ? `<button class="linkbtn" data-act="nav" data-id="firmware">${pill('Update available', 'warn')}</button>` : ''}</dd>
+        <dt>Mode</dt><dd>NAT</dd>
+        <dt>System time</dt><dd class="num fx-u">${fmtTs(Date.now())}</dd>
+        <dt>Uptime</dt><dd class="num fx-u">${Math.floor(up / 86400)}d ${Math.floor(up % 86400 / 3600)}h ${Math.floor(up % 3600 / 60)}m ${up % 60}s</dd>
+        <dt>WAN IP</dt><dd class="mono">${esc(((S.interfaces.find(i => i.role === 'wan') || {}).ip) || '-')}</dd></dl>`;
+    const sv = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+    const LT = [['Support', 'Registered (lab) · 24x7 support', 'ok', sv('<circle cx="12" cy="12" r="9"/><text x="12" y="15.5" font-size="9" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none">24</text>')], ['Updates', `Firmware & General Updates: licensed · last check ${ago(12)}`, 'ok', sv('<path d="M12 15V4M7.5 8.5L12 4l4.5 4.5M4 14v5h16v-5"/>')], ['IPS', `IPS definitions licensed · updated ${ago(47)}`, 'ok', sv('<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>')], ['AntiVirus', `AntiVirus definitions licensed · updated ${ago(47)}`, 'ok', sv('<ellipse cx="12" cy="13.5" rx="4.5" ry="6"/><path d="M12 7.5V20M9 5l1.5 2.5M15 5l-1.5 2.5M7.5 11H4M7.5 15H4M16.5 11H20M16.5 15H20"/>')], ['Web Filter', 'Web Filtering licensed · rating servers reachable', 'ok', sv('<path d="M4 5h16l-6 7v6l-4 2v-8z"/>')], ['Rating', 'Outbreak prevention / rating: not licensed in this lab', 'warn', sv('<path d="M4 17a8 8 0 1116 0"/><path d="M12 17l4-6"/>')]];
+    const lic = `<div class="fx-lic">${LT.map(([t, d, k, g]) => `<span class="fx-lt ${k}" title="${esc(d)}" tabindex="0"><i aria-hidden="true">${g}</i>${esc(t)}</span>`).join('')}</div><div class="fx-tok"><span class="muted">FortiToken</span><span class="fx-tbar"><i style="width:0%"></i><b class="num">0%</b></span></div>`;
+    const cloud = `<dl class="fx-kv"><dt>Status</dt><dd>${FXI.ok}<u>Activated</u></dd><dt>Server Location</dt><dd>Global</dd><dt>Log Retention</dt><dd>${FXI.ok}<u>Licensed</u></dd><dt>Storage used</dt><dd class="num"><u>${(12.4 + (Date.now() - S.system.bootedAt) / 864e5 * .03).toFixed(2)} GiB</u></dd></dl>`;
+    const fab = `<div class="fx-fab"><div class="fx-fh">LAN Edge</div><div class="fx-fg"><span><b class="fx-badge">1</b>FortiGate</span><span><b class="fx-badge">0</b>FortiSwitch</span><span><b class="fx-badge">${W.aps.length}</b>FortiAP</span><span class="dim"><b class="fx-badge">0</b>FortiExtender</span></div><div class="fx-fh">Fabric Connectors</div><div class="fx-fg dim"><span>Logging</span><span>FortiSandbox</span><span>Central Management</span><span>FortiClient EMS</span></div></div>`;
+    const adm = `<div class="fx-adm"><span><b class="fx-badge">0</b>FortiExplorer</span><span><b class="fx-badge">1</b>HTTPS</span><span><b class="fx-badge">${UI.termOpen ? 1 : 0}</b>CLI</span></div><div class="fx-adl">${S.admins.map((a, i) => `<span><u class="mono">${esc(a.name)}</u> <span class="muted">${esc(a.profile)}</span>${i === 0 ? ' <span class="fx-me">you</span>' : ''}</span>`).join('')}</div>`;
+    const cores = FXH.cpu.map(c => c.slice(-1)[0] || 0), cpuNow = cores.reduce((a, b) => a + b, 0) / cores.length;
+    const cpu = fxChart('fxcpu', FXH.cpu.map((v, k) => ({ v, c: [FXC.pink, FXC.orange, FXC.purple, FXC.sky][k] })), { max: 100, ticks: [0, 20, 40, 60, 80, 100], fmt: t => t + '%', label: 'CPU usage per core, last minute', h: 128 }) + `<p class="fx-cur">Current usage <b class="num">${Math.round(cpuNow)}%</b><span class="muted"> · 4 vCPU</span></p>`;
+    const mem = fxChart('fxmem', [{ v: FXH.mem, c: FXC.yellow, fill: true, op: .7 }], { max: 100, ticks: [0, 20, 40, 60, 80, 100], fmt: t => t + '%', label: 'Memory usage, last minute' }) + `<p class="fx-cur">Current usage <b class="num">${Math.round(FXH.mem.slice(-1)[0] || 0)}%</b></p>`;
+    const sess = fxChart('fxses', [{ v: FXH.sess, c: FXC.pink, fill: true, op: .7 }], { min: 10, label: 'Sessions, last minute' }) + `<p class="fx-cur">Current sessions <b class="num">${fmtN(S.sessions.length)}</b><span class="fx-k"><i style="background:${FXC.purple}"></i>SPU <b class="num">0.0%</b></span><span class="fx-k"><i style="background:${FXC.indigo}"></i>nTurbo <b class="num">0.0%</b></span></p>`;
+    const done = doneCount();
+    return `<div class="fx fx-dash"><div class="fx-ph"><button class="fx-add" type="button" data-act="fx-addw" title="Widgets are fixed in this lab">${I.plus} Add widget</button><span class="grow"></span><span class="fx-lab muted">Lab simulation · nothing here touches a real network</span></div>
+      <div class="fx-g6">
+        ${fxWidget('System Information', sys, 'fx-c1')}
+        ${fxWidget('Licenses <span class="fx-sub">(lab)</span>', lic, 'fx-c1')}
+        ${fxWidget('FortiGate Cloud', cloud, 'fx-c1')}
+        ${fxWidget('Security Fabric', fab, 'fx-c1', `<span class="fx-ib" aria-hidden="true">⛶</span>`)}
+        ${fxWidget('Administrators', adm, 'fx-c1')}
+        ${fxWidget('CPU', cpu, 'fx-c1')}
+        ${fxWidget('Memory', mem, 'fx-c2', '<span class="fx-dd">1 minute ▾</span>')}
+        ${fxWidget('Sessions', sess, 'fx-c2', '<span class="fx-dd">1 minute ▾</span>')}
+        ${fxWidget('<span class="live-dot"></span>Interface Bandwidth', bandwidthCard().replace(/^<section[^>]*><h2>.*?<\/h2>/, '').replace(/<\/section>$/, ''), 'fx-c2')}
+        <div class="fx-c6">${topoHtml()}</div>
+        ${fxWidget('Recent System Events', `<div class="evt">${S.logs.event.slice(0, 7).map(e => `<span class="muted num mono"${rk(e, 't')}>${fmtTs(e.ts)}</span><span${rk(e, 'm')}>${pill(e.level, e.level === 'alert' ? 'bad' : e.level === 'warning' ? 'warn' : e.level === 'notice' ? 'info' : 'mute')} ${esc(e.msg)}</span>`).join('')}</div>`, 'fx-c4')}
+        ${fxWidget('Scavenger Hunt', `<p style="margin:0 0 8px"><b class="num fx-big">${done}</b> <span class="muted">of ${MISSIONS.length} missions complete</span></p><div class="meter"><i style="width:${Math.round(done / MISSIONS.length * 100)}%;background:var(--ok)"></i></div><p style="margin:12px 0 0"><button class="btn primary" data-act="open-missions">${I.flag} Open missions</button></p>`, 'fx-c2')}
+      </div></div>`;
+  };
+
+  /* ---------- Dashboard > WiFi ---------- */
+  P['dash-wifi'] = () => {
+    const W = fxWifi(), C = W.clients, tot = C.length;
+    const big = (segs, total, sub, title, legend) => `<div class="fx-wd">${fxDonut(segs, fmtN(total), sub)}${fxLegend(title, legend || segs)}</div>`;
+    const byAp = W.aps.map((a, i) => ({ l: a.name, v: C.filter(c => c.ap === a.name).length, c: FXP[i % FXP.length] })).sort((a, b) => b.v - a.v);
+    const sigs = [['Good ( >=-65dBm )', c => c.sig >= -65, FXC.green], ['Fair ( -75dBm - -66dBm )', c => c.sig < -65 && c.sig >= -75, FXC.yellow], ['Poor ( <=-76dBm )', c => c.sig < -75, FXC.red]].map(([l, f, c]) => ({ l, v: C.filter(f).length, c }));
+    const radios = W.aps.length * 2, util = [['Low ( <=60% )', FXC.green], ['Medium ( 61-80% )', FXC.yellow], ['High ( >80% )', FXC.red]].map(([l, c], k) => ({ l, c, v: k ? 0 : radios }));
+    const bands = ['2.4 GHz', '5 GHz', '6 GHz'], hist = W.hist.map((v, b) => { const now = C.filter(c => c.band === bands[b]).length; return v.map((x, i) => Math.max(0, now * (1 + x * (1 - i / (v.length - 1))))); });
+    const stacked = [hist[0], hist[0].map((x, i) => x + hist[1][i]), hist[0].map((x, i) => x + hist[1][i] + hist[2][i])];
+    const intf = [{ l: 'High ( >10 )', v: 0, c: FXC.red }, { l: 'Medium ( 2 - 10 )', v: 8, c: FXC.yellow }, { l: 'Low ( <=1 )', v: 2, c: FXC.green }];
+    const fails = W.fail.map(f => `<tr><td class="fx-ck"><span class="fx-cb" aria-hidden="true"></span></td><td class="num">${fmtTs(f.ts)}</td><td>${FXI.lock}<u>${esc(f.ssid)}</u></td><td class="mono">${esc(f.host)} / ${esc(f.mac)}</td></tr>`).join('');
+    return `<div class="fx fx-dash"><div class="fx-ph"><button class="fx-add" type="button" data-act="fx-addw" title="Widgets are fixed in this lab">${I.plus} Add widget</button><span class="grow"></span><span class="fx-lab muted">Wireless is simulated: SSID Talvex-Corp is bridged to port2, so its clients take LAN addresses</span></div>
+      <div class="fx-g3">
+        ${fxWidget('FortiAP Status', big([{ l: 'Online', v: W.aps.length, c: FXC.green }], W.aps.length, 'FortiAPs', 'Connection'))}
+        ${fxWidget('Channel Utilization <span class="fx-i" title="Radios grouped by how busy their channel is">i</span>', big(util, radios, 'Radios', 'Channel Utilization'))}
+        ${fxWidget('Clients By FortiAP', big(byAp, tot, 'Clients', 'FortiAP'), '', `<button class="fx-ib" data-act="nav" data-id="fap-clients" title="Open FortiAP Clients Monitor" aria-label="Open FortiAP Clients Monitor">⤢</button>`)}
+        ${fxWidget('Signal Strength', big(sigs, tot, 'Clients', 'Signal Strength'))}
+        ${fxWidget('Rogue APs', big([{ l: 'Good ( 0 )', v: W.rogue.good, c: FXC.indigo }, { l: 'Fair ( 1 - 10 )', v: W.rogue.fair, c: FXC.yellow }], W.rogue.total, 'Rogue APs', 'Interfering FortiAPs'))}
+        ${fxWidget('Historical Clients', fxChart('fxhc', [{ v: stacked[2], c: FXC.purple, fill: true, op: .55 }, { v: stacked[1], c: FXC.orange, fill: true, op: .6 }, { v: stacked[0], c: FXC.pink, fill: true, op: .65 }], { min: 30, x: ['45 minutes ago', '30 minutes ago', '15 minutes ago', 'Now'], label: 'Clients per band, last hour', h: 160 }) + `<p class="fx-cur">${bands.map((b, k) => `<span class="fx-k"><i style="background:${[FXC.pink, FXC.orange, FXC.purple][k]}"></i>${b} Band</span>`).join('')}</p>`, '', '<span class="fx-dd">1 hour ▾</span>')}
+        ${fxWidget('Interfering SSIDs <span class="fx-i" title="Neighbouring networks heard on the same channels">i</span>', big(intf, 10, 'AP Radios', 'Interfering SSIDs'))}
+        ${fxWidget('Login Failures', `<div class="fx-tw-wrap"><table class="fx-grid"><thead><tr><th class="fx-ck"><span class="fx-cb" aria-hidden="true"></span></th><th>Time</th><th>SSID</th><th>Host Name/MAC</th></tr></thead><tbody>${fails}</tbody></table><div class="fx-foot"><span class="num">${W.fail.length}</span></div></div>`)}
+      </div></div>`;
+  };
+
+  /* ---------- FortiView Sessions ---------- */
+  P.sessions = () => {
+    const now = Date.now(), sel = ((UI.fxSel || {}).sessions) || [];
+    const sp = x => 49152 + (fxHash('sp' + x.id) % 16383), app = x => x.proto === 'icmp' ? 'icmp/8' : `${x.proto}/${x.port}`;
+    const pk = x => Math.max(1, Math.round(TELE.sessBytes(x, now) / (x.proto === 'udp' ? 140 : 620)));
+    const cols = [
+      { h: 'Source', f: x => `<span class="mono">${cv(x.srcip, 'source IP')}</span><div class="help">${esc(x.srcintf)}</div>`, s: x => SIM.ip2n(x.srcip) },
+      { h: 'Device', f: x => { const h = fxHostOf(x.srcip); return h ? `<span class="fx-dev">${FXI.dev}${esc(h)}</span>` : ''; }, s: x => fxHostOf(x.srcip) },
+      { h: 'Destination Address', f: x => `<span class="mono">${cv(x.dstip, 'destination')}</span><div class="help">${esc(x.dstintf)}${x.nat ? ` · NAT ${esc(x.nat)}` : ''}${SIM.HOSTS[x.dstip] ? ` · ${esc(SIM.HOSTS[x.dstip])}` : ''}</div>`, s: x => SIM.ip2n(x.dstip) },
+      { h: 'Application', f: x => `${esc(app(x))}${x.app && x.app !== app(x) ? `<div class="help">${esc(x.app)}</div>` : ''}`, s: x => app(x) },
+      { h: 'Protocol', f: x => esc(x.proto), s: x => x.proto },
+      { h: 'Source Port', f: x => x.proto === 'icmp' ? '' : `<span class="num">${sp(x)}</span>`, s: sp, cls: 'r' },
+      { h: 'Destination Port', f: x => `<span class="num">${x.proto === 'icmp' ? 8 : x.port}</span>`, s: x => +x.port, cls: 'r' },
+      { h: 'Bytes', f: x => `<span class="num">${esc(fmtBytes(TELE.sessBytes(x, now)))}</span>`, s: x => TELE.sessBytes(x, now), cls: 'r' },
+      { h: 'Packets', f: x => `<span class="num">${fmtN(pk(x))}</span>`, s: pk, cls: 'r' },
+      { h: 'Duration', f: x => `<span class="num">${fmtDur(now - x.ts)}</span>`, s: x => x.ts },
+      { h: 'Policy ID', f: x => `<span class="num">${cv(x.policyid, 'policy ID')}</span>`, s: x => +x.policyid || 0, cls: 'r' },
+      { h: 'NPU Accelerated', f: () => 'No', cls: 'muted' }];
+    const tools = `<span class="fx-dd" title="Real-time view">◷ now ▾</span>`;
+    return fxPage('FortiView Sessions', `<div class="fx-tb"><button class="btn fx-btn" data-act="fx-end" ${sel.length ? '' : 'disabled'}>${I.del} End sessions${sel.length ? ` (${sel.length})` : ''}</button>${fxSearch('Search filterable columns')}</div>
+      ${fxTable(cols, [{ rows: S.sessions }], { check: x => x.id, key: x => 's' + x.id, text: x => `${x.srcip} ${fxHostOf(x.srcip)} ${x.dstip} ${x.srcintf} ${x.dstintf} ${x.app} ${app(x)} ${x.proto} ${x.port} ${x.policyid}`, empty: TELE.started() ? 'No sessions right now.' : 'No sessions yet. Turn on Live Mode (top bar) and traffic starts flowing through your policies.', foot: (s, t) => `<span class="fx-pg"><b>1</b></span><span class="grow"></span><span class="num">${t ? `1 - ${fmtN(s)} / ${fmtN(t)}` : '0'}</span>` })}
+      ${fxNote('Sessions are the flows your policies allowed. Select rows and <b>End sessions</b> to kill them; a host that is still allowed by policy simply opens a new one. CLI: <span class="mono">diagnose sys session list</span>')}`, tools);
+  };
+
+  /* ---------- Device Inventory Monitor (Assets) ---------- */
+  P.assets = () => {
+    const L = fxLeases(), hosts = [];
+    const named = new Set(L.map(l => l.ip));
+    for (const [ip, name] of Object.entries(SIM.HOSTS)) if (!named.has(ip) && SIM.routeLookup(S, ip) && SIM.routeLookup(S, ip).type === 'C') hosts.push({ ip, host: name.replace(/ \(.*\)$/, ''), os: /WEB|FS0/.test(name) ? 'Windows' : 'Linux', iface: SIM.routeLookup(S, ip).device, mac: fxMac(fxRng(fxHash(ip))) });
+    const A = L.map(l => ({ ip: l.ip, host: l.host, os: l.os, iface: l.iface, mac: l.mac, online: l.online !== false, user: '' })).concat(hosts.map(h => ({ ...h, online: true, user: '' })));
+    const W = fxWifi(); W.clients.forEach(c => { const a = A.find(x => x.ip === c.ip); if (a) a.user = c.user; });
+    const cnt = (f, keys, colors) => keys.map((k, i) => ({ l: k, v: A.filter(a => f(a) === k).length, c: colors ? colors[i] : FXP[i % FXP.length] }));
+    const oss = [...new Set(A.map(a => a.os))].sort((a, b) => A.filter(x => x.os === b).length - A.filter(x => x.os === a).length);
+    const ifs = [...new Set(A.map(a => a.iface))];
+    const cols = [
+      { h: 'Device', f: a => `<span class="fx-dev">${fxOsIcon(a.os)}${esc(a.host || a.mac)}</span>`, s: a => (a.host || a.mac).toLowerCase() },
+      { h: 'Software OS', f: a => esc(a.os), s: a => a.os },
+      { h: 'IP Address', f: a => `<span class="mono">${cv(a.ip, 'IP')}</span>`, s: a => SIM.ip2n(a.ip) },
+      { h: 'MAC Address', f: a => `<span class="mono">${esc(a.mac)}</span>`, s: a => a.mac },
+      { h: 'Interface', f: a => esc(ifLabel(a.iface)), s: a => a.iface },
+      { h: 'User', f: a => esc(a.user), s: a => a.user },
+      { h: 'Vulnerabilities', f: () => '<span class="num">0</span>', cls: 'r' },
+      { h: 'Status', f: a => a.online ? `<span class="fx-st">${FXI.up}Online</span>` : `<span class="fx-st muted">${FXI.down}Offline</span>`, s: a => a.online ? 0 : 1 }];
+    return fxPage('Assets', fxStrip([fxDonutCard('Software OS', cnt(a => a.os, oss), 'Devices'), fxDonutCard('Vulnerability Level', [{ l: 'None', v: A.length, c: FXC.green }], 'Devices'), fxDonutCard('Status', [{ l: 'Online', v: A.filter(a => a.online).length, c: FXC.green }, { l: 'Offline', v: A.filter(a => !a.online).length, c: FXC.grey }], 'Devices'), fxDonutCard('Interface', cnt(a => a.iface, ifs, [FXC.yellow, FXC.indigo, FXC.pink, FXC.sky]).map(x => ({ ...x, l: ifLabel(x.l) })), 'Devices')]) +
+      `<div class="fx-tb"><button class="fx-ib" data-act="fx-refresh" title="Refresh" aria-label="Refresh">${FXI.refresh}</button>${fxSearch()}<span class="fx-seg"><b>Asset</b><span>Identity</span></span></div>
+      ${fxTable(cols, [{ rows: A }], { key: a => 'a' + a.ip, text: a => `${a.host} ${a.os} ${a.ip} ${a.mac} ${a.iface} ${a.user}` })}
+      ${fxNote('Device inventory comes from what the FortiGate sees on its LAN side: DHCP requests, ARP and the FortiAPs it manages. Named lab hosts (WS-ENG-OPS01, FS01, KIOSK-LOBBY…) are the same ones you meet in the logs and missions.')}`);
+  };
+
+  /* ---------- Routing Monitor ---------- */
+  P['route-monitor'] = () => {
+    const rt = SIM.routeTable(S).sort((a, b) => SIM.ip2n(a.dst) - SIM.ip2n(b.dst) || a.bits - b.bits);
+    const tn = r => r.type === 'C' ? 'Connected' : r.type === 'B' ? 'BGP' : 'Static', RL = UI.fxRl || {};
+    const hit = RL.ip && SIM.isIp(RL.ip) ? SIM.routeLookup(S, RL.ip) : null;
+    const types = ['Connected', 'Static', 'BGP'].map((l, i) => ({ l, v: rt.filter(r => tn(r) === l).length, c: [FXC.indigo, FXC.yellow, FXC.pink][i] }));
+    const devs = [...new Set(rt.map(r => r.device))].map((d, i) => ({ l: ifLabel(d), v: rt.filter(r => r.device === d).length, c: FXP[i % FXP.length] })).sort((a, b) => b.v - a.v);
+    const ichip = d => { const i = SIM.iface(S, d), wan = i && i.role === 'wan'; return `<span class="fx-if ${wan ? 'wan' : ''}">${i && i.type === 'tunnel' ? FXI.tun : FXI.port}${esc(ifLabel(d))}</span>`; };
+    const cols = [
+      { h: 'Network', f: r => `<span class="mono">${esc(r.dst + '/' + r.bits)}</span>`, s: r => SIM.ip2n(r.dst) * 64 + r.bits },
+      { h: 'Gateway IP', f: r => `<span class="mono">${esc(r.gateway || '0.0.0.0')}</span>`, s: r => SIM.ip2n(r.gateway || '0.0.0.0') },
+      { h: 'Interfaces', f: r => ichip(r.device), s: r => r.device },
+      { h: 'Distance', f: r => `<span class="num">${esc(r.distance)}</span>`, s: r => +r.distance },
+      { h: 'Type', f: r => esc(tn(r)) + (r.active ? '' : ` <span class="fx-inact" title="${esc(r.why || '')}">inactive: ${esc(r.why || '')}</span>`), s: r => tn(r) }];
+    const lk = `<form class="fx-rl" id="fxRlForm"><label><span>Destination</span><input class="inp mono" id="fxRlIp" value="${esc(RL.ip || '')}" placeholder="e.g. 10.100.1.4" autocomplete="off"></label><button class="btn primary" type="submit">Search</button><button class="btn" type="button" data-act="fx-rl">Close</button>
+      ${RL.ip ? `<span class="fx-rlr">${!SIM.isIp(RL.ip) ? 'Enter an IPv4 address.' : hit ? `${FXI.ok} <b class="mono">${esc(RL.ip)}</b> matches <b class="mono">${esc(hit.dst + '/' + hit.bits)}</b> via <b class="mono">${esc(hit.gateway || 'directly connected')}</b> on <b class="mono">${esc(ifLabel(hit.device))}</b> (${esc(tn(hit))}, distance ${esc(hit.distance)})` : `${FXI.no} No route to <b class="mono">${esc(RL.ip)}</b>: the firewall would drop it.`}</span>` : ''}</form>`;
+    return fxPage('Routing Monitor', fxStrip([fxDonutCard('Type', types, 'Total'), fxDonutCard('Interfaces', devs, 'Total')]) +
+      `<div class="fx-tb"><button class="btn fx-btn ${RL.open ? 'on' : ''}" data-act="fx-rl">${I.search} Route Lookup</button><button class="btn fx-btn" data-act="nav" data-id="routes">${I.plus} Static Routes</button><button class="btn fx-btn" data-act="nav" data-id="pbr">${I.edit} Policy Routes</button>${fxSearch()}</div>${RL.open ? lk : ''}
+      ${fxTable(cols, [{ rows: rt }], { check: r => r.dst + '/' + r.bits + '@' + r.device, key: r => 'rt' + r.dst + r.bits + r.device, rowCls: r => (hit && r.dst === hit.dst && r.bits === hit.bits && r.device === hit.device ? 'fx-hit ' : '') + (r.active ? '' : 'off'), text: r => `${r.dst}/${r.bits} ${r.gateway} ${r.device} ${ifLabel(r.device)} ${tn(r)}` })}
+      ${fxNote('The routing table the firewall is using right now: connected networks plus active static and BGP routes. Longest prefix wins, then lowest distance. CLI: <span class="mono">get router info routing-table all</span>')}`);
+  };
+
+  /* ---------- DHCP Monitor ---------- */
+  P['dhcp-mon'] = () => {
+    const L = fxLeases(), ifs = [...new Set(L.map(l => l.bridge || l.iface))];
+    const cols = [
+      { h: 'Device', f: l => `<span class="fx-dev">${fxOsIcon(l.os)}${esc(l.host)}</span>`, s: l => l.host.toLowerCase() },
+      { h: 'IP', f: l => `<span class="mono">${cv(l.ip, 'IP')}</span>`, s: l => SIM.ip2n(l.ip) },
+      { h: 'Interface', f: l => `<span class="fx-if">${FXI.port}${esc(ifLabel(l.iface))}</span>${l.bridge ? `<div class="help">Bridge: ${FXI.ap}${esc(l.bridge)}</div>` : ''}`, s: l => l.iface + (l.bridge || '') },
+      { h: 'Status', f: () => 'Leased out' },
+      { h: 'MAC', f: l => `<span class="mono">${esc(l.mac)}</span>`, s: l => l.mac },
+      { h: 'Reserved', f: l => l.reserved ? `<span class="fx-st">${FXI.ok}Reserved</span>` : `<span class="fx-st">${FXI.no}Not Reserved</span>`, s: l => l.reserved ? 0 : 1 },
+      { h: 'Host Information', f: l => `${l.vci ? `VCI: ${esc(l.vci)}<br>` : ''}Hostname: ${esc(l.host)}`, s: l => l.vci },
+      { h: 'Expires', f: l => `<span class="num">${fmtTs(l.exp)}</span>`, s: l => l.exp }];
+    return fxPage('DHCP', fxStrip([fxDonutCard('Status', [{ l: 'Leased out', v: L.length, c: FXC.indigo }], 'Total'), fxDonutCard('Interface', ifs.map((n, i) => ({ l: L.find(l => (l.bridge || l.iface) === n).bridge ? n : ifLabel(n), v: L.filter(l => (l.bridge || l.iface) === n).length, c: FXP[i % FXP.length] })), 'Total')]) +
+      `<div class="fx-tb"><button class="btn fx-btn" data-act="fx-revoke" ${(((UI.fxSel || {})['dhcp-mon']) || []).length ? '' : 'disabled'}>⊖ Revoke</button>${fxSearch()}</div>
+      ${fxTable(cols, [{ rows: L }], { check: l => l.ip, key: l => 'd' + l.ip, text: l => `${l.host} ${l.ip} ${l.iface} ${l.bridge || ''} ${l.mac} ${l.vci}`, empty: 'No leases. The DHCP server runs on LAN-side interfaces that are up and have an address.' })}
+      ${fxNote('Wireless clients join SSID Talvex-Corp, which is bridged to port2, so they lease from the port2 pool (10.10.10.100 and up). Servers such as FS01 and the vendor scanner use static addresses and are not listed. CLI: <span class="mono">execute dhcp lease-list</span>')}`);
+  };
+
+  /* ---------- SD-WAN Monitor ---------- */
+  P['sdwan-mon'] = () => {
+    const Wn = S.sdwan, on = Wn.status === 'enable';
+    const ms = (on ? Wn.members : []).map(m => { const i = SIM.iface(S, m.iface), up = !!i && i.status === 'up' && i.ip && i.ip !== '0.0.0.0' && ipOk(m.gateway), h = fxHash(m.iface), c = TELE.iface(m.iface), rate = c ? c.rate : 0;
+      return { m, up, lat: up ? fxLive(6 + h % 30, .25) : null, jit: up ? +(0.4 + (h % 30) / 10 * Math.random()).toFixed(1) : null, loss: up ? 0 : 100, ses: S.sessions.filter(x => x.dstintf === m.iface || x.srcintf === m.iface).length, upl: rate * .24, dl: rate * .76 }; });
+    const g = (l1, l2, f) => [{ l: l1, v: ms.filter(f).length, c: FXC.green }, { l: l2, v: ms.filter(x => !f(x)).length, c: FXC.red }];
+    const mx = k => Math.max(1, ...ms.map(x => x[k]));
+    const cols = [
+      { h: 'Interface', f: x => `<span class="fx-if wan">${FXI.port}${esc(ifLabel(x.m.iface))}</span>`, s: x => x.m.iface },
+      { h: 'Status', f: x => x.up ? `<span class="fx-st">${FXI.up}Up</span><div class="help num">latency ${x.lat} ms · jitter ${x.jit} ms · loss 0%</div>` : `<span class="fx-st">${FXI.down}Down</span><div class="help">${esc(!SIM.iface(S, x.m.iface) ? 'interface missing' : !ipOk(x.m.gateway) ? 'no gateway set' : 'interface down or no address')}</div>`, s: x => x.up ? 0 : 1 },
+      { h: 'Remote Gateway', f: x => `<span class="mono">${esc(x.m.gateway || '')}</span>`, s: x => x.m.gateway || '' },
+      { h: 'Sessions', f: x => fxBar(x.ses, mx('ses'), FXC.indigo, fmtN(x.ses)), s: x => x.ses },
+      { h: 'Upload', f: x => fxBar(x.upl, mx('upl'), FXC.green, fmtRate(x.upl)), s: x => x.upl },
+      { h: 'Download', f: x => fxBar(x.dl, mx('dl'), FXC.green, fmtRate(x.dl)), s: x => x.dl }];
+    return fxPage('SD-WAN', fxStrip([fxDonutCard('Packet Loss', g('Low ( <10% )', 'High ( >=10% )', x => x.loss < 10), 'Total'), fxDonutCard('Latency', g('Low ( <150ms )', 'High ( >=150ms )', x => x.up && x.lat < 150), 'Total'), fxDonutCard('Jitter', g('Low ( <30ms )', 'High ( >=30ms )', x => x.up && x.jit < 30), 'Total')]) +
+      `<div class="fx-tb">${fxSearch()}</div>
+      ${fxTable(cols, ms.length ? [{ key: 'vwl', label: 'virtual-wan-link', rows: ms }] : [{ rows: [] }], { check: x => x.m.id, key: x => 'sd' + x.m.id, text: x => `${x.m.iface} ${x.m.gateway}`, empty: on ? 'SD-WAN is enabled but has no members. Add them under Network → SD-WAN.' : `SD-WAN is disabled. <button class="linkbtn" data-act="nav" data-id="sdwan">Network → SD-WAN</button> enables it and adds member links.` })}
+      ${fxNote('Health is measured per member link. Upload and download follow the live traffic on each member interface. CLI: <span class="mono">diagnose sys sdwan health-check</span>')}`);
+  };
+
+  /* ---------- IPsec Monitor ---------- */
+  P['ipsec-mon'] = () => {
+    const now = Date.now();
+    const T = S.vpn.phase1.map(p => { const t = SIM.tunnel(S, p.name), r = TELE.tunnel(p.name); return { p, t, r, bytes: r ? r.rx + r.tx : 0, upFor: t.up && r && r.up ? now - r.since : 0, p2: S.vpn.phase2.filter(q => q.phase1 === p.name), grp: /wizard/i.test(p.comments || '') ? 'Site to Site - Wizard' : 'Custom' }; });
+    const buck = [['Connected > 1 day', x => x.t.up && x.upFor > 864e5, FXC.indigo], ['Connected < 1 day', x => x.t.up && x.upFor <= 864e5, FXC.sky], ['Down', x => !x.t.up, FXC.red]].map(([l, f, c]) => ({ l, v: T.filter(f).length, c }));
+    const mx = Math.max(1, ...T.map(x => x.bytes));
+    const sel = q => q.srcIp != null ? `${q.srcIp}/${q.srcBits} ↔ ${q.dstIp}/${q.dstBits}` : '';
+    const cols = [
+      { h: 'Name', f: x => `<span class="mono">${esc(x.p.name)}</span>`, s: x => x.p.name },
+      { h: 'Remote Gateway', f: x => `<span class="mono">${esc(x.p.remoteGw)}</span>`, s: x => SIM.ip2n(x.p.remoteGw || '0.0.0.0') },
+      { h: 'Interface', f: x => `<span class="fx-if wan">${FXI.port}${esc(ifLabel(x.p.interface))}</span>`, s: x => x.p.interface },
+      { h: 'Bytes', f: x => fxBar(x.bytes, mx, FXC.green, fmtBytes(x.bytes)), s: x => x.bytes },
+      { h: 'Phase 1', f: x => `<span class="fx-st" title="${esc(x.t.reason)}">${x.t.p1 || x.t.up ? FXI.up : FXI.down}${esc(x.p.name)}</span>${x.t.up && x.upFor ? `<div class="help num">up ${fmtDur(x.upFor)}</div>` : ''}`, s: x => x.t.up ? 0 : 1 },
+      { h: 'Phase 2 Selectors', f: x => x.p2.map(q => `<div class="fx-st" title="${esc(sel(q))}">${x.t.up ? FXI.up : FXI.down}<u>${esc(q.name)}</u></div>`).join('') || '<span class="muted">none</span>' },
+      { h: '', f: x => `<button class="btn fx-btn sm" data-act="vpn-up" data-id="${esc(x.p.name)}" title="Try to bring this tunnel up">${x.t.up ? 'Reconnect' : 'Bring Up'}</button>`, cls: 'r' }];
+    const groups = [...new Set(T.map(x => x.grp))].map(g => ({ key: g, label: g, icon: FXI.tun, rows: T.filter(x => x.grp === g) }));
+    const down = T.filter(x => !x.t.up);
+    return fxPage('IPsec', fxStrip([fxDonutCard('Uptime', buck, 'Total'), fxDonutCard('VPN tunnel', T.map((x, i) => ({ l: x.p.name, v: 1, c: x.t.up ? FXP[i % FXP.length] : FXC.red })), 'Total')]) +
+      `<div class="fx-tb">${fxSearch()}</div>
+      ${fxTable(cols, groups.length ? groups : [{ rows: [] }], { check: x => x.p.name, key: x => 'v' + x.p.name, text: x => `${x.p.name} ${x.p.remoteGw} ${x.p.interface} ${x.p2.map(q => q.name).join(' ')}`, empty: 'No IPsec tunnels yet. Build one under VPN → IPsec Wizard or VPN → IPsec Tunnels.' })}
+      ${down.length ? `<div class="fx-why">${down.map(x => `<p>${FXI.down}<b class="mono">${esc(x.p.name)}</b>: ${esc(x.t.reason)}</p>`).join('')}</div>` : ''}
+      ${fxNote('Phase 1 is the IKE session with the peer; each Phase 2 selector is a pair of subnets that can use the tunnel. CLI: <span class="mono">diagnose vpn tunnel list</span> and <span class="mono">get vpn ipsec tunnel summary</span>')}`);
+  };
+
+  /* ---------- FortiAP Clients Monitor ---------- */
+  P['fap-clients'] = () => {
+    const W = fxWifi(), C = W.clients;
+    const tech = ['802.11ax', '802.11ac', '802.11n'].map((l, i) => ({ l, v: C.filter(c => c.tech === l).length, c: [FXC.teal, FXC.indigo, FXC.yellow][i] }));
+    const band = [{ l: '5 GHz', v: C.filter(c => c.band === '5 GHz').length, c: FXC.sky }, { l: '2.4 GHz', v: C.filter(c => c.band === '2.4 GHz').length, c: FXC.ice }];
+    const cols = [
+      { h: 'IP', f: c => `<span class="mono">${cv(c.ip, 'IP')}</span>`, s: c => SIM.ip2n(c.ip) },
+      { h: 'MAC Address', f: c => `<span class="mono">${esc(c.mac)}</span>`, s: c => c.mac },
+      { h: 'User', f: c => esc(c.user), s: c => c.user },
+      { h: 'Device', f: c => `<span class="fx-dev">${fxOsIcon(c.os)}<u>${esc(c.host)}</u></span>`, s: c => c.host.toLowerCase() },
+      { h: 'SSID', f: c => esc(c.ssid), s: c => c.ssid },
+      { h: 'Channel', f: c => `<span class="num">${c.ch}</span>`, s: c => c.ch, cls: 'r' },
+      { h: 'Bandwidth Tx/Rx', f: c => { const b = fxLive(c.bw, .5); return `<span class="num">${fmtRate(b)}</span>`; }, s: c => c.bw, cls: 'r' },
+      { h: 'Signal Strength/Noise', f: c => `<span class="num">${c.sig - c.noise} dB</span>`, s: c => c.sig - c.noise, cls: 'r' },
+      { h: 'Signal Strength', f: c => fxSig(c.sig + (Math.random() < .3 ? (Math.random() < .5 ? -1 : 1) : 0)), s: c => c.sig },
+      { h: 'Association Time', f: c => `<span class="num">${fmtTs(c.assoc)}</span>`, s: c => c.assoc }];
+    const groups = W.aps.map(a => ({ key: a.name, label: a.name, icon: FXI.ap, rows: C.filter(c => c.ap === a.name) }));
+    return fxPage('Clients By FortiAP', fxStrip([fxDonutCard('FortiAP', W.aps.map((a, i) => ({ l: a.name, v: C.filter(c => c.ap === a.name).length, c: FXP[i % FXP.length] })), 'Total'), fxDonutCard('Technology', tech, 'Total'), fxDonutCard('Band', band, 'Total')]) +
+      `<div class="fx-tb">${fxSearch()}</div>
+      ${fxTable(cols, groups, { check: c => c.mac, key: c => 'c' + c.mac, text: c => `${c.ip} ${c.mac} ${c.user} ${c.host} ${c.ssid} ${c.ap} ${c.ch}` })}
+      ${fxNote('Signal: -65 dBm or better is good, -66 to -75 is fair, -76 and below is poor. Signal/Noise is the gap above the -95 dBm noise floor. Wireless is simulated in this lab.')}`);
+  };
+
+  /* ---------- VPN > IPsec Tunnels, grouped like the FortiOS 7.6 VPN Tunnels list ---------- */
+  {
+    const base = P.ipsec;
+    P.ipsec = () => {
+      const html = base();
+      const T = S.vpn.phase1.map(p => ({ p, t: SIM.tunnel(S, p.name), p2: S.vpn.phase2.filter(q => q.phase1 === p.name), ref: SIM.usedBy ? SIM.usedBy(S, 'iface', p.name).length : 0, grp: /wizard/i.test(p.comments || '') ? 'Site to Site - Wizard' : 'Custom' }));
+      const cols = [
+        { h: 'Tunnel', f: x => `<span class="mono">${esc(x.p.name)}</span><div class="help mono">${esc(x.p.remoteGw)} · IKEv${esc(x.p.ike)} · ${esc(x.p.proposals.join(' '))} · DH ${esc(x.p.dhgrp.join(','))}</div>${x.p2.map(q => `<div class="help mono">└ ${esc(q.name)}: ${esc(q.proposals.join(' '))} · PFS ${esc(q.pfs)}</div>`).join('')}`, s: x => x.p.name },
+        { h: 'Interface Binding', f: x => `<span class="fx-if wan">${FXI.port}${esc(ifLabel(x.p.interface))}</span>`, s: x => x.p.interface },
+        { h: 'Status', f: x => `<span class="fx-st">${x.t.up ? FXI.up + 'Up' : FXI.down + 'Inactive'}</span>${tunStats(x.p.name)}${x.t.up ? '' : `<div class="help" style="max-width:340px">${esc(x.t.reason)}</div>`}`, s: x => x.t.up ? 0 : 1 },
+        { h: 'Ref.', f: x => `<span class="num">${x.ref}</span>`, s: x => x.ref, cls: 'r' },
+        { h: '', f: x => `${actBtn('vpn-up', x.p.name, I.play, 'Bring up')}${actBtn('vpn-edit', x.p.name, I.edit, 'Edit')}${actBtn('vpn-del', x.p.name, I.del, 'Delete')}`, cls: 'acts' }];
+      const groups = [...new Set(T.map(x => x.grp))].map(g => ({ key: g, label: g, icon: FXI.tun, rows: T.filter(x => x.grp === g) }));
+      const table = `<div class="fx">${fxTable(cols, groups.length ? groups : [{ rows: [] }], { key: x => 'vt' + x.p.name, text: x => `${x.p.name} ${x.p.remoteGw} ${x.p.interface}`, empty: 'No tunnels yet.' })}</div>`;
+      const i = html.indexOf('<div class="tablewrap">'); return i < 0 ? html : html.slice(0, i) + `<div class="fx-tb fx-inline">${fxSearch()}</div>` + table;
+    };
+  }
+
+  /* ---------- actions + inputs for the monitors ---------- */
+  Object.assign(A, {
+    'fx-refresh': () => { FXH.t = 0; fxSample(); renderMain(); },
+    'fx-addw': () => toast('Widgets are fixed', 'This lab keeps the FortiOS default Status layout so every learner sees the same thing.'),
+    'fx-grp': d => { const c = UI.fxClosed || (UI.fxClosed = {}); c[d.id] = !c[d.id]; renderMain(); },
+    'fx-sort': d => { const s = UI.fxSort || (UI.fxSort = {}), cur = s[UI.page], c = +d.id; s[UI.page] = !cur || cur.c !== c ? { c, d: 1 } : cur.d > 0 ? { c, d: -1 } : null; renderMain(); },
+    'fx-sel': d => { const s = UI.fxSel || (UI.fxSel = {}), a = s[UI.page] || (s[UI.page] = []), i = a.indexOf(d.id); if (i < 0) a.push(d.id); else a.splice(i, 1); renderMain(); },
+    'fx-end': () => { const a = ((UI.fxSel || {}).sessions) || []; let n = 0; a.forEach(id => { if (LIVE.kill(S, +id)) n++; }); (UI.fxSel || (UI.fxSel = {})).sessions = []; toast(n === 1 ? 'Session ended' : `${n} sessions ended`, 'Allowed hosts can open new sessions right away.'); commit(); },
+    'fx-revoke': () => { const a = ((UI.fxSel || {})['dhcp-mon']) || []; (UI.fxSel || (UI.fxSel = {}))['dhcp-mon'] = []; toast('Leases revoked', `${a.length} lease(s) revoked. In this simulation the clients renew straight away.`); renderMain(); },
+    'fx-rl': () => { const r = UI.fxRl || (UI.fxRl = {}); r.open = !r.open; if (!r.open) r.ip = ''; renderMain(); if (r.open) setTimeout(() => { const n = $('#fxRlIp'); if (n) n.focus(); }, 0); }
+  });
+  document.addEventListener('input', e => {
+    const t = e.target; if (t.id !== 'fxSearch') return;
+    (UI.fxq || (UI.fxq = {}))[UI.page] = t.value; const pos = t.selectionStart; renderMain(); const n = $('#fxSearch'); if (n) { n.focus(); n.setSelectionRange(pos, pos); }
+  });
+  document.addEventListener('submit', e => {
+    if (e.target.id !== 'fxRlForm') return; e.preventDefault();
+    (UI.fxRl || (UI.fxRl = { open: true })).ip = ($('#fxRlIp').value || '').trim(); renderMain();
+  });
+
   /* ================= LIVE VIEWS (TELE) =================
      Pages in liveSet re-render every traffic tick. Pages with a form of their own (BGP) only swap the parts marked
      data-live="key", using LIVEV[key](), so nothing the user is typing gets wiped. */
@@ -8606,7 +9155,7 @@ if (typeof module !== 'undefined') module.exports = CATS;
   function renderRail() {
     const active = k => UI.page === k || (UI.page === 'az-vnet' && k === 'az-vnets');
     const az = UI.view === 'azure', open = UI.railOpen || (UI.railOpen = {});
-    const link = ([k, l, ic]) => `<a href="#${k}" class="${active(k) ? 'active' : ''} ${ic ? 'top-link' : ''}" data-page="${k}">${ic || ''}${esc(l)}</a>`;
+    const link = ([k, l, ic]) => `<a href="#${k}" class="${active(k) ? 'active' : ''} ${ic ? 'top-link' : ''} ${k === 'sessions' ? 'fx-sep' : ''}" data-page="${k}">${ic || ''}${esc(l)}</a>`;
     $('#rail').innerHTML = (az ? AZNAV : NAV).map(g => {
       if (!g.grp) return g.items.map(link).join('');
       if (az) return `<div class="grp">${g.icon}${esc(g.grp)}</div>` + g.items.map(link).join('');
@@ -8816,7 +9365,7 @@ if (typeof module !== 'undefined') module.exports = CATS;
   renderAll(); renderTerm();
   renderSave();
 
-  const liveSet = new Set(['dashboard', 'log-forward', 'log-local', 'log-event', 'log-security', 'route-monitor', 'sessions', 'policy', 'interfaces', 'routes', 'ipsec', 'az-home', 'az-vpn', 'az-vms', 'az-nsgs', 'az-activity']);
+  const liveSet = new Set(['dashboard', 'dash-wifi', 'assets', 'dhcp-mon', 'sdwan-mon', 'ipsec-mon', 'fap-clients', 'log-forward', 'log-local', 'log-event', 'log-security', 'route-monitor', 'sessions', 'policy', 'interfaces', 'routes', 'ipsec', 'az-home', 'az-vpn', 'az-vms', 'az-nsgs', 'az-activity']);
   let lastDone = -1;
   function onTick() {
     TELE.tick(S);
