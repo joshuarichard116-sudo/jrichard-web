@@ -4429,6 +4429,8 @@ button.fx-ib:hover { color: var(--ink); border-color: var(--fx-line); }
 @keyframes fxscan { from { transform: translateX(-100%); } to { transform: translateX(460%); } }
 .fx-xa { grid-column: 2; position: relative; font-size: 10.5px; color: var(--muted); }
 .fx-xa span { position: absolute; top: 3px; transform: translateX(-50%); white-space: nowrap; }
+.fx-wb { container-type: inline-size; }
+@container (max-width: 380px) { .fx-xa span:nth-child(odd) { display: none; } }
 .fx-xa span:nth-child(1) { left: 25%; } .fx-xa span:nth-child(2) { left: 50%; } .fx-xa span:nth-child(3) { left: 75%; } .fx-xa span:nth-child(4) { left: 100%; transform: translateX(-100%); }
 
 /* donuts */
@@ -4476,9 +4478,6 @@ button.fx-ib:hover { color: var(--ink); border-color: var(--fx-line); }
 .fx-grid th { position: sticky; top: 0; z-index: 1; background: color-mix(in srgb, var(--panel-2) 90%, var(--accent)); font-weight: 500; font-size: 12.5px; color: var(--ink); text-align: center; padding: 7px 10px; white-space: nowrap; border-right: 1px solid var(--line-2); box-shadow: inset 0 -1px 0 var(--fx-line); }
 .fx-th { display: inline-flex; align-items: center; gap: 5px; border: 0; background: none; padding: 0; cursor: pointer; color: inherit; font: inherit; }
 .fx-th:hover { color: var(--accent); }
-.fx-so::before { content: "⇅"; font-size: 11px; opacity: .45; }
-.fx-so.asc::before { content: "▲"; font-size: 8px; opacity: 1; color: var(--accent); }
-.fx-so.desc::before { content: "▼"; font-size: 8px; opacity: 1; color: var(--accent); }
 .fx-grid td { padding: 6px 10px; border-bottom: 1px solid var(--line-2); vertical-align: middle; white-space: nowrap; }
 .fx-grid td .help { white-space: normal; margin-top: 0; font-size: 11.5px; line-height: 1.3; }
 .fx-grid td.r { text-align: right; }
@@ -4521,6 +4520,45 @@ button.fx-ib:hover { color: var(--ink); border-color: var(--fx-line); }
 .fx-rlr { flex: 1 1 320px; display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; min-height: 30px; }
 .fx-why { margin-top: 10px; padding: 8px 12px; border: 1px solid color-mix(in srgb, var(--bad) 45%, transparent); border-left-width: 3px; border-radius: 4px; background: color-mix(in srgb, var(--bad) 7%, var(--panel)); font-size: 12.5px; }
 .fx-why p { margin: 2px 0; display: flex; gap: 6px; align-items: flex-start; }
+
+/* shared line icons (gi): one stroke weight everywhere, sized to the text around them */
+.gi { width: 1.05em; height: 1.05em; vertical-align: -0.17em; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ibtn .gi { width: 15px; height: 15px; vertical-align: middle; }
+.gi-ok { color: var(--ok); } .gi-warn { color: var(--warn); }
+.gi-tree { width: 13px; height: 13px; margin-right: 4px; color: var(--muted); vertical-align: -1px; }
+.trace .row .ic { display: grid; place-items: center; }
+.trace .row .ic .gi { width: 15px; height: 15px; stroke-width: 2.4; }
+.mis .badge .gi { width: 12px; height: 12px; stroke-width: 3; }
+.sec-idx .gi { width: 14px; height: 14px; stroke-width: 1.8; }
+.sec-tag .gi { width: 11px; height: 11px; stroke-width: 2.6; vertical-align: -1px; }
+.nm-warn .gi { color: var(--warn); }
+.fx-dd { display: inline-flex; align-items: center; gap: 3px; }
+.fx-dd .gi { width: 12px; height: 12px; }
+.fx-so .gi { width: 11px; height: 11px; opacity: .45; }
+.fx-so.on .gi { opacity: 1; color: var(--accent); stroke-width: 2.6; }
+.fx-cb .gi { width: 11px; height: 11px; stroke-width: 3; }
+.fx-i { border: 0; width: 15px; height: 15px; font-size: inherit; }
+.fx-i .gi { width: 15px; height: 15px; stroke-width: 1.8; }
+.fx-ib .gi { width: 15px; height: 15px; }
+/* clickable widgets: titles, tiles, legend rows, donut slices and table links open what they represent */
+.fx-tl { border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; max-width: 100%; }
+.fx-tl:hover, .fx-tl:focus-visible { color: var(--accent); }
+button.fx-lt { border: 0; cursor: pointer; font: inherit; font-size: 11.5px; transition: transform .15s ease, box-shadow .15s ease; }
+button.fx-lt:hover, button.fx-lt:focus-visible { transform: translateY(-1px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), 0 0 18px -4px currentColor; }
+.fx-lk { border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; text-align: left; min-width: 0; }
+.fx-lk:hover, .fx-lk:focus-visible { color: var(--accent); }
+.fx-lk:hover u { text-decoration-color: var(--accent); }
+.fx-fg .fx-lk { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+button.fx-if { cursor: pointer; font: inherit; color: inherit; background: transparent; }
+button.fx-if:hover, button.fx-if:focus-visible { border-color: var(--accent); color: var(--accent); }
+button.fx-li { width: 100%; border: 0; background: none; color: inherit; font: inherit; font-size: 12.5px; padding: 0 4px; margin: 0 -4px; border-radius: 3px; cursor: pointer; text-align: left; box-sizing: content-box; }
+button.fx-li:hover, button.fx-li:focus-visible { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+button.fx-li.on { background: color-mix(in srgb, var(--accent) 18%, transparent); box-shadow: inset 2px 0 0 var(--accent); }
+.fx-donut .fx-arc.fx-act { cursor: pointer; transition: stroke-width .15s ease, stroke-dasharray .7s ease, stroke-dashoffset .7s ease; }
+.fx-donut .fx-arc.fx-act:hover { stroke-width: 21; }
+.fx-donut .fx-dv, .fx-donut .fx-ds, .fx-donut .fx-inner, .fx-donut .fx-ticks { pointer-events: none; }
+.fx-fchip { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 8px; padding: 2px 4px 2px 10px; border: 1px solid var(--accent); border-radius: 14px; font-size: 12.5px; background: color-mix(in srgb, var(--accent) 8%, var(--panel)); }
+.fx-fchip .fx-ib { width: 22px; height: 22px; }
 /* rail: a hairline between the dashboards and the monitors, like the FortiOS menu */
 .rail a.fx-sep { margin-top: 9px; position: relative; }
 .rail a.fx-sep::before { content: ""; position: absolute; left: 10px; right: 10px; top: -5px; height: 1px; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--rail-ink) 35%, transparent), transparent); }
@@ -4713,7 +4751,7 @@ table.grid.pol tr.g74-sec td { white-space: normal; }
 .topo .tl.ok line { stroke: var(--ok); } .topo .tl.bad line { stroke: var(--bad); } .topo .tl.warn line { stroke: var(--warn); }
 .topo .tl.mute line { stroke-dasharray: 6 6; }
 .topo .tl line.flow { stroke: var(--accent); stroke-dasharray: 2 14; stroke-linecap: round; animation: topoflow 1.1s linear infinite; }
-.topo .x { font: 700 16px var(--f-ui); fill: var(--bad); }
+.topo .x { fill: none; stroke: var(--bad); stroke-width: 2.4; stroke-linecap: round; }
 @keyframes topoflow { to { stroke-dashoffset: -16; } }
 @media (prefers-reduced-motion: reduce) { .topo .tl line.flow { animation: none; } }
 .nm .checklist { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 4px; }
@@ -6407,6 +6445,28 @@ if (typeof module !== 'undefined') module.exports = CATS;
     vm: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="12" rx="1"/><path d="M8 20h8M12 16v4"/></svg>',
     list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>'
   };
+  /* One icon set for every symbol in the lab UI (see STYLE.md): 24px grid, 2px round line, currentColor.
+     Never use emoji or text glyphs as icons; add a path here instead. */
+  const GIP = {
+    check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+    x: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
+    warn: '<path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.4v.1"/>',
+    ring: '<circle cx="12" cy="12" r="5"/>',
+    dot: '<circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/>',
+    down: '<path d="M7 10l5 5 5-5"/>',
+    left: '<path d="M14.5 6l-6 6 6 6"/>',
+    sort: '<path d="M8 9.5l4-4 4 4M8 14.5l4 4 4-4"/>',
+    up: '<path d="M8 14l4-4 4 4"/>',
+    plus: '<path d="M12 6v12M6 12h12"/>',
+    minus: '<path d="M6 12h12"/>',
+    clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+    expand: '<path d="M14 4h6v6M10 20H4v-6M20 4l-6.5 6.5M4 20l6.5-6.5"/>',
+    revoke: '<circle cx="12" cy="12" r="8.5"/><path d="M8 12h8"/>',
+    info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8v.1"/>',
+    elbow: '<path d="M7 4v8.5h11"/>',
+    skull: '<path d="M12 3c-4.4 0-8 3.2-8 7.4 0 2.4 1.2 4.4 3 5.7V19a1 1 0 0 0 1 1h1.5v-2h1v2h3v-2h1v2H16a1 1 0 0 0 1-1v-2.9c1.8-1.3 3-3.3 3-5.7C20 6.2 16.4 3 12 3z"/><circle cx="9" cy="11" r="1.6"/><circle cx="15" cy="11" r="1.6"/>'
+  };
+  const gi = (n, cls) => `<svg class="gi ${cls || ''}" viewBox="0 0 24 24" aria-hidden="true">${GIP[n] || ''}</svg>`;
   Object.assign(I, {
     user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>',
     wifi: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 9a15 15 0 0120 0M5 12.5a10 10 0 0114 0M8.5 16a5 5 0 017 0"/><circle cx="12" cy="19.5" r="1"/></svg>',
@@ -6479,7 +6539,7 @@ if (typeof module !== 'undefined') module.exports = CATS;
     let svg = '';
     for (const l of links) {
       const x1 = nodes[l.a].x + W, x2 = nodes[l.b].x - W, mx = (x1 + x2) / 2;
-      svg += `<g class="tl ${l.s}"><title>${esc(l.tip)}</title><line x1="${x1}" y1="${Y}" x2="${x2}" y2="${Y}"/>${flow && l.s === 'ok' ? `<line class="flow" x1="${x1}" y1="${Y}" x2="${x2}" y2="${Y}"/>` : ''}${l.s === 'bad' ? `<text x="${mx}" y="${Y + 6}" text-anchor="middle" class="x">✕</text>` : ''}${l.label ? `<text x="${mx}" y="${Y - 12}" text-anchor="middle" class="ll">${esc(l.label)}</text><text x="${mx}" y="${Y + 24}" text-anchor="middle" class="ls">${esc(l.sub)}</text>` : ''}</g>`;
+      svg += `<g class="tl ${l.s}"><title>${esc(l.tip)}</title><line x1="${x1}" y1="${Y}" x2="${x2}" y2="${Y}"/>${flow && l.s === 'ok' ? `<line class="flow" x1="${x1}" y1="${Y}" x2="${x2}" y2="${Y}"/>` : ''}${l.s === 'bad' ? `<path class="x" d="M${mx - 5} ${Y - 5}l10 10M${mx + 5} ${Y - 5}l-10 10"/>` : ''}${l.label ? `<text x="${mx}" y="${Y - 12}" text-anchor="middle" class="ll">${esc(l.label)}</text><text x="${mx}" y="${Y + 24}" text-anchor="middle" class="ls">${esc(l.sub)}</text>` : ''}</g>`;
     }
     for (const n of nodes) svg += `<g class="tn" data-act="nav" data-id="${n.go}" role="link" tabindex="0" aria-label="${esc(n.t)}: open"><title>Open ${esc(n.t)}</title><rect x="${n.x - W}" y="${Y - 26}" width="${W * 2}" height="52" rx="9"/><text x="${n.x}" y="${Y - 4}" text-anchor="middle" class="nt">${esc(n.t)}</text><text x="${n.x}" y="${Y + 13}" text-anchor="middle" class="ns">${esc(n.s)}</text></g>`;
     return `<section class="card widget topo-card"><div class="topo-head"><h2>Live topology</h2>${flow ? pill('Traffic flows end to end', 'ok') : pill('End-to-end path broken', 'bad')}<span class="muted topo-hint">Click a box to open it. Hover a link for its exact status.</span></div>
@@ -6501,7 +6561,7 @@ if (typeof module !== 'undefined') module.exports = CATS;
       <div class="tablewrap"><table class="grid"><thead><tr><th>Name</th><th>Alias</th><th>Type</th><th>Role</th><th>IP/Netmask</th><th>Administrative Access</th><th>Status</th><th>Traffic (Rx / Tx)</th><th>Ref.</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
   };
   function ifRow(i, r, sub) {
-    return `<tr class="${sub ? 'sub' : ''}"><td class="mono">${sub ? '└ ' : ''}${esc(i.name)}</td><td>${esc(i.alias)}</td><td>${esc(i.type === 'vlan' ? `VLAN ${i.vlanid}${i.parent ? ' on ' + i.parent : ''}` : i.type === 'tunnel' ? 'IPsec tunnel' : 'Physical')}</td><td>${esc(i.role === 'undefined' ? '' : i.role.toUpperCase())}</td>
+    return `<tr class="${sub ? 'sub' : ''}"><td class="mono">${sub ? gi('elbow', 'gi-tree') : ''}${esc(i.name)}</td><td>${esc(i.alias)}</td><td>${esc(i.type === 'vlan' ? `VLAN ${i.vlanid}${i.parent ? ' on ' + i.parent : ''}` : i.type === 'tunnel' ? 'IPsec tunnel' : 'Physical')}</td><td>${esc(i.role === 'undefined' ? '' : i.role.toUpperCase())}</td>
     <td class="mono num">${i.ip === '0.0.0.0' ? '<span class="muted">0.0.0.0/0</span>' : cv(i.ip + '/' + i.bits, i.name + ' address')}${i.type === 'tunnel' && i.remoteIp ? `<div class="help">remote ${esc(i.remoteIp)}</div>` : ''}</td><td>${chips(i.allowaccess.map(a => a.toUpperCase()), '')}</td>
     <td>${pill(i.status === 'up' ? 'Up' : 'Down', i.status === 'up' ? 'ok' : 'mute')}</td><td class="num">${(c => c ? `${fmtBytes(c.rx)} / ${fmtBytes(c.tx)}<div>${spark(c.hist, 'sm', i.name + ' bandwidth')} <span class="help">${fmtRate(c.rate)}</span></div>` : '<span class="muted">-</span>')(TELE.iface(i.name))}</td><td class="num">${r}</td>
     <td class="acts">${actBtn('if-edit', i.name, I.edit, 'Edit ' + i.name)}${i.type === 'vlan' ? actBtn('if-del', i.name, I.del, 'Delete ' + i.name) : ''}</td></tr>`;
@@ -6557,7 +6617,7 @@ if (typeof module !== 'undefined') module.exports = CATS;
       list.forEach((p, i) => { const k = `${p.srcintf.join(', ')} → ${p.dstintf.join(', ')}`; if (!groups.has(k)) groups.set(k, []); groups.get(k).push([p, i]); });
       for (const [k, xs] of groups) rows += grpRow(esc(k), xs.length, '', 'pair' + k) + xs.map(([p, i]) => row(p, i)).join('');
     }
-    const dlg = UI.lkOpen ? `<div class="modal-back g74-lkback"><div class="modal wide g74-lk" role="dialog" aria-modal="true" aria-label="Policy Lookup"><header><h2>Policy Lookup</h2><button class="ibtn" data-act="lk-close" aria-label="Close">✕</button></header><div class="body">${lookupCard()}</div></div></div>` : '';
+    const dlg = UI.lkOpen ? `<div class="modal-back g74-lkback"><div class="modal wide g74-lk" role="dialog" aria-modal="true" aria-label="Policy Lookup"><header><h2>Policy Lookup</h2><button class="ibtn" data-act="lk-close" aria-label="Close">${gi('x')}</button></header><div class="body">${lookupCard()}</div></div></div>` : '';
     return head('Policies are checked from the top down. The first one that matches decides what happens. Anything that matches nothing is dropped by the implicit deny.') +
       `<div class="toolbar">${menuBtn('pol-new', 'Create New', [['pol-new', 'Policy'], ['sec-new', 'Section']], true)}<button class="btn" data-act="lk-open">${I.search} Policy Lookup</button>
       <div class="g74-seg" role="group" aria-label="Table view"><button class="${view === 'pair' ? 'on' : ''}" data-act="pol-view" data-id="pair" aria-pressed="${view === 'pair'}">Interface Pair View</button><button class="${view === 'seq' ? 'on' : ''}" data-act="pol-view" data-id="seq" aria-pressed="${view === 'seq'}">Sequence View</button></div>
@@ -6571,7 +6631,7 @@ if (typeof module !== 'undefined') module.exports = CATS;
     const presets = [['LAN user → web', 'port2', '10.10.10.20', '8.8.8.8', 'tcp', '443'], ['Kiosk → web', 'port2', '10.10.10.99', '8.8.8.8', 'tcp', '443'], ['Internet → web server', 'port1', '198.18.5.5', '203.0.113.11', 'tcp', '443'], ['Engineering → FS01 SMB', 'ENG-VLAN20', '10.20.0.15', '10.10.10.50', 'tcp', '445'], ['LAN → Azure VM', 'port2', '10.10.10.20', '10.100.1.4', 'tcp', '443'], ['Internet → FW admin', 'port1', '185.220.101.47', '203.0.113.10', 'tcp', '443'], ['Azure VM → workstation RDP', 'To-Azure', '10.100.1.4', '10.10.10.20', 'tcp', '3389'], ['Vendor scanner → console', 'port2', '10.10.10.60', '203.0.113.50', 'tcp', '8443']];
     let out = '';
     if (R) {
-      const icon = s => s.ok === true ? '✓' : s.ok === false ? '✕' : '·';
+      const icon = s => gi(s.ok === true ? 'check' : s.ok === false ? 'x' : 'dot');
       out = `<div class="trace">${R.steps.map(s => `<div class="row ${s.ok === true ? 'ok' : s.ok === false ? 'bad' : 'neu'}"><span class="ic">${icon(s)}</span><span>${esc(s.text)}</span></div>`).join('')}
         <div class="verdict ${R.verdict}">${R.verdict === 'accept' ? 'ACCEPTED' : R.verdict === 'blocked' ? 'BLOCKED BY SECURITY PROFILE' : 'DROPPED'}${R.policyId !== null && R.policyId !== undefined ? ` · ${R.policyId === 'local-in' ? 'local-in' : 'policy ' + R.policyId}` : ''}${R.recorded ? ' · recorded as traffic' : ''}</div></div>`;
     }
@@ -6705,7 +6765,7 @@ if (typeof module !== 'undefined') module.exports = CATS;
       </form>
       <section class="card widget"><h2>DNS lookup test</h2><p class="help" style="margin:0 0 8px">Ask the configured servers from the firewall, like <span class="mono">execute ping</span> on a hostname would. Lab names that resolve: login.microsoftonline.com, updates.talvex.com.</p>
         <form class="g74-inline" data-g74="dnstest"><input class="inp mono" name="q" value="${esc((R && R.q) || 'login.microsoftonline.com')}" aria-label="Hostname" autocomplete="off"><button class="btn" type="submit">${I.play} Resolve</button></form>
-        ${R ? `<div class="trace" style="margin-top:10px">${R.steps.map(s => `<div class="row ${s[1] ? 'ok' : 'bad'}"><span class="ic">${s[1] ? '✓' : '✕'}</span><span>${esc(s[0])}</span></div>`).join('')}</div>` : ''}
+        ${R ? `<div class="trace" style="margin-top:10px">${R.steps.map(s => `<div class="row ${s[1] ? 'ok' : 'bad'}"><span class="ic">${gi(s[1] ? 'check' : 'x')}</span><span>${esc(s[0])}</span></div>`).join('')}</div>` : ''}
         <p class="help" style="margin:10px 0 0">Servers in use: <span class="mono">${esc(srv.join(', ') || 'none')}</span></p></section>`;
   };
   function dnsTest(q) {
@@ -6732,7 +6792,7 @@ if (typeof module !== 'undefined') module.exports = CATS;
     return head('Capture packets on an interface, like diagnose sniffer packet. A capture takes a snapshot of the traffic crossing that interface right now.') +
       `<div class="toolbar"><button class="btn primary" data-act="pc-new">${I.plus} Create New</button><span class="help">CLI equivalent: <span class="mono">diagnose sniffer packet port2 'host 10.10.10.20' 4</span></span></div>
       <div class="tablewrap"><table class="grid"><thead><tr><th>Interface</th><th>Filter</th><th>Max packets</th><th>Status</th><th>Packets</th><th></th></tr></thead><tbody>${S.pcap.map(c => `<tr><td class="mono">${esc(c.iface)}</td><td class="mono">${esc(c.filter || 'none')}</td><td class="num">${esc(c.max)}</td><td>${c.status === 'done' ? pill('Complete', 'ok') : pill('Not running', 'mute')}</td><td class="num">${(c.packets || []).length}</td><td class="acts">${actBtn('pc-run', c.id, I.play, 'Start capture')}${c.packets && c.packets.length ? actBtn('pc-view', c.id, I.list, 'View packets') : ''}${actBtn('pc-del', c.id, I.del, 'Delete capture')}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">No packet captures. Create one, then press Start.</td></tr>'}</tbody></table></div>
-      ${(c => c ? `<section class="card widget" style="margin-top:14px"><div class="g74-wh"><h2>Capture on ${esc(c.iface)}</h2><span class="grow"></span><button class="ibtn" data-act="pc-view" data-id="" aria-label="Close packets">✕</button></div><pre class="g74-pre">${esc(c.packets.join('\n'))}</pre></section>` : '')(S.pcap.find(c => c.id === open && c.packets && c.packets.length))}`;
+      ${(c => c ? `<section class="card widget" style="margin-top:14px"><div class="g74-wh"><h2>Capture on ${esc(c.iface)}</h2><span class="grow"></span><button class="ibtn" data-act="pc-view" data-id="" aria-label="Close packets">${gi('x')}</button></div><pre class="g74-pre">${esc(c.packets.join('\n'))}</pre></section>` : '')(S.pcap.find(c => c.id === open && c.packets && c.packets.length))}`;
   };
   function pcapRun(c) {
     const f = String(c.filter || '').toLowerCase().trim();
@@ -6810,10 +6870,10 @@ if (typeof module !== 'undefined') module.exports = CATS;
     const sel = UI.logSel && all.find(l => logKey(l) === UI.logSel);
     const subs = V.sub ? [...new Set(S.logs.event.map(e => e.sub || 'system'))] : [];
     const sl = SIM.syslog(S);
-    return head(V.lede) + (sl.on ? `<p class="help">${sl.ok ? '✓' : '⚠'} Syslog: ${esc(sl.reason)}</p>` : '') + `<div class="toolbar"><input class="search" id="logFilter" placeholder="Filter (IP, policy, text)…" value="${esc(UI.filter)}" aria-label="Filter logs">${V.sub ? `<select class="inp" style="width:auto" data-act-change="ev-sub" aria-label="Subtype"><option value="">All subtypes</option>${subs.map(s => `<option value="${esc(s)}" ${UI.evSub === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>` : ''}<span class="help num">${rows.length === all.length ? `${all.length} entries` : `${rows.length} of ${all.length} match`}${rows.length > 250 ? ', showing newest 250' : ''}</span><span class="grow"></span><span class="live-off-note">${UI.live ? `Live · keeps the newest ${SIM.LOG_CAP}` : 'Paused snapshot · turn on Live Mode for new entries'}</span>${pid === 'log-forward' || pid === 'log-local' ? '<button class="btn sm" data-act="logs-clear" title="Clear forward and local traffic logs">Clear logs</button>' : ''}</div>
+    return head(V.lede) + (sl.on ? `<p class="help">${gi(sl.ok ? 'check' : 'warn', sl.ok ? 'gi-ok' : 'gi-warn')} Syslog: ${esc(sl.reason)}</p>` : '') + `<div class="toolbar"><input class="search" id="logFilter" placeholder="Filter (IP, policy, text)…" value="${esc(UI.filter)}" aria-label="Filter logs">${V.sub ? `<select class="inp" style="width:auto" data-act-change="ev-sub" aria-label="Subtype"><option value="">All subtypes</option>${subs.map(s => `<option value="${esc(s)}" ${UI.evSub === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>` : ''}<span class="help num">${rows.length === all.length ? `${all.length} entries` : `${rows.length} of ${all.length} match`}${rows.length > 250 ? ', showing newest 250' : ''}</span><span class="grow"></span><span class="live-off-note">${UI.live ? `Live · keeps the newest ${SIM.LOG_CAP}` : 'Paused snapshot · turn on Live Mode for new entries'}</span>${pid === 'log-forward' || pid === 'log-local' ? '<button class="btn sm" data-act="logs-clear" title="Clear forward and local traffic logs">Clear logs</button>' : ''}</div>
       <p class="help" style="margin:-4px 0 8px">CLI: <span class="mono">${esc(V.cli)}</span></p>
       <div class="tablewrap"><table class="grid g74-log"><thead><tr>${V.cols.map(c => `<th>${c[0]}</th>`).join('')}</tr></thead><tbody>${shown.map(l => { const k = logKey(l); return `<tr${rk(l)} class="${UI.logSel === k ? 'sel' : ''}" data-act="log-sel" data-id="${esc(k)}" tabindex="0">${V.cols.map(c => `<td>${c[1](l)}</td>`).join('')}</tr>`; }).join('') || `<tr><td colspan="${V.cols.length}" class="empty">No matching log entries.</td></tr>`}</tbody></table></div>
-      ${sel ? `<section class="card widget g74-logdet"><div class="g74-wh"><h2>Log details</h2><span class="grow"></span><button class="ibtn" data-act="log-sel" data-id="" aria-label="Close details">✕</button></div><dl class="kv">${Object.entries(sel).map(([k, v]) => `<dt>${esc(k)}</dt><dd class="mono">${esc(k === 'ts' ? fmtTs(v) : typeof v === 'object' ? JSON.stringify(v) : v)}</dd>`).join('')}</dl></section>` : ''}`;
+      ${sel ? `<section class="card widget g74-logdet"><div class="g74-wh"><h2>Log details</h2><span class="grow"></span><button class="ibtn" data-act="log-sel" data-id="" aria-label="Close details">${gi('x')}</button></div><dl class="kv">${Object.entries(sel).map(([k, v]) => `<dt>${esc(k)}</dt><dd class="mono">${esc(k === 'ts' ? fmtTs(v) : typeof v === 'object' ? JSON.stringify(v) : v)}</dd>`).join('')}</dl></section>` : ''}`;
   }
   for (const pid of Object.keys(LOGV)) P[pid] = () => logViewer(pid);
   P.logs = () => logViewer('log-forward'); // legacy id
@@ -7098,7 +7158,7 @@ if (typeof module !== 'undefined') module.exports = CATS;
     if (F.normalize) F.normalize(F.data);
     const prev = document.querySelector('.modal .body'); const sc = prev ? prev.scrollTop : 0;
     const fields = F.fields.filter(f => !f.show || f.show(F.data));
-    $('#modalRoot').innerHTML = `<div class="modal-back" data-back><div class="modal ${F.wide ? 'wide' : ''}" role="dialog" aria-modal="true" aria-label="${esc(F.title)}"><header><h2>${esc(F.title)}</h2><button class="ibtn" data-fclose aria-label="Close">✕</button></header><form class="body" id="fForm">${fields.map(fieldHtml).join('')}<button type="submit" hidden></button></form><footer><span class="err" role="alert">${esc(F.err)}</span><button class="btn" data-fclose type="button">Cancel</button><button class="btn ${F.danger ? 'danger solid' : 'primary'}" data-fsave type="button">${esc(F.saveLabel || 'OK')}</button></footer></div></div>`;
+    $('#modalRoot').innerHTML = `<div class="modal-back" data-back><div class="modal ${F.wide ? 'wide' : ''}" role="dialog" aria-modal="true" aria-label="${esc(F.title)}"><header><h2>${esc(F.title)}</h2><button class="ibtn" data-fclose aria-label="Close">${gi('x')}</button></header><form class="body" id="fForm">${fields.map(fieldHtml).join('')}<button type="submit" hidden></button></form><footer><span class="err" role="alert">${esc(F.err)}</span><button class="btn" data-fclose type="button">Cancel</button><button class="btn ${F.danger ? 'danger solid' : 'primary'}" data-fsave type="button">${esc(F.saveLabel || 'OK')}</button></footer></div></div>`;
     const b = document.querySelector('.modal .body'); if (b) b.scrollTop = sc;
     if (first) { const el = document.querySelector('.modal .body input:not([readonly]), .modal .body select, .modal .body textarea'); if (el) el.focus(); else { const s = document.querySelector('[data-fsave]'); if (s) s.focus(); } }
   }
@@ -7432,10 +7492,10 @@ if (typeof module !== 'undefined') module.exports = CATS;
   const azDone = (err, title, text, warns) => { if (err) return err; toast(title, text, 'ok'); (warns || []).forEach(w => toast('Warning', w, 'bad')); };
   const rgOpts = () => S.azure.resourceGroups.length ? S.azure.resourceGroups.map(r => r.name) : [['', 'No resource groups: create one first']];
   const prefixPreview = (s, v) => {
-    const c = AZ.checkPrefix(s, 'Address space'); if (c.err) return '✗ ' + c.err;
+    const c = AZ.checkPrefix(s, 'Address space'); if (c.err) return 'Error: ' + c.err;
     const i = AZ.subnetInfo(c.p), dup = v && v.addressSpace.find(a => AZ.overlaps(a, c.p));
-    if (dup) return `✗ ${AZ.fmt(c.p)} overlaps ${AZ.fmt(dup)} already in this virtual network.`;
-    return [`✓ ${AZ.fmt(c.p)}: ${c.p.ip} - ${i.broadcast} (${i.total.toLocaleString()} addresses)`].concat(AZ.prefixWarnings(S, c.p, v).map(w => '⚠ ' + w)).join('\n');
+    if (dup) return `Error: ${AZ.fmt(c.p)} overlaps ${AZ.fmt(dup)} already in this virtual network.`;
+    return [`Valid: ${AZ.fmt(c.p)}: ${c.p.ip} - ${i.broadcast} (${i.total.toLocaleString()} addresses)`].concat(AZ.prefixWarnings(S, c.p, v).map(w => 'Warning: ' + w)).join('\n');
   };
   const nextFreeSubnet = v => {
     const a = v.addressSpace[0]; if (!a) return '';
@@ -7483,7 +7543,7 @@ if (typeof module !== 'undefined') module.exports = CATS;
       fields: [
         { type: 'note', key: '_n', html: esc(`Address space: ${v.addressSpace.map(AZ.fmt).join(', ')}. Special subnets Azure finds by exact name: GatewaySubnet (VPN gateway), AzureFirewallSubnet (/26 or larger), AzureBastionSubnet (/26 or larger).`) },
         { key: 'name', label: 'Name', mono: true, placeholder: 'snet-app', help: '1-80 characters' }, { key: 'prefix', label: 'Subnet address range', mono: true, placeholder: '10.100.1.0/24' },
-        { key: '_pv', label: '', type: 'preview', text: d => { if (!String(d.name || '').trim()) return 'Enter a name and an address range.'; const err = AZ.validateSubnet(S, v.rg, v.name, d.name, d.prefix); if (err) return '✗ ' + err; const p = AZ.parsePrefix(d.prefix), i = AZ.subnetInfo(p); return [`✓ ${AZ.fmt(p)}`, `Usable: ${i.first} - ${i.last}`, `${i.usable} available addresses (${i.total} total, 5 reserved by Azure)`].concat(AZ.subnetWarnings(d.name.trim(), p).map(w => '⚠ ' + w)).join('\n'); } }
+        { key: '_pv', label: '', type: 'preview', text: d => { if (!String(d.name || '').trim()) return 'Enter a name and an address range.'; const err = AZ.validateSubnet(S, v.rg, v.name, d.name, d.prefix); if (err) return 'Error: ' + err; const p = AZ.parsePrefix(d.prefix), i = AZ.subnetInfo(p); return [`Valid: ${AZ.fmt(p)}`, `Usable: ${i.first} - ${i.last}`, `${i.usable} available addresses (${i.total} total, 5 reserved by Azure)`].concat(AZ.subnetWarnings(d.name.trim(), p).map(w => 'Warning: ' + w)).join('\n'); } }
       ],
       onSave: x => { const err = AZ.createSubnet(S, v.rg, v.name, x); return azDone(err, 'Subnet added', `${x.name.trim()} in ${v.name}`, err ? [] : AZ.subnetWarnings(x.name.trim(), AZ.parsePrefix(x.prefix))); }
     });
@@ -8144,8 +8204,8 @@ if (typeof module !== 'undefined') module.exports = CATS;
     let body = `<div class="nm-row"><span class="nm-lvl">LEVEL ${run.level}</span><span class="muted">Run ${esc(run.run_id)} · seed ${run.run_seed}</span><span style="flex:1"></span><span class="mono" id="nmTimer">${mmss(Date.now() - run.startedAt)}</span></div>
       <div class="nm-ticket"><div class="from">Ticket from ${esc(NMS.from)} · Priority ${run.level >= 4 ? 'P1' : 'P2'}</div>${esc(run.ticket)}</div>
       ${locked ? `<div class="nm-warn">The GUI is refusing your login. The CLI console still works.</div>` : ''}
-      <div><div class="sub-h">Monitoring</div><ul class="checklist">${hs.map(x => `<li><span class="${x.ok ? 'y' : 'n'}">${x.ok ? '✓' : '✗'}</span><span>${esc(x.label)}</span></li>`).join('')}</ul></div>
-      ${wk.map(w => `<div class="nm-warn">⚠ ${esc(w)}</div>`).join('')}`;
+      <div><div class="sub-h">Monitoring</div><ul class="checklist">${hs.map(x => `<li><span class="${x.ok ? 'y' : 'n'}">${gi(x.ok ? 'check' : 'x')}</span><span>${esc(x.label)}</span></li>`).join('')}</ul></div>
+      ${wk.map(w => `<div class="nm-warn">${gi('warn')} ${esc(w)}</div>`).join('')}`;
     if (run.level > 1) body += `<div class="nm-count">Faults fixed: <b>${fixedN}</b> of ${known.length} found so far${hidden ? '. More may surface as you fix these.' : ''}</div>`;
     const taken = run.events.filter(e => e.t === 'hint');
     for (const e of taken) body += `<div class="hint"><b>Hint ${e.n} of 3.</b> ${esc(NMX.PACK[e.id].hints[e.n - 1] || '')}</div>`;
@@ -8196,7 +8256,7 @@ if (typeof module !== 'undefined') module.exports = CATS;
     else if (NMS.view === 'debrief' && NMS.deb) body = nmDebView();
     else if (NMS.on && NMS.run && NMS.run.status === 'open') body = nmRunView();
     else body = nmStartView();
-    d.innerHTML = `<header><div style="display:flex;align-items:center;gap:8px"><h2 style="flex:1">Nightmare mode</h2><button class="ibtn" data-act="drawer-close" aria-label="Close Nightmare mode">✕</button></div><p>Seeded production incidents. Nothing is uniform.</p></header><div class="scroll"><div class="nm">${body}</div></div>`;
+    d.innerHTML = `<header><div style="display:flex;align-items:center;gap:8px"><h2 style="flex:1">Nightmare mode</h2><button class="ibtn" data-act="drawer-close" aria-label="Close Nightmare mode">${gi('x')}</button></div><p>Seeded production incidents. Nothing is uniform.</p></header><div class="scroll"><div class="nm">${body}</div></div>`;
     const s2 = d.querySelector('.scroll'); if (s2) s2.scrollTop = sc;
   }
   document.addEventListener('change', e => { if (e.target && e.target.id === 'nmLevel') { const x = $('#nmLvlEcho'); if (x) x.textContent = e.target.value; } });
@@ -8442,7 +8502,7 @@ if (typeof module !== 'undefined') module.exports = CATS;
     const d = $('#drawer'); d.hidden = !UI.drawer; if (!UI.drawer) return;
     const sc = d.querySelector('.scroll') ? d.querySelector('.scroll').scrollTop : 0;
     const done = doneCount();
-    let html = `<header><div style="display:flex;align-items:center;gap:8px"><h2 style="flex:1">Missions</h2><span class="dr-count">${done}/${MISSIONS.length} done</span><button class="ibtn" data-act="drawer-close" aria-label="Close missions">✕</button></div>${learnToggle()}</header><div class="scroll">`;
+    let html = `<header><div style="display:flex;align-items:center;gap:8px"><h2 style="flex:1">Missions</h2><span class="dr-count">${done}/${MISSIONS.length} done</span><button class="ibtn" data-act="drawer-close" aria-label="Close missions">${gi('x')}</button></div>${learnToggle()}</header><div class="scroll">`;
     const offer = learnOf().pending && !guided(); let offered = false; const top = html.length;
     for (const tier of MISSIONS.TIERS) {
       const ms = MISSIONS.filter(m => m.tier === tier);
@@ -8452,12 +8512,12 @@ if (typeof module !== 'undefined') module.exports = CATS;
         const st = UI.status[m.id] || []; const ok = isDone(m); const part = !ok && st.some(x => x.ok) && m.type === 'config';
         const rec = S.missions[m.id] || { hints: 0 }; const open = misOpen(m.id);
         const hot = m.type === 'threat' && (S.threats[m.id] || {}).lastAccepted && Date.now() - S.threats[m.id].lastAccepted < 45000;
-        html += `<div class="mis ${ok ? 'done' : hot ? 'hot' : part ? 'part' : ''} ${m.followup ? 'fu' : ''}"><button class="head" data-act="mis-open" data-id="${m.id}" aria-expanded="${open}"><span class="badge">${ok ? '✓' : ''}</span><span>${m.followup ? '<span class="fu-tag">follow-up</span> ' : ''}${m.view === 'azure' ? '<span class="fu-tag">Azure</span> ' : ''}${m.needs_live ? '<span class="fu-tag live-tag" title="Needs Live Mode">Live</span> ' : ''}<b>${esc(m.title)}</b><br><small>${m.type === 'answer' ? 'find & answer' : m.type === 'threat' && !(S.threats[m.id] || {}).active ? 'locked' : m.type === 'threat' ? ((S.threats[m.id] || {}).lastAccepted && Date.now() - S.threats[m.id].lastAccepted < 45000 ? 'ACTIVE · succeeding' : 'active') : st.filter(x => x.ok).length + '/' + st.length + ' checks'}</small></span><span class="muted">${open ? '−' : '+'}</span></button>`;
+        html += `<div class="mis ${ok ? 'done' : hot ? 'hot' : part ? 'part' : ''} ${m.followup ? 'fu' : ''}"><button class="head" data-act="mis-open" data-id="${m.id}" aria-expanded="${open}"><span class="badge">${ok ? gi('check') : ''}</span><span>${m.followup ? '<span class="fu-tag">follow-up</span> ' : ''}${m.view === 'azure' ? '<span class="fu-tag">Azure</span> ' : ''}${m.needs_live ? '<span class="fu-tag live-tag" title="Needs Live Mode">Live</span> ' : ''}<b>${esc(m.title)}</b><br><small>${m.type === 'answer' ? 'find & answer' : m.type === 'threat' && !(S.threats[m.id] || {}).active ? 'locked' : m.type === 'threat' ? ((S.threats[m.id] || {}).lastAccepted && Date.now() - S.threats[m.id].lastAccepted < 45000 ? 'ACTIVE · succeeding' : 'active') : st.filter(x => x.ok).length + '/' + st.length + ' checks'}</small></span><span class="muted">${gi(open ? 'minus' : 'plus')}</span></button>`;
         if (open) {
           if (m.needs_live && !UI.live) { UI.liveAsk = true; html += `<div class="content">${liveBanner()}<div class="story">${esc(m.story)}</div>`; } else
           {
             const live = m.type === 'config' || m.type === 'threat', paired = live && st.length === m.tasks.length;
-            const mark = x => `<span class="${x.ok ? 'y' : 'n'}">${x.ok ? '✓' : '○'}</span>`;
+            const mark = x => `<span class="${x.ok ? 'y' : 'n'}">${gi(x.ok ? 'check' : 'ring')}</span>`;
             html += `<div class="content"><div class="story">${esc(m.story)}</div>`;
             if (paired) html += `<div><div class="sub-h">Tasks</div><ul class="checklist">${m.tasks.map((t, i) => `<li title="Check: ${esc(st[i].label)}">${mark(st[i])}<span>${esc(t)}</span></li>`).join('')}</ul></div>`;
             else {
@@ -8553,21 +8613,21 @@ if (typeof module !== 'undefined') module.exports = CATS;
       const items = CATS.reqs(t).map(k => {
         const r = CATS.REQ[k], have = r.test(S);
         const by = r.covers.map(id => { const m = misById(id); if (!m) return ''; const open = !secLocked(m.tier); return open ? `<button class="sec-link" data-act="sec-pick" data-id="${esc(m.tier)}" data-mis="${esc(m.id)}">${esc(m.title)}</button>` : esc(m.title); }).filter(Boolean).join(', ');
-        return `<li class="${have ? 'have' : ''}"><span aria-hidden="true">${have ? '✓' : '○'}</span> ${esc(r.label)}${have ? '' : `<br><span class="muted">Built in: ${by}</span>`}</li>`;
+        return `<li class="${have ? 'have' : ''}"><span aria-hidden="true">${gi(have ? 'check' : 'ring')}</span> ${esc(r.label)}${have ? '' : `<br><span class="muted">Built in: ${by}</span>`}</li>`;
       }).join('');
       return `<div class="sec-card locked" role="group" aria-label="${esc(t)}, locked">${head}<span class="sec-tag lock">${lockIc}Locked</span></span>${meta}
         <details class="sec-why-d" data-k="why-${esc(t)}"><summary>How to unlock</summary><div class="sec-why"><span>${esc(info.why || 'It builds on config from an earlier section.')}</span><span class="sub-h">Needs this config in the firewall${v !== 'fg' ? ' and Azure' : ''}</span><ul class="req-list">${items}</ul>
         <div><button class="btn" data-act="sec-auto" data-id="${esc(t)}" title="Applies the baseline config. The missions that build it are marked skipped and do not score.">Auto-configure prerequisites</button></div></div></details></div>`;
     }
-    const done = n + sk === ms.length, tag = done ? '<span class="sec-tag ok">✓ Done</span>' : t === rec ? '<span class="sec-tag next">Suggested next</span>' : n || sk ? '<span class="sec-tag">In progress</span>' : '';
+    const done = n + sk === ms.length, tag = done ? `<span class="sec-tag ok">${gi('check')} Done</span>` : t === rec ? '<span class="sec-tag next">Suggested next</span>' : n || sk ? '<span class="sec-tag">In progress</span>' : '';
     return `<button class="sec-card ${done ? 'done' : ''}" data-act="sec-pick" data-id="${esc(t)}" aria-label="Start ${esc(t)}: ${n} of ${ms.length} done${sk ? `, ${sk} skipped` : ''}">${head}${tag}<span class="sec-num">${n}/${ms.length}${sk ? ` · ${sk} skipped` : ''}</span></span>${meta}<span class="sec-bar"><i style="width:${pct}%"></i></span></button>`;
   }
   function renderSectionPicker(d) {
     const sc = d.dataset.sec === 'pick' && d.querySelector('.scroll') ? d.querySelector('.scroll').scrollTop : 0;
     const L = secTiers(), rec = secNext(null), locked = L.filter(secLocked).length, all = CATS.progress(S);
-    let html = `<header><div style="display:flex;align-items:center;gap:8px"><h2 style="flex:1">Categories</h2><span class="dr-count">${all.done}/${all.total} done${all.skipped ? ` · ${all.skipped} skipped` : ''}</span><button class="ibtn" data-act="drawer-close" aria-label="Close missions">✕</button></div><p>Start anywhere.${locked ? ` Locked ones open once the config they build on exists.` : ''}</p><div class="sec-bar" aria-hidden="true"><i style="width:${Math.round(all.done / all.total * 100)}%"></i></div></header><div class="scroll"><div class="sec-list">`;
+    let html = `<header><div style="display:flex;align-items:center;gap:8px"><h2 style="flex:1">Categories</h2><span class="dr-count">${all.done}/${all.total} done${all.skipped ? ` · ${all.skipped} skipped` : ''}</span><button class="ibtn" data-act="drawer-close" aria-label="Close missions">${gi('x')}</button></div><p>Start anywhere.${locked ? ` Locked ones open once the config they build on exists.` : ''}</p><div class="sec-bar" aria-hidden="true"><i style="width:${Math.round(all.done / all.total * 100)}%"></i></div></header><div class="scroll"><div class="sec-list">`;
     html += L.map((t, i) => secCard(t, i, rec)).join('');
-    html += `<button class="sec-card nm-card" data-act="sec-nm" aria-label="Open Nightmare mode"><span class="sec-top"><span class="sec-idx">☠</span><span class="sec-name">Nightmare mode</span><span class="sec-tag">Any time</span></span><span class="sec-blurb">Random faults planted on a working network. Replaces your current config when it starts.</span></button>`;
+    html += `<button class="sec-card nm-card" data-act="sec-nm" aria-label="Open Nightmare mode"><span class="sec-top"><span class="sec-idx">${gi('skull')}</span><span class="sec-name">Nightmare mode</span><span class="sec-tag">Any time</span></span><span class="sec-blurb">Random faults planted on a working network. Replaces your current config when it starts.</span></button>`;
     html += `</div><div class="sec-all"><button class="btn" data-act="sec-pick" data-id="*">Show every mission in one list</button></div></div>`;
     d.innerHTML = html; d.dataset.sec = 'pick';
     const s = d.querySelector('.scroll'); if (s) s.scrollTop = sc;
@@ -8575,7 +8635,7 @@ if (typeof module !== 'undefined') module.exports = CATS;
   function secNav(t) {
     const L = secTiers(), i = L.indexOf(t);
     void L; void i;
-    return `<div class="sec-nav"><button class="linkbtn" data-act="sec-list">◂ All categories</button></div>`;
+    return `<div class="sec-nav"><button class="linkbtn" data-act="sec-list">${gi('left')} All categories</button></div>`;
   }
   function secFoot(t) {
     if (t === '*' || !secDone(t)) return '';
@@ -8716,19 +8776,33 @@ if (typeof module !== 'undefined') module.exports = CATS;
   const fxOsIcon = os => /windows/i.test(os) ? FXI.win : /ios|mac/i.test(os) ? FXI.apple : /android/i.test(os) ? FXI.android : /fortiap/i.test(os) ? FXI.ap : FXI.dev;
 
   /* ---------- building blocks ---------- */
-  function fxDonut(segs, total, sub) {
+  function fxDonut(segs, total, sub, attr) {
     const R = 46, C = 2 * Math.PI * R, live = segs.filter(s => s.v > 0), sum = live.reduce((a, s) => a + s.v, 0), gap = live.length > 1 ? 1.4 : 0;
     let off = 0;
-    const arcs = live.map(s => { const len = s.v / sum * C, a = `<circle class="fx-arc" r="${R}" cx="60" cy="60" stroke="${s.c}" stroke-dasharray="${Math.max(0.01, len - gap).toFixed(2)} ${C.toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}"><title>${esc(s.l)}: ${fmtN(s.v)}</title></circle>`; off += len; return a; }).join('');
-    return `<svg class="fx-donut" viewBox="0 0 120 120" role="img" aria-label="${esc(total + ' ' + sub)}"><circle class="fx-ticks" r="57.5" cx="60" cy="60"/><circle class="fx-track" r="${R}" cx="60" cy="60"/><g class="fx-glow" transform="rotate(-90 60 60)" aria-hidden="true">${arcs.replace(/<title>.*?<\/title>/g, '')}</g><g transform="rotate(-90 60 60)">${arcs}</g><circle class="fx-inner" r="32" cx="60" cy="60"/><text x="60" y="62" class="fx-dv">${esc(total)}</text><text x="60" y="76" class="fx-ds">${esc(sub)}</text></svg>`;
+    const arc = act => { off = 0; return live.map(s => { const len = s.v / sum * C, at = act && attr ? attr(s).replace(/ role="button" tabindex="0"/, '') : '', a = `<circle class="fx-arc ${at ? 'fx-act' : ''}" r="${R}" cx="60" cy="60" stroke="${s.c}" stroke-dasharray="${Math.max(0.01, len - gap).toFixed(2)} ${C.toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" ${at}>${act ? `<title>${esc(s.l)}: ${fmtN(s.v)}</title>` : ''}</circle>`; off += len; return a; }).join(''); };
+    return `<svg class="fx-donut" viewBox="0 0 120 120" role="img" aria-label="${esc(total + ' ' + sub)}"><circle class="fx-ticks" r="57.5" cx="60" cy="60"/><circle class="fx-track" r="${R}" cx="60" cy="60"/><g class="fx-glow" transform="rotate(-90 60 60)" aria-hidden="true">${arc(false)}</g><g transform="rotate(-90 60 60)">${arc(true)}</g><circle class="fx-inner" r="32" cx="60" cy="60"/><text x="60" y="62" class="fx-dv">${esc(total)}</text><text x="60" y="76" class="fx-ds">${esc(sub)}</text></svg>`;
   }
-  const fxLegend = (title, segs) => { const shown = segs.filter(s => s.v > 0); const list = shown.length ? shown : [{ l: 'None', v: 0, c: FXC.grey }];
-    return `<div class="fx-lg"><h3>${esc(title)}</h3>${list.slice(0, 5).map(s => `<div class="fx-li"><i style="background:${s.c}"></i><span title="${esc(s.l)}">${esc(s.l)}</span><b class="num">${fmtN(s.v)}</b></div>`).join('')}${list.length > 5 ? `<div class="fx-more" title="${esc(list.slice(5).map(s => s.l + ': ' + s.v).join(', '))}">More...</div>` : ''}</div>`; };
+  /* Donut slices and legend entries are clickable, like FortiOS: on a monitor they filter the table below; on a
+     dashboard they open the page they summarise (how.go), optionally pre-filtered there (how.t = filter title). */
+  const FXS = {};
+  const fxReg = (title, segs, page) => { segs.forEach(s => { if (s.f) FXS[(page || UI.page) + '|' + title + '|' + s.l] = s.f; }); return segs; };
+  const fxSegAttr = (title, how) => s => { if (how === false) return ''; const pg = how && how.go ? how.go : UI.page, t = how && how.go ? (how.t || '') : title;
+    return `data-act="fx-seg" data-id="${esc(pg + '|' + t + '|' + s.l)}" role="button" tabindex="0" aria-label="${esc((how && how.go ? 'Open ' : 'Filter by ') + s.l)}"`; };
+  const fxLegend = (title, segs, how) => { const shown = segs.filter(s => s.v > 0); const list = shown.length ? shown : [{ l: 'None', v: 0, c: FXC.grey }];
+    const F = (UI.fxf || {})[UI.page], at = fxSegAttr(title, how);
+    const row = s => { const on = !(how && how.go) && F && F.t === title && F.l === s.l, a = s.v > 0 ? at(s) : '';
+      return a ? `<button type="button" class="fx-li fx-act ${on ? 'on' : ''}" ${a.replace(/ role="button" tabindex="0"/, '')}><i style="background:${s.c}"></i><span title="${esc(s.l)}">${esc(s.l)}</span><b class="num">${fmtN(s.v)}</b></button>` : `<div class="fx-li"><i style="background:${s.c}"></i><span title="${esc(s.l)}">${esc(s.l)}</span><b class="num">${fmtN(s.v)}</b></div>`; };
+    return `<div class="fx-lg"><h3>${esc(title)}</h3>${list.slice(0, 5).map(row).join('')}${list.length > 5 ? `<div class="fx-more" title="${esc(list.slice(5).map(s => s.l + ': ' + s.v).join(', '))}">More...</div>` : ''}</div>`; };
   /* monitor summary card: donut on the left, legend on the right (the strip above every monitor table) */
-  const fxDonutCard = (title, segs, sub, total) => `<section class="fx-w fx-dc">${fxDonut(segs, fmtN(total != null ? total : segs.reduce((a, s) => a + s.v, 0)), sub || 'Total')}${fxLegend(title, segs)}</section>`;
+  const fxDonutCard = (title, segs, sub, total) => { fxReg(title, segs); const how = segs.some(x => x.f) ? undefined : false;
+    return `<section class="fx-w fx-dc">${fxDonut(segs, fmtN(total != null ? total : segs.reduce((a, s) => a + s.v, 0)), sub || 'Total', fxSegAttr(title, how))}${fxLegend(title, segs, how)}</section>`; };
   const fxStrip = cards => `<div class="fx-strip">${cards.join('')}<button class="fx-ib fx-gear" data-act="fx-refresh" title="Refresh" aria-label="Refresh">${FXI.gear}</button></div>`;
   const fxTools = extra => `<span class="fx-tools">${extra || ''}<button class="fx-ib" data-act="fx-refresh" title="Refresh" aria-label="Refresh">${FXI.refresh}</button><span class="fx-ib fx-mn" aria-hidden="true">${FXI.menu}${I.caret}</span></span>`;
-  const fxWidget = (title, body, cls, extra) => `<section class="fx-w ${cls || ''}"><header class="fx-wh"><h2>${title}</h2>${fxTools(extra)}</header><div class="fx-wb">${body}</div></section>`;
+  /* go: the page this widget summarises. The title and an expand button open it. */
+  const fxWidget = (title, body, cls, extra, go) => `<section class="fx-w ${cls || ''}"><header class="fx-wh"><h2>${go ? `<button type="button" class="fx-tl" data-act="nav" data-id="${go}" title="Open ${esc(pageTitle(go)[1] || go)}">${title}</button>` : title}</h2>${fxTools((extra || '') + (go ? `<button class="fx-ib" data-act="nav" data-id="${go}" title="Open ${esc(pageTitle(go)[1] || go)}" aria-label="Open ${esc(pageTitle(go)[1] || go)}">${gi('expand')}</button>` : ''))}</header><div class="fx-wb">${body}</div></section>`;
+  /* an interface name that opens Network > Interfaces (or the tunnel / SD-WAN page it belongs to) */
+  const fxIf = (n, wan, go) => { const i = SIM.iface(S, n); return `<button type="button" class="fx-if fx-lk ${wan || (i && i.role === 'wan') ? 'wan' : ''}" data-act="nav" data-id="${go || (i && i.type === 'tunnel' ? 'ipsec' : 'interfaces')}" title="Open ${esc(n)}">${i && i.type === 'tunnel' ? FXI.tun : FXI.port}${esc(ifLabel(n))}</button>`; };
+  const fxLnk = (go, html, t) => `<button type="button" class="fx-lk" data-act="nav" data-id="${go}" title="${esc(t || 'Open ' + (pageTitle(go)[1] || go))}">${html}</button>`;
   const fxBar = (v, max, c, txt) => `<span class="fx-bar"><span class="num">${txt}</span><i><b style="width:${Math.max(v > 0 ? 1.5 : 0, Math.min(100, max ? v / max * 100 : 0)).toFixed(1)}%;background:${c}"></b></i></span>`;
   const fxSig = dbm => { const n = dbm >= -60 ? 4 : dbm >= -67 ? 3 : dbm >= -75 ? 2 : 1, c = n >= 3 ? FXC.green : n === 2 ? FXC.orange : FXC.red; return `<span class="fx-sig num">${dbm} dBm<span class="fx-sb" aria-hidden="true">${[1, 2, 3, 4].map(k => `<i style="height:${k * 25}%;${k <= n ? `background:${c}` : ''}"></i>`).join('')}</span></span>`; };
   const fxQ = () => ((UI.fxq || {})[UI.page] || '').toLowerCase();
@@ -8737,18 +8811,20 @@ if (typeof module !== 'undefined') module.exports = CATS;
   /* generic monitor table: sortable headers, collapsible group rows (the purple bands), optional checkboxes, footer count */
   function fxTable(cols, groups, o) {
     o = o || {}; const q = fxQ(), page = UI.page, sort = (UI.fxSort || {})[page], closed = UI.fxClosed || {}, sel = ((UI.fxSel || {})[page]) || [];
+    const F = (UI.fxf || {})[page], ff = F && FXS[page + '|' + F.t + '|' + F.l];
     const ord = rows => { if (!sort) return rows; const c = cols[sort.c]; if (!c || !c.s) return rows; return rows.slice().sort((a, b) => { const x = c.s(a), y = c.s(b); return (x < y ? -1 : x > y ? 1 : 0) * sort.d; }); };
     let total = 0, shown = 0;
     const span = cols.length + (o.check ? 1 : 0);
     const body = groups.map(g => {
-      const rows = ord(g.rows.filter(r => !q || (o.text ? o.text(r) : '').toLowerCase().includes(q))); total += g.rows.length; shown += rows.length;
+      const rows = ord(g.rows.filter(r => (!ff || ff(r)) && (!q || (o.text ? o.text(r) : '').toLowerCase().includes(q)))); total += g.rows.length; shown += rows.length;
       const key = page + ':' + (g.key || ''), c = !!closed[key];
-      const head = g.label ? `<tr class="fx-grp" data-k="${esc('g' + key)}"><td colspan="${span}"><button class="fx-cb fx-tw" data-act="fx-grp" data-id="${esc(key)}" aria-expanded="${!c}" aria-label="${c ? 'Expand' : 'Collapse'} ${esc(g.label)}">${c ? '+' : '−'}</button>${g.icon || ''}<span>${esc(g.label)}</span><b class="fx-badge num">${rows.length}</b></td></tr>` : '';
+      if ((q || ff) && !rows.length) return '';
+      const head = g.label ? `<tr class="fx-grp" data-k="${esc('g' + key)}"><td colspan="${span}"><button class="fx-cb fx-tw" data-act="fx-grp" data-id="${esc(key)}" aria-expanded="${!c}" aria-label="${c ? 'Expand' : 'Collapse'} ${esc(g.label)}">${gi(c ? 'plus' : 'minus')}</button>${g.icon || ''}<span>${esc(g.label)}</span><b class="fx-badge num">${rows.length}</b></td></tr>` : '';
       return head + (c ? '' : rows.map(r => { const id = o.check ? o.check(r) : null, on = id != null && sel.includes(String(id));
-        return `<tr class="${on ? 'fx-on' : ''} ${o.rowCls ? o.rowCls(r) : ''}" data-k="${esc(o.key ? o.key(r) : '')}">${o.check ? `<td class="fx-ck"><button class="fx-cb" data-act="fx-sel" data-id="${esc(id)}" aria-pressed="${on}" aria-label="Select row">${on ? '✓' : ''}</button></td>` : ''}${cols.map(cc => `<td class="${cc.cls || ''}">${cc.f(r)}</td>`).join('')}</tr>`; }).join(''));
+        return `<tr class="${on ? 'fx-on' : ''} ${o.rowCls ? o.rowCls(r) : ''}" data-k="${esc(o.key ? o.key(r) : '')}">${o.check ? `<td class="fx-ck"><button class="fx-cb" data-act="fx-sel" data-id="${esc(id)}" aria-pressed="${on}" aria-label="Select row">${on ? gi('check') : ''}</button></td>` : ''}${cols.map(cc => `<td class="${cc.cls || ''}">${cc.f(r)}</td>`).join('')}</tr>`; }).join(''));
     }).join('');
-    const th = cols.map((c, i) => `<th class="${c.cls || ''}" ${c.w ? `style="width:${c.w}"` : ''}>${c.s ? `<button class="fx-th" data-act="fx-sort" data-id="${i}">${esc(c.h)}<span class="fx-so ${sort && sort.c === i ? (sort.d > 0 ? 'asc' : 'desc') : ''}" aria-hidden="true"></span></button>` : esc(c.h)}</th>`).join('');
-    return `<div class="fx-tw-wrap"><table class="fx-grid"><thead><tr>${o.check ? '<th class="fx-ck"><span class="fx-cb" aria-hidden="true"></span></th>' : ''}${th}</tr></thead><tbody>${body || ''}${!shown ? `<tr><td colspan="${span}" class="fx-empty">${q ? 'No matching entries.' : (o.empty || 'No entries.')}</td></tr>` : ''}</tbody></table>
+    const th = cols.map((c, i) => `<th class="${c.cls || ''}" ${c.w ? `style="width:${c.w}"` : ''}>${c.s ? `<button class="fx-th" data-act="fx-sort" data-id="${i}">${esc(c.h)}<span class="fx-so ${sort && sort.c === i ? 'on' : ''}">${gi(sort && sort.c === i ? (sort.d > 0 ? 'up' : 'down') : 'sort')}</span></button>` : esc(c.h)}</th>`).join('');
+    return (ff ? `<div class="fx-fchip"><span>Showing <b>${esc(F.t)}: ${esc(F.l)}</b></span><button class="fx-ib" data-act="fx-segx" title="Show all" aria-label="Clear filter">${gi('x')}</button></div>` : '') + `<div class="fx-tw-wrap"><table class="fx-grid"><thead><tr>${o.check ? '<th class="fx-ck"><span class="fx-cb" aria-hidden="true"></span></th>' : ''}${th}</tr></thead><tbody>${body || ''}${!shown ? `<tr><td colspan="${span}" class="fx-empty">${q || ff ? 'No matching entries.' : (o.empty || 'No entries.')}</td></tr>` : ''}</tbody></table>
       <div class="fx-foot">${o.foot ? o.foot(shown, total) : `<span class="num">${shown === total ? fmtN(total) : `${fmtN(shown)} / ${fmtN(total)}`}</span>`}</div></div>`;
   }
   const fxPage = (title, inner, tools) => `<div class="fx"><div class="fx-ph"><h1>${esc(title)}</h1><span class="grow"></span>${tools || ''}<button class="fx-ib" data-act="fx-refresh" title="Refresh" aria-label="Refresh">${FXI.refresh}</button></div>${inner}</div>`;
@@ -8833,19 +8909,20 @@ if (typeof module !== 'undefined') module.exports = CATS;
     fxSample();
     const up = Math.floor((Date.now() - S.system.bootedAt) / 1000), W = fxWifi(), ago = m => fmtTs(Date.now() - m * 60000);
     const sys = `<dl class="fx-kv">
-        <dt>Hostname</dt><dd class="mono">${cv(S.system.hostname, 'hostname')}</dd>
+        <dt>Hostname</dt><dd class="mono">${fxLnk('settings', esc(S.system.hostname), 'Change the hostname (System > Settings)')}${cpBtn(S.system.hostname, 'hostname')}</dd>
         <dt>Serial number</dt><dd class="mono">${cv(S.system.serial, 'serial number')}</dd>
-        <dt>Firmware</dt><dd>${esc(S.system.osver)} ${fwNewer().length ? `<button class="linkbtn" data-act="nav" data-id="firmware">${pill('Update available', 'warn')}</button>` : ''}</dd>
+        <dt>Firmware</dt><dd>${fxLnk('firmware', esc(S.system.osver))} ${fwNewer().length ? `<button class="linkbtn" data-act="nav" data-id="firmware">${pill('Update available', 'warn')}</button>` : ''}</dd>
         <dt>Mode</dt><dd>NAT</dd>
         <dt>System time</dt><dd class="num fx-u">${fmtTs(Date.now())}</dd>
         <dt>Uptime</dt><dd class="num fx-u">${Math.floor(up / 86400)}d ${Math.floor(up % 86400 / 3600)}h ${Math.floor(up % 3600 / 60)}m ${up % 60}s</dd>
-        <dt>WAN IP</dt><dd class="mono">${esc(((S.interfaces.find(i => i.role === 'wan') || {}).ip) || '-')}</dd></dl>`;
+        <dt>WAN IP</dt><dd class="mono">${fxLnk('interfaces', esc(((S.interfaces.find(i => i.role === 'wan') || {}).ip) || '-'), 'Open Network > Interfaces')}</dd></dl>`;
     const sv = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
-    const LT = [['Support', 'Registered (lab) · 24x7 support', 'ok', sv('<circle cx="12" cy="12" r="9"/><text x="12" y="15.5" font-size="9" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none">24</text>')], ['Updates', `Firmware & General Updates: licensed · last check ${ago(12)}`, 'ok', sv('<path d="M12 15V4M7.5 8.5L12 4l4.5 4.5M4 14v5h16v-5"/>')], ['IPS', `IPS definitions licensed · updated ${ago(47)}`, 'ok', sv('<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>')], ['AntiVirus', `AntiVirus definitions licensed · updated ${ago(47)}`, 'ok', sv('<ellipse cx="12" cy="13.5" rx="4.5" ry="6"/><path d="M12 7.5V20M9 5l1.5 2.5M15 5l-1.5 2.5M7.5 11H4M7.5 15H4M16.5 11H20M16.5 15H20"/>')], ['Web Filter', 'Web Filtering licensed · rating servers reachable', 'ok', sv('<path d="M4 5h16l-6 7v6l-4 2v-8z"/>')], ['Rating', 'Outbreak prevention / rating: not licensed in this lab', 'warn', sv('<path d="M4 17a8 8 0 1116 0"/><path d="M12 17l4-6"/>')]];
-    const lic = `<div class="fx-lic">${LT.map(([t, d, k, g]) => `<span class="fx-lt ${k}" title="${esc(d)}" tabindex="0"><i aria-hidden="true">${g}</i>${esc(t)}</span>`).join('')}</div><div class="fx-tok"><span class="muted">FortiToken</span><span class="fx-tbar"><i style="width:0%"></i><b class="num">0%</b></span></div>`;
-    const cloud = `<dl class="fx-kv"><dt>Status</dt><dd>${FXI.ok}<u>Activated</u></dd><dt>Server Location</dt><dd>Global</dd><dt>Log Retention</dt><dd>${FXI.ok}<u>Licensed</u></dd><dt>Storage used</dt><dd class="num"><u>${(12.4 + (Date.now() - S.system.bootedAt) / 864e5 * .03).toFixed(2)} GiB</u></dd></dl>`;
-    const fab = `<div class="fx-fab"><div class="fx-fh">LAN Edge</div><div class="fx-fg"><span><b class="fx-badge">1</b>FortiGate</span><span><b class="fx-badge">0</b>FortiSwitch</span><span><b class="fx-badge">${W.aps.length}</b>FortiAP</span><span class="dim"><b class="fx-badge">0</b>FortiExtender</span></div><div class="fx-fh">Fabric Connectors</div><div class="fx-fg dim"><span>Logging</span><span>FortiSandbox</span><span>Central Management</span><span>FortiClient EMS</span></div></div>`;
-    const adm = `<div class="fx-adm"><span><b class="fx-badge">0</b>FortiExplorer</span><span><b class="fx-badge">1</b>HTTPS</span><span><b class="fx-badge">${UI.termOpen ? 1 : 0}</b>CLI</span></div><div class="fx-adl">${S.admins.map((a, i) => `<span><u class="mono">${esc(a.name)}</u> <span class="muted">${esc(a.profile)}</span>${i === 0 ? ' <span class="fx-me">you</span>' : ''}</span>`).join('')}</div>`;
+    const LT = [['Support', 'Registered (lab) · 24x7 support', 'ok', sv('<path d="M4.5 14v-2a7.5 7.5 0 0115 0v2"/><rect x="3.5" y="13" width="3.5" height="5.5" rx="1"/><rect x="17" y="13" width="3.5" height="5.5" rx="1"/><path d="M19 18.5c0 1.5-1.5 2.5-4 2.5h-2"/>')], ['Updates', `Firmware & General Updates: licensed · last check ${ago(12)}`, 'ok', sv('<path d="M12 15V4M7.5 8.5L12 4l4.5 4.5M4 14v5h16v-5"/>')], ['IPS', `IPS definitions licensed · updated ${ago(47)}`, 'ok', sv('<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>')], ['AntiVirus', `AntiVirus definitions licensed · updated ${ago(47)}`, 'ok', sv('<ellipse cx="12" cy="13.5" rx="4.5" ry="6"/><path d="M12 7.5V20M9 5l1.5 2.5M15 5l-1.5 2.5M7.5 11H4M7.5 15H4M16.5 11H20M16.5 15H20"/>')], ['Web Filter', 'Web Filtering licensed · rating servers reachable', 'ok', sv('<path d="M4 5h16l-6 7v6l-4 2v-8z"/>')], ['Rating', 'Outbreak prevention / rating: not licensed in this lab', 'warn', sv('<path d="M4 17a8 8 0 1116 0"/><path d="M12 17l4-6"/>')]];
+    const LGO = { IPS: 'prof-ips', AntiVirus: 'prof-av', 'Web Filter': 'webfilter' };
+    const lic = `<div class="fx-lic">${LT.map(([t, d, k, g]) => `<button type="button" class="fx-lt ${k}" data-act="nav" data-id="${LGO[t] || 'firmware'}" title="${esc(d)}. Click to open ${esc(pageTitle(LGO[t] || 'firmware')[1])}."><i aria-hidden="true">${g}</i>${esc(t)}</button>`).join('')}</div><div class="fx-tok"><span class="muted">FortiToken</span><span class="fx-tbar"><i style="width:0%"></i><b class="num">0%</b></span></div>`;
+    const cloud = `<dl class="fx-kv"><dt>Status</dt><dd>${FXI.ok}${fxLnk('logsettings', '<u>Activated</u>')}</dd><dt>Server Location</dt><dd>Global</dd><dt>Log Retention</dt><dd>${FXI.ok}${fxLnk('logsettings', '<u>Licensed</u>')}</dd><dt>Storage used</dt><dd class="num"><u>${(12.4 + (Date.now() - S.system.bootedAt) / 864e5 * .03).toFixed(2)} GiB</u></dd></dl>`;
+    const fab = `<div class="fx-fab"><div class="fx-fh">LAN Edge</div><div class="fx-fg">${fxLnk('interfaces', '<b class="fx-badge">1</b>FortiGate', 'Open Network > Interfaces')}${fxLnk('wifi', '<b class="fx-badge">0</b>FortiSwitch', 'Open WiFi & Switch Controller')}${fxLnk('fap-clients', `<b class="fx-badge">${W.aps.length}</b>FortiAP`, 'Open FortiAP Clients Monitor')}<span class="dim"><b class="fx-badge">0</b>FortiExtender</span></div><div class="fx-fh">Fabric Connectors</div><div class="fx-fg dim">${fxLnk('logsettings', 'Logging', 'Open Log Settings')}${fxLnk('fabric', 'FortiSandbox')}${fxLnk('fabric', 'Central Management')}${fxLnk('fabric', 'FortiClient EMS')}</div></div>`;
+    const adm = `<div class="fx-adm"><span><b class="fx-badge">0</b>FortiExplorer</span>${fxLnk('admins', '<b class="fx-badge">1</b>HTTPS', 'Open System > Administrators')}<span><b class="fx-badge">${UI.termOpen ? 1 : 0}</b>CLI</span></div><div class="fx-adl">${S.admins.map((a, i) => `<span>${fxLnk('admins', `<u class="mono">${esc(a.name)}</u>`, 'Open System > Administrators')} <span class="muted">${esc(a.profile)}</span>${i === 0 ? ' <span class="fx-me">you</span>' : ''}</span>`).join('')}</div>`;
     const cores = FXH.cpu.map(c => c.slice(-1)[0] || 0), cpuNow = cores.reduce((a, b) => a + b, 0) / cores.length;
     const cpu = fxChart('fxcpu', FXH.cpu.map((v, k) => ({ v, c: [FXC.pink, FXC.orange, FXC.purple, FXC.sky][k] })), { max: 100, ticks: [0, 20, 40, 60, 80, 100], fmt: t => t + '%', label: 'CPU usage per core, last minute', h: 128 }) + `<p class="fx-cur">Current usage <b class="num">${Math.round(cpuNow)}%</b><span class="muted"> · 4 vCPU</span></p>`;
     const mem = fxChart('fxmem', [{ v: FXH.mem, c: FXC.yellow, fill: true, op: .7 }], { max: 100, ticks: [0, 20, 40, 60, 80, 100], fmt: t => t + '%', label: 'Memory usage, last minute' }) + `<p class="fx-cur">Current usage <b class="num">${Math.round(FXH.mem.slice(-1)[0] || 0)}%</b></p>`;
@@ -8853,17 +8930,17 @@ if (typeof module !== 'undefined') module.exports = CATS;
     const done = doneCount();
     return `<div class="fx fx-dash"><div class="fx-ph"><button class="fx-add" type="button" data-act="fx-addw" title="Widgets are fixed in this lab">${I.plus} Add widget</button><span class="grow"></span><span class="fx-lab muted">Lab simulation · nothing here touches a real network</span></div>
       <div class="fx-g6">
-        ${fxWidget('System Information', sys, 'fx-c1')}
-        ${fxWidget('Licenses <span class="fx-sub">(lab)</span>', lic, 'fx-c1')}
-        ${fxWidget('FortiGate Cloud', cloud, 'fx-c1')}
-        ${fxWidget('Security Fabric', fab, 'fx-c1', `<span class="fx-ib" aria-hidden="true">⛶</span>`)}
-        ${fxWidget('Administrators', adm, 'fx-c1')}
+        ${fxWidget('System Information', sys, 'fx-c1', '', 'settings')}
+        ${fxWidget('Licenses <span class="fx-sub">(lab)</span>', lic, 'fx-c1', '', 'firmware')}
+        ${fxWidget('FortiGate Cloud', cloud, 'fx-c1', '', 'logsettings')}
+        ${fxWidget('Security Fabric', fab, 'fx-c1', '', 'fabric')}
+        ${fxWidget('Administrators', adm, 'fx-c1', '', 'admins')}
         ${fxWidget('CPU', cpu, 'fx-c1')}
-        ${fxWidget('Memory', mem, 'fx-c2', '<span class="fx-dd">1 minute ▾</span>')}
-        ${fxWidget('Sessions', sess, 'fx-c2', '<span class="fx-dd">1 minute ▾</span>')}
-        ${fxWidget('<span class="live-dot"></span>Interface Bandwidth', bandwidthCard().replace(/^<section[^>]*><h2>.*?<\/h2>/, '').replace(/<\/section>$/, ''), 'fx-c2')}
+        ${fxWidget('Memory', mem, 'fx-c2', `<span class="fx-dd">1 minute${gi('down')}</span>`)}
+        ${fxWidget('Sessions', sess, 'fx-c2', `<span class="fx-dd">1 minute${gi('down')}</span>`, 'sessions')}
+        ${fxWidget('<span class="live-dot"></span>Interface Bandwidth', bandwidthCard().replace(/^<section[^>]*><h2>.*?<\/h2>/, '').replace(/<\/section>$/, ''), 'fx-c2', '', 'interfaces')}
         <div class="fx-c6">${topoHtml()}</div>
-        ${fxWidget('Recent System Events', `<div class="evt">${S.logs.event.slice(0, 7).map(e => `<span class="muted num mono"${rk(e, 't')}>${fmtTs(e.ts)}</span><span${rk(e, 'm')}>${pill(e.level, e.level === 'alert' ? 'bad' : e.level === 'warning' ? 'warn' : e.level === 'notice' ? 'info' : 'mute')} ${esc(e.msg)}</span>`).join('')}</div>`, 'fx-c4')}
+        ${fxWidget('Recent System Events', `<div class="evt">${S.logs.event.slice(0, 7).map(e => `<span class="muted num mono"${rk(e, 't')}>${fmtTs(e.ts)}</span><span${rk(e, 'm')}>${pill(e.level, e.level === 'alert' ? 'bad' : e.level === 'warning' ? 'warn' : e.level === 'notice' ? 'info' : 'mute')} ${esc(e.msg)}</span>`).join('')}</div>`, 'fx-c4', '', 'log-event')}
         ${fxWidget('Scavenger Hunt', `<p style="margin:0 0 8px"><b class="num fx-big">${done}</b> <span class="muted">of ${MISSIONS.length} missions complete</span></p><div class="meter"><i style="width:${Math.round(done / MISSIONS.length * 100)}%;background:var(--ok)"></i></div><p style="margin:12px 0 0"><button class="btn primary" data-act="open-missions">${I.flag} Open missions</button></p>`, 'fx-c2')}
       </div></div>`;
   };
@@ -8871,7 +8948,7 @@ if (typeof module !== 'undefined') module.exports = CATS;
   /* ---------- Dashboard > WiFi ---------- */
   P['dash-wifi'] = () => {
     const W = fxWifi(), C = W.clients, tot = C.length;
-    const big = (segs, total, sub, title, legend) => `<div class="fx-wd">${fxDonut(segs, fmtN(total), sub)}${fxLegend(title, legend || segs)}</div>`;
+    const big = (segs, total, sub, title, how) => `<div class="fx-wd">${fxDonut(segs, fmtN(total), sub, fxSegAttr(title, how))}${fxLegend(title, segs, how)}</div>`;
     const byAp = W.aps.map((a, i) => ({ l: a.name, v: C.filter(c => c.ap === a.name).length, c: FXP[i % FXP.length] })).sort((a, b) => b.v - a.v);
     const sigs = [['Good ( >=-65dBm )', c => c.sig >= -65, FXC.green], ['Fair ( -75dBm - -66dBm )', c => c.sig < -65 && c.sig >= -75, FXC.yellow], ['Poor ( <=-76dBm )', c => c.sig < -75, FXC.red]].map(([l, f, c]) => ({ l, v: C.filter(f).length, c }));
     const radios = W.aps.length * 2, util = [['Low ( <=60% )', FXC.green], ['Medium ( 61-80% )', FXC.yellow], ['High ( >80% )', FXC.red]].map(([l, c], k) => ({ l, c, v: k ? 0 : radios }));
@@ -8881,14 +8958,14 @@ if (typeof module !== 'undefined') module.exports = CATS;
     const fails = W.fail.map(f => `<tr><td class="fx-ck"><span class="fx-cb" aria-hidden="true"></span></td><td class="num">${fmtTs(f.ts)}</td><td>${FXI.lock}<u>${esc(f.ssid)}</u></td><td class="mono">${esc(f.host)} / ${esc(f.mac)}</td></tr>`).join('');
     return `<div class="fx fx-dash"><div class="fx-ph"><button class="fx-add" type="button" data-act="fx-addw" title="Widgets are fixed in this lab">${I.plus} Add widget</button><span class="grow"></span><span class="fx-lab muted">Wireless is simulated: SSID Talvex-Corp is bridged to port2, so its clients take LAN addresses</span></div>
       <div class="fx-g3">
-        ${fxWidget('FortiAP Status', big([{ l: 'Online', v: W.aps.length, c: FXC.green }], W.aps.length, 'FortiAPs', 'Connection'))}
-        ${fxWidget('Channel Utilization <span class="fx-i" title="Radios grouped by how busy their channel is">i</span>', big(util, radios, 'Radios', 'Channel Utilization'))}
-        ${fxWidget('Clients By FortiAP', big(byAp, tot, 'Clients', 'FortiAP'), '', `<button class="fx-ib" data-act="nav" data-id="fap-clients" title="Open FortiAP Clients Monitor" aria-label="Open FortiAP Clients Monitor">⤢</button>`)}
-        ${fxWidget('Signal Strength', big(sigs, tot, 'Clients', 'Signal Strength'))}
-        ${fxWidget('Rogue APs', big([{ l: 'Good ( 0 )', v: W.rogue.good, c: FXC.indigo }, { l: 'Fair ( 1 - 10 )', v: W.rogue.fair, c: FXC.yellow }], W.rogue.total, 'Rogue APs', 'Interfering FortiAPs'))}
-        ${fxWidget('Historical Clients', fxChart('fxhc', [{ v: stacked[2], c: FXC.purple, fill: true, op: .55 }, { v: stacked[1], c: FXC.orange, fill: true, op: .6 }, { v: stacked[0], c: FXC.pink, fill: true, op: .65 }], { min: 30, x: ['45 minutes ago', '30 minutes ago', '15 minutes ago', 'Now'], label: 'Clients per band, last hour', h: 160 }) + `<p class="fx-cur">${bands.map((b, k) => `<span class="fx-k"><i style="background:${[FXC.pink, FXC.orange, FXC.purple][k]}"></i>${b} Band</span>`).join('')}</p>`, '', '<span class="fx-dd">1 hour ▾</span>')}
-        ${fxWidget('Interfering SSIDs <span class="fx-i" title="Neighbouring networks heard on the same channels">i</span>', big(intf, 10, 'AP Radios', 'Interfering SSIDs'))}
-        ${fxWidget('Login Failures', `<div class="fx-tw-wrap"><table class="fx-grid"><thead><tr><th class="fx-ck"><span class="fx-cb" aria-hidden="true"></span></th><th>Time</th><th>SSID</th><th>Host Name/MAC</th></tr></thead><tbody>${fails}</tbody></table><div class="fx-foot"><span class="num">${W.fail.length}</span></div></div>`)}
+        ${fxWidget('FortiAP Status', big([{ l: 'Online', v: W.aps.length, c: FXC.green }], W.aps.length, 'FortiAPs', 'Connection', { go: 'wifi' }), '', '', 'wifi')}
+        ${fxWidget(`Channel Utilization <span class="fx-i" title="Radios grouped by how busy their channel is">${gi('info')}</span>`, big(util, radios, 'Radios', 'Channel Utilization', { go: 'wifi' }), '', '', 'wifi')}
+        ${fxWidget('Clients By FortiAP', big(byAp, tot, 'Clients', 'FortiAP', { go: 'fap-clients', t: 'FortiAP' }), '', '', 'fap-clients')}
+        ${fxWidget('Signal Strength', big(sigs, tot, 'Clients', 'Signal Strength', { go: 'fap-clients', t: 'Signal Strength' }), '', '', 'fap-clients')}
+        ${fxWidget('Rogue APs', big([{ l: 'Good ( 0 )', v: W.rogue.good, c: FXC.indigo }, { l: 'Fair ( 1 - 10 )', v: W.rogue.fair, c: FXC.yellow }], W.rogue.total, 'Rogue APs', 'Interfering FortiAPs', { go: 'wifi' }), '', '', 'wifi')}
+        ${fxWidget('Historical Clients', fxChart('fxhc', [{ v: stacked[2], c: FXC.purple, fill: true, op: .55 }, { v: stacked[1], c: FXC.orange, fill: true, op: .6 }, { v: stacked[0], c: FXC.pink, fill: true, op: .65 }], { min: 30, x: ['45 minutes ago', '30 minutes ago', '15 minutes ago', 'Now'], label: 'Clients per band, last hour', h: 160 }) + `<p class="fx-cur">${bands.map((b, k) => `<span class="fx-k"><i style="background:${[FXC.pink, FXC.orange, FXC.purple][k]}"></i>${b} Band</span>`).join('')}</p>`, '', `<span class="fx-dd">1 hour${gi('down')}</span>`, 'fap-clients')}
+        ${fxWidget(`Interfering SSIDs <span class="fx-i" title="Neighbouring networks heard on the same channels">${gi('info')}</span>`, big(intf, 10, 'AP Radios', 'Interfering SSIDs', { go: 'wifi' }), '', '', 'wifi')}
+        ${fxWidget('Login Failures', `<div class="fx-tw-wrap"><table class="fx-grid"><thead><tr><th class="fx-ck"><span class="fx-cb" aria-hidden="true"></span></th><th>Time</th><th>SSID</th><th>Host Name/MAC</th></tr></thead><tbody>${fails}</tbody></table><div class="fx-foot"><span class="num">${W.fail.length}</span></div></div>`, '', '', 'log-event')}
       </div></div>`;
   };
 
@@ -8908,9 +8985,9 @@ if (typeof module !== 'undefined') module.exports = CATS;
       { h: 'Bytes', f: x => `<span class="num">${esc(fmtBytes(TELE.sessBytes(x, now)))}</span>`, s: x => TELE.sessBytes(x, now), cls: 'r' },
       { h: 'Packets', f: x => `<span class="num">${fmtN(pk(x))}</span>`, s: pk, cls: 'r' },
       { h: 'Duration', f: x => `<span class="num">${fmtDur(now - x.ts)}</span>`, s: x => x.ts },
-      { h: 'Policy ID', f: x => `<span class="num">${cv(x.policyid, 'policy ID')}</span>`, s: x => +x.policyid || 0, cls: 'r' },
+      { h: 'Policy ID', f: x => `<span class="num">${fxLnk('policy', esc(x.policyid), 'Open Firewall Policy')}</span>`, s: x => +x.policyid || 0, cls: 'r' },
       { h: 'NPU Accelerated', f: () => 'No', cls: 'muted' }];
-    const tools = `<span class="fx-dd" title="Real-time view">◷ now ▾</span>`;
+    const tools = `<span class="fx-dd" title="Real-time view">${gi('clock')}now${gi('down')}</span>`;
     return fxPage('FortiView Sessions', `<div class="fx-tb"><button class="btn fx-btn" data-act="fx-end" ${sel.length ? '' : 'disabled'}>${I.del} End sessions${sel.length ? ` (${sel.length})` : ''}</button>${fxSearch('Search filterable columns')}</div>
       ${fxTable(cols, [{ rows: S.sessions }], { check: x => x.id, key: x => 's' + x.id, text: x => `${x.srcip} ${fxHostOf(x.srcip)} ${x.dstip} ${x.srcintf} ${x.dstintf} ${x.app} ${app(x)} ${x.proto} ${x.port} ${x.policyid}`, empty: TELE.started() ? 'No sessions right now.' : 'No sessions yet. Turn on Live Mode (top bar) and traffic starts flowing through your policies.', foot: (s, t) => `<span class="fx-pg"><b>1</b></span><span class="grow"></span><span class="num">${t ? `1 - ${fmtN(s)} / ${fmtN(t)}` : '0'}</span>` })}
       ${fxNote('Sessions are the flows your policies allowed. Select rows and <b>End sessions</b> to kill them; a host that is still allowed by policy simply opens a new one. CLI: <span class="mono">diagnose sys session list</span>')}`, tools);
@@ -8923,7 +9000,7 @@ if (typeof module !== 'undefined') module.exports = CATS;
     for (const [ip, name] of Object.entries(SIM.HOSTS)) if (!named.has(ip) && SIM.routeLookup(S, ip) && SIM.routeLookup(S, ip).type === 'C') hosts.push({ ip, host: name.replace(/ \(.*\)$/, ''), os: /WEB|FS0/.test(name) ? 'Windows' : 'Linux', iface: SIM.routeLookup(S, ip).device, mac: fxMac(fxRng(fxHash(ip))) });
     const A = L.map(l => ({ ip: l.ip, host: l.host, os: l.os, iface: l.iface, mac: l.mac, online: l.online !== false, user: '' })).concat(hosts.map(h => ({ ...h, online: true, user: '' })));
     const W = fxWifi(); W.clients.forEach(c => { const a = A.find(x => x.ip === c.ip); if (a) a.user = c.user; });
-    const cnt = (f, keys, colors) => keys.map((k, i) => ({ l: k, v: A.filter(a => f(a) === k).length, c: colors ? colors[i] : FXP[i % FXP.length] }));
+    const cnt = (f, keys, colors) => keys.map((k, i) => ({ l: k, v: A.filter(a => f(a) === k).length, c: colors ? colors[i] : FXP[i % FXP.length], f: a => f(a) === k }));
     const oss = [...new Set(A.map(a => a.os))].sort((a, b) => A.filter(x => x.os === b).length - A.filter(x => x.os === a).length);
     const ifs = [...new Set(A.map(a => a.iface))];
     const cols = [
@@ -8931,11 +9008,11 @@ if (typeof module !== 'undefined') module.exports = CATS;
       { h: 'Software OS', f: a => esc(a.os), s: a => a.os },
       { h: 'IP Address', f: a => `<span class="mono">${cv(a.ip, 'IP')}</span>`, s: a => SIM.ip2n(a.ip) },
       { h: 'MAC Address', f: a => `<span class="mono">${esc(a.mac)}</span>`, s: a => a.mac },
-      { h: 'Interface', f: a => esc(ifLabel(a.iface)), s: a => a.iface },
+      { h: 'Interface', f: a => fxIf(a.iface), s: a => a.iface },
       { h: 'User', f: a => esc(a.user), s: a => a.user },
       { h: 'Vulnerabilities', f: () => '<span class="num">0</span>', cls: 'r' },
       { h: 'Status', f: a => a.online ? `<span class="fx-st">${FXI.up}Online</span>` : `<span class="fx-st muted">${FXI.down}Offline</span>`, s: a => a.online ? 0 : 1 }];
-    return fxPage('Assets', fxStrip([fxDonutCard('Software OS', cnt(a => a.os, oss), 'Devices'), fxDonutCard('Vulnerability Level', [{ l: 'None', v: A.length, c: FXC.green }], 'Devices'), fxDonutCard('Status', [{ l: 'Online', v: A.filter(a => a.online).length, c: FXC.green }, { l: 'Offline', v: A.filter(a => !a.online).length, c: FXC.grey }], 'Devices'), fxDonutCard('Interface', cnt(a => a.iface, ifs, [FXC.yellow, FXC.indigo, FXC.pink, FXC.sky]).map(x => ({ ...x, l: ifLabel(x.l) })), 'Devices')]) +
+    return fxPage('Assets', fxStrip([fxDonutCard('Software OS', cnt(a => a.os, oss), 'Devices'), fxDonutCard('Vulnerability Level', [{ l: 'None', v: A.length, c: FXC.green, f: () => true }], 'Devices'), fxDonutCard('Status', [{ l: 'Online', v: A.filter(a => a.online).length, c: FXC.green, f: a => a.online }, { l: 'Offline', v: A.filter(a => !a.online).length, c: FXC.grey, f: a => !a.online }], 'Devices'), fxDonutCard('Interface', cnt(a => a.iface, ifs, [FXC.yellow, FXC.indigo, FXC.pink, FXC.sky]).map(x => ({ ...x, l: ifLabel(x.l) })), 'Devices')]) +
       `<div class="fx-tb"><button class="fx-ib" data-act="fx-refresh" title="Refresh" aria-label="Refresh">${FXI.refresh}</button>${fxSearch()}<span class="fx-seg"><b>Asset</b><span>Identity</span></span></div>
       ${fxTable(cols, [{ rows: A }], { key: a => 'a' + a.ip, text: a => `${a.host} ${a.os} ${a.ip} ${a.mac} ${a.iface} ${a.user}` })}
       ${fxNote('Device inventory comes from what the FortiGate sees on its LAN side: DHCP requests, ARP and the FortiAPs it manages. Named lab hosts (WS-ENG-OPS01, FS01, KIOSK-LOBBY…) are the same ones you meet in the logs and missions.')}`);
@@ -8946,15 +9023,15 @@ if (typeof module !== 'undefined') module.exports = CATS;
     const rt = SIM.routeTable(S).sort((a, b) => SIM.ip2n(a.dst) - SIM.ip2n(b.dst) || a.bits - b.bits);
     const tn = r => r.type === 'C' ? 'Connected' : r.type === 'B' ? 'BGP' : 'Static', RL = UI.fxRl || {};
     const hit = RL.ip && SIM.isIp(RL.ip) ? SIM.routeLookup(S, RL.ip) : null;
-    const types = ['Connected', 'Static', 'BGP'].map((l, i) => ({ l, v: rt.filter(r => tn(r) === l).length, c: [FXC.indigo, FXC.yellow, FXC.pink][i] }));
-    const devs = [...new Set(rt.map(r => r.device))].map((d, i) => ({ l: ifLabel(d), v: rt.filter(r => r.device === d).length, c: FXP[i % FXP.length] })).sort((a, b) => b.v - a.v);
-    const ichip = d => { const i = SIM.iface(S, d), wan = i && i.role === 'wan'; return `<span class="fx-if ${wan ? 'wan' : ''}">${i && i.type === 'tunnel' ? FXI.tun : FXI.port}${esc(ifLabel(d))}</span>`; };
+    const types = ['Connected', 'Static', 'BGP'].map((l, i) => ({ l, v: rt.filter(r => tn(r) === l).length, c: [FXC.indigo, FXC.yellow, FXC.pink][i], f: r => tn(r) === l }));
+    const devs = [...new Set(rt.map(r => r.device))].map((d, i) => ({ l: ifLabel(d), v: rt.filter(r => r.device === d).length, c: FXP[i % FXP.length], f: r => r.device === d })).sort((a, b) => b.v - a.v);
+    const ichip = d => fxIf(d);
     const cols = [
       { h: 'Network', f: r => `<span class="mono">${esc(r.dst + '/' + r.bits)}</span>`, s: r => SIM.ip2n(r.dst) * 64 + r.bits },
       { h: 'Gateway IP', f: r => `<span class="mono">${esc(r.gateway || '0.0.0.0')}</span>`, s: r => SIM.ip2n(r.gateway || '0.0.0.0') },
       { h: 'Interfaces', f: r => ichip(r.device), s: r => r.device },
       { h: 'Distance', f: r => `<span class="num">${esc(r.distance)}</span>`, s: r => +r.distance },
-      { h: 'Type', f: r => esc(tn(r)) + (r.active ? '' : ` <span class="fx-inact" title="${esc(r.why || '')}">inactive: ${esc(r.why || '')}</span>`), s: r => tn(r) }];
+      { h: 'Type', f: r => (r.type === 'S' ? fxLnk('routes', 'Static', 'Open Static Routes') : r.type === 'B' ? fxLnk('bgp', 'BGP', 'Open BGP') : 'Connected') + (r.active ? '' : ` <span class="fx-inact" title="${esc(r.why || '')}">inactive: ${esc(r.why || '')}</span>`), s: r => tn(r) }];
     const lk = `<form class="fx-rl" id="fxRlForm"><label><span>Destination</span><input class="inp mono" id="fxRlIp" value="${esc(RL.ip || '')}" placeholder="e.g. 10.100.1.4" autocomplete="off"></label><button class="btn primary" type="submit">Search</button><button class="btn" type="button" data-act="fx-rl">Close</button>
       ${RL.ip ? `<span class="fx-rlr">${!SIM.isIp(RL.ip) ? 'Enter an IPv4 address.' : hit ? `${FXI.ok} <b class="mono">${esc(RL.ip)}</b> matches <b class="mono">${esc(hit.dst + '/' + hit.bits)}</b> via <b class="mono">${esc(hit.gateway || 'directly connected')}</b> on <b class="mono">${esc(ifLabel(hit.device))}</b> (${esc(tn(hit))}, distance ${esc(hit.distance)})` : `${FXI.no} No route to <b class="mono">${esc(RL.ip)}</b>: the firewall would drop it.`}</span>` : ''}</form>`;
     return fxPage('Routing Monitor', fxStrip([fxDonutCard('Type', types, 'Total'), fxDonutCard('Interfaces', devs, 'Total')]) +
@@ -8969,14 +9046,14 @@ if (typeof module !== 'undefined') module.exports = CATS;
     const cols = [
       { h: 'Device', f: l => `<span class="fx-dev">${fxOsIcon(l.os)}${esc(l.host)}</span>`, s: l => l.host.toLowerCase() },
       { h: 'IP', f: l => `<span class="mono">${cv(l.ip, 'IP')}</span>`, s: l => SIM.ip2n(l.ip) },
-      { h: 'Interface', f: l => `<span class="fx-if">${FXI.port}${esc(ifLabel(l.iface))}</span>${l.bridge ? `<div class="help">Bridge: ${FXI.ap}${esc(l.bridge)}</div>` : ''}`, s: l => l.iface + (l.bridge || '') },
+      { h: 'Interface', f: l => `${fxIf(l.iface)}${l.bridge ? `<div class="help">Bridge: ${fxLnk('fap-clients', FXI.ap + esc(l.bridge), 'Open FortiAP Clients Monitor')}</div>` : ''}`, s: l => l.iface + (l.bridge || '') },
       { h: 'Status', f: () => 'Leased out' },
       { h: 'MAC', f: l => `<span class="mono">${esc(l.mac)}</span>`, s: l => l.mac },
       { h: 'Reserved', f: l => l.reserved ? `<span class="fx-st">${FXI.ok}Reserved</span>` : `<span class="fx-st">${FXI.no}Not Reserved</span>`, s: l => l.reserved ? 0 : 1 },
       { h: 'Host Information', f: l => `${l.vci ? `VCI: ${esc(l.vci)}<br>` : ''}Hostname: ${esc(l.host)}`, s: l => l.vci },
       { h: 'Expires', f: l => `<span class="num">${fmtTs(l.exp)}</span>`, s: l => l.exp }];
-    return fxPage('DHCP', fxStrip([fxDonutCard('Status', [{ l: 'Leased out', v: L.length, c: FXC.indigo }], 'Total'), fxDonutCard('Interface', ifs.map((n, i) => ({ l: L.find(l => (l.bridge || l.iface) === n).bridge ? n : ifLabel(n), v: L.filter(l => (l.bridge || l.iface) === n).length, c: FXP[i % FXP.length] })), 'Total')]) +
-      `<div class="fx-tb"><button class="btn fx-btn" data-act="fx-revoke" ${(((UI.fxSel || {})['dhcp-mon']) || []).length ? '' : 'disabled'}>⊖ Revoke</button>${fxSearch()}</div>
+    return fxPage('DHCP', fxStrip([fxDonutCard('Status', [{ l: 'Leased out', v: L.length, c: FXC.indigo, f: () => true }], 'Total'), fxDonutCard('Interface', ifs.map((n, i) => ({ l: L.find(l => (l.bridge || l.iface) === n).bridge ? n : ifLabel(n), v: L.filter(l => (l.bridge || l.iface) === n).length, c: FXP[i % FXP.length], f: l => (l.bridge || l.iface) === n })), 'Total')]) +
+      `<div class="fx-tb"><button class="btn fx-btn" data-act="fx-revoke" ${(((UI.fxSel || {})['dhcp-mon']) || []).length ? '' : 'disabled'}>${gi('revoke')} Revoke</button>${fxSearch()}</div>
       ${fxTable(cols, [{ rows: L }], { check: l => l.ip, key: l => 'd' + l.ip, text: l => `${l.host} ${l.ip} ${l.iface} ${l.bridge || ''} ${l.mac} ${l.vci}`, empty: 'No leases. The DHCP server runs on LAN-side interfaces that are up and have an address.' })}
       ${fxNote('Wireless clients join SSID Talvex-Corp, which is bridged to port2, so they lease from the port2 pool (10.10.10.100 and up). Servers such as FS01 and the vendor scanner use static addresses and are not listed. CLI: <span class="mono">execute dhcp lease-list</span>')}`);
   };
@@ -8986,10 +9063,10 @@ if (typeof module !== 'undefined') module.exports = CATS;
     const Wn = S.sdwan, on = Wn.status === 'enable';
     const ms = (on ? Wn.members : []).map(m => { const i = SIM.iface(S, m.iface), up = !!i && i.status === 'up' && i.ip && i.ip !== '0.0.0.0' && ipOk(m.gateway), h = fxHash(m.iface), c = TELE.iface(m.iface), rate = c ? c.rate : 0;
       return { m, up, lat: up ? fxLive(6 + h % 30, .25) : null, jit: up ? +(0.4 + (h % 30) / 10 * Math.random()).toFixed(1) : null, loss: up ? 0 : 100, ses: S.sessions.filter(x => x.dstintf === m.iface || x.srcintf === m.iface).length, upl: rate * .24, dl: rate * .76 }; });
-    const g = (l1, l2, f) => [{ l: l1, v: ms.filter(f).length, c: FXC.green }, { l: l2, v: ms.filter(x => !f(x)).length, c: FXC.red }];
+    const g = (l1, l2, f) => [{ l: l1, v: ms.filter(f).length, c: FXC.green, f }, { l: l2, v: ms.filter(x => !f(x)).length, c: FXC.red, f: x => !f(x) }];
     const mx = k => Math.max(1, ...ms.map(x => x[k]));
     const cols = [
-      { h: 'Interface', f: x => `<span class="fx-if wan">${FXI.port}${esc(ifLabel(x.m.iface))}</span>`, s: x => x.m.iface },
+      { h: 'Interface', f: x => fxIf(x.m.iface, true, 'sdwan'), s: x => x.m.iface },
       { h: 'Status', f: x => x.up ? `<span class="fx-st">${FXI.up}Up</span><div class="help num">latency ${x.lat} ms · jitter ${x.jit} ms · loss 0%</div>` : `<span class="fx-st">${FXI.down}Down</span><div class="help">${esc(!SIM.iface(S, x.m.iface) ? 'interface missing' : !ipOk(x.m.gateway) ? 'no gateway set' : 'interface down or no address')}</div>`, s: x => x.up ? 0 : 1 },
       { h: 'Remote Gateway', f: x => `<span class="mono">${esc(x.m.gateway || '')}</span>`, s: x => x.m.gateway || '' },
       { h: 'Sessions', f: x => fxBar(x.ses, mx('ses'), FXC.indigo, fmtN(x.ses)), s: x => x.ses },
@@ -9005,20 +9082,20 @@ if (typeof module !== 'undefined') module.exports = CATS;
   P['ipsec-mon'] = () => {
     const now = Date.now();
     const T = S.vpn.phase1.map(p => { const t = SIM.tunnel(S, p.name), r = TELE.tunnel(p.name); return { p, t, r, bytes: r ? r.rx + r.tx : 0, upFor: t.up && r && r.up ? now - r.since : 0, p2: S.vpn.phase2.filter(q => q.phase1 === p.name), grp: /wizard/i.test(p.comments || '') ? 'Site to Site - Wizard' : 'Custom' }; });
-    const buck = [['Connected > 1 day', x => x.t.up && x.upFor > 864e5, FXC.indigo], ['Connected < 1 day', x => x.t.up && x.upFor <= 864e5, FXC.sky], ['Down', x => !x.t.up, FXC.red]].map(([l, f, c]) => ({ l, v: T.filter(f).length, c }));
+    const buck = [['Connected > 1 day', x => x.t.up && x.upFor > 864e5, FXC.indigo], ['Connected < 1 day', x => x.t.up && x.upFor <= 864e5, FXC.sky], ['Down', x => !x.t.up, FXC.red]].map(([l, f, c]) => ({ l, v: T.filter(f).length, c, f }));
     const mx = Math.max(1, ...T.map(x => x.bytes));
     const sel = q => q.srcIp != null ? `${q.srcIp}/${q.srcBits} ↔ ${q.dstIp}/${q.dstBits}` : '';
     const cols = [
-      { h: 'Name', f: x => `<span class="mono">${esc(x.p.name)}</span>`, s: x => x.p.name },
+      { h: 'Name', f: x => `<span class="mono">${fxLnk('ipsec', esc(x.p.name), 'Open VPN > IPsec Tunnels')}</span>`, s: x => x.p.name },
       { h: 'Remote Gateway', f: x => `<span class="mono">${esc(x.p.remoteGw)}</span>`, s: x => SIM.ip2n(x.p.remoteGw || '0.0.0.0') },
-      { h: 'Interface', f: x => `<span class="fx-if wan">${FXI.port}${esc(ifLabel(x.p.interface))}</span>`, s: x => x.p.interface },
+      { h: 'Interface', f: x => fxIf(x.p.interface, true), s: x => x.p.interface },
       { h: 'Bytes', f: x => fxBar(x.bytes, mx, FXC.green, fmtBytes(x.bytes)), s: x => x.bytes },
       { h: 'Phase 1', f: x => `<span class="fx-st" title="${esc(x.t.reason)}">${x.t.p1 || x.t.up ? FXI.up : FXI.down}${esc(x.p.name)}</span>${x.t.up && x.upFor ? `<div class="help num">up ${fmtDur(x.upFor)}</div>` : ''}`, s: x => x.t.up ? 0 : 1 },
       { h: 'Phase 2 Selectors', f: x => x.p2.map(q => `<div class="fx-st" title="${esc(sel(q))}">${x.t.up ? FXI.up : FXI.down}<u>${esc(q.name)}</u></div>`).join('') || '<span class="muted">none</span>' },
       { h: '', f: x => `<button class="btn fx-btn sm" data-act="vpn-up" data-id="${esc(x.p.name)}" title="Try to bring this tunnel up">${x.t.up ? 'Reconnect' : 'Bring Up'}</button>`, cls: 'r' }];
     const groups = [...new Set(T.map(x => x.grp))].map(g => ({ key: g, label: g, icon: FXI.tun, rows: T.filter(x => x.grp === g) }));
     const down = T.filter(x => !x.t.up);
-    return fxPage('IPsec', fxStrip([fxDonutCard('Uptime', buck, 'Total'), fxDonutCard('VPN tunnel', T.map((x, i) => ({ l: x.p.name, v: 1, c: x.t.up ? FXP[i % FXP.length] : FXC.red })), 'Total')]) +
+    return fxPage('IPsec', fxStrip([fxDonutCard('Uptime', buck, 'Total'), fxDonutCard('VPN tunnel', T.map((x, i) => ({ l: x.p.name, v: 1, c: x.t.up ? FXP[i % FXP.length] : FXC.red, f: y => y.p.name === x.p.name })), 'Total')]) +
       `<div class="fx-tb">${fxSearch()}</div>
       ${fxTable(cols, groups.length ? groups : [{ rows: [] }], { check: x => x.p.name, key: x => 'v' + x.p.name, text: x => `${x.p.name} ${x.p.remoteGw} ${x.p.interface} ${x.p2.map(q => q.name).join(' ')}`, empty: 'No IPsec tunnels yet. Build one under VPN → IPsec Wizard or VPN → IPsec Tunnels.' })}
       ${down.length ? `<div class="fx-why">${down.map(x => `<p>${FXI.down}<b class="mono">${esc(x.p.name)}</b>: ${esc(x.t.reason)}</p>`).join('')}</div>` : ''}
@@ -9028,8 +9105,10 @@ if (typeof module !== 'undefined') module.exports = CATS;
   /* ---------- FortiAP Clients Monitor ---------- */
   P['fap-clients'] = () => {
     const W = fxWifi(), C = W.clients;
-    const tech = ['802.11ax', '802.11ac', '802.11n'].map((l, i) => ({ l, v: C.filter(c => c.tech === l).length, c: [FXC.teal, FXC.indigo, FXC.yellow][i] }));
-    const band = [{ l: '5 GHz', v: C.filter(c => c.band === '5 GHz').length, c: FXC.sky }, { l: '2.4 GHz', v: C.filter(c => c.band === '2.4 GHz').length, c: FXC.ice }];
+    const tech = ['802.11ax', '802.11ac', '802.11n'].map((l, i) => ({ l, v: C.filter(c => c.tech === l).length, c: [FXC.teal, FXC.indigo, FXC.yellow][i], f: c => c.tech === l }));
+    const band = [{ l: '5 GHz', v: C.filter(c => c.band === '5 GHz').length, c: FXC.sky, f: c => c.band === '5 GHz' }, { l: '2.4 GHz', v: C.filter(c => c.band === '2.4 GHz').length, c: FXC.ice, f: c => c.band === '2.4 GHz' }];
+    /* filters the WiFi dashboard can hand over (Signal Strength has no card here, so it is registered without one) */
+    fxReg('Signal Strength', [['Good ( >=-65dBm )', c => c.sig >= -65], ['Fair ( -75dBm - -66dBm )', c => c.sig < -65 && c.sig >= -75], ['Poor ( <=-76dBm )', c => c.sig < -75]].map(([l, f]) => ({ l, f })));
     const cols = [
       { h: 'IP', f: c => `<span class="mono">${cv(c.ip, 'IP')}</span>`, s: c => SIM.ip2n(c.ip) },
       { h: 'MAC Address', f: c => `<span class="mono">${esc(c.mac)}</span>`, s: c => c.mac },
@@ -9042,7 +9121,7 @@ if (typeof module !== 'undefined') module.exports = CATS;
       { h: 'Signal Strength', f: c => fxSig(c.sig + (Math.random() < .3 ? (Math.random() < .5 ? -1 : 1) : 0)), s: c => c.sig },
       { h: 'Association Time', f: c => `<span class="num">${fmtTs(c.assoc)}</span>`, s: c => c.assoc }];
     const groups = W.aps.map(a => ({ key: a.name, label: a.name, icon: FXI.ap, rows: C.filter(c => c.ap === a.name) }));
-    return fxPage('Clients By FortiAP', fxStrip([fxDonutCard('FortiAP', W.aps.map((a, i) => ({ l: a.name, v: C.filter(c => c.ap === a.name).length, c: FXP[i % FXP.length] })), 'Total'), fxDonutCard('Technology', tech, 'Total'), fxDonutCard('Band', band, 'Total')]) +
+    return fxPage('Clients By FortiAP', fxStrip([fxDonutCard('FortiAP', W.aps.map((a, i) => ({ l: a.name, v: C.filter(c => c.ap === a.name).length, c: FXP[i % FXP.length], f: c => c.ap === a.name })), 'Total'), fxDonutCard('Technology', tech, 'Total'), fxDonutCard('Band', band, 'Total')]) +
       `<div class="fx-tb">${fxSearch()}</div>
       ${fxTable(cols, groups, { check: c => c.mac, key: c => 'c' + c.mac, text: c => `${c.ip} ${c.mac} ${c.user} ${c.host} ${c.ssid} ${c.ap} ${c.ch}` })}
       ${fxNote('Signal: -65 dBm or better is good, -66 to -75 is fair, -76 and below is poor. Signal/Noise is the gap above the -95 dBm noise floor. Wireless is simulated in this lab.')}`);
@@ -9055,8 +9134,8 @@ if (typeof module !== 'undefined') module.exports = CATS;
       const html = base();
       const T = S.vpn.phase1.map(p => ({ p, t: SIM.tunnel(S, p.name), p2: S.vpn.phase2.filter(q => q.phase1 === p.name), ref: SIM.usedBy ? SIM.usedBy(S, 'iface', p.name).length : 0, grp: /wizard/i.test(p.comments || '') ? 'Site to Site - Wizard' : 'Custom' }));
       const cols = [
-        { h: 'Tunnel', f: x => `<span class="mono">${esc(x.p.name)}</span><div class="help mono">${esc(x.p.remoteGw)} · IKEv${esc(x.p.ike)} · ${esc(x.p.proposals.join(' '))} · DH ${esc(x.p.dhgrp.join(','))}</div>${x.p2.map(q => `<div class="help mono">└ ${esc(q.name)}: ${esc(q.proposals.join(' '))} · PFS ${esc(q.pfs)}</div>`).join('')}`, s: x => x.p.name },
-        { h: 'Interface Binding', f: x => `<span class="fx-if wan">${FXI.port}${esc(ifLabel(x.p.interface))}</span>`, s: x => x.p.interface },
+        { h: 'Tunnel', f: x => `<span class="mono">${esc(x.p.name)}</span><div class="help mono">${esc(x.p.remoteGw)} · IKEv${esc(x.p.ike)} · ${esc(x.p.proposals.join(' '))} · DH ${esc(x.p.dhgrp.join(','))}</div>${x.p2.map(q => `<div class="help mono">${gi('elbow', 'gi-tree')}${esc(q.name)}: ${esc(q.proposals.join(' '))} · PFS ${esc(q.pfs)}</div>`).join('')}`, s: x => x.p.name },
+        { h: 'Interface Binding', f: x => fxIf(x.p.interface, true), s: x => x.p.interface },
         { h: 'Status', f: x => `<span class="fx-st">${x.t.up ? FXI.up + 'Up' : FXI.down + 'Inactive'}</span>${tunStats(x.p.name)}${x.t.up ? '' : `<div class="help" style="max-width:340px">${esc(x.t.reason)}</div>`}`, s: x => x.t.up ? 0 : 1 },
         { h: 'Ref.', f: x => `<span class="num">${x.ref}</span>`, s: x => x.ref, cls: 'r' },
         { h: '', f: x => `${actBtn('vpn-up', x.p.name, I.play, 'Bring up')}${actBtn('vpn-edit', x.p.name, I.edit, 'Edit')}${actBtn('vpn-del', x.p.name, I.del, 'Delete')}`, cls: 'acts' }];
@@ -9068,6 +9147,10 @@ if (typeof module !== 'undefined') module.exports = CATS;
 
   /* ---------- actions + inputs for the monitors ---------- */
   Object.assign(A, {
+    'fx-seg': d => { const [pg, t, l] = d.id.split('|'), f = UI.fxf || (UI.fxf = {});
+      if (pg === UI.page) { const cur = f[pg]; f[pg] = cur && cur.t === t && cur.l === l ? null : { t, l }; renderMain(); return; }
+      f[pg] = t ? { t, l } : null; go(pg); },
+    'fx-segx': () => { (UI.fxf || {})[UI.page] = null; renderMain(); },
     'fx-refresh': () => { FXH.t = 0; fxSample(); renderMain(); },
     'fx-addw': () => toast('Widgets are fixed', 'This lab keeps the FortiOS default Status layout so every learner sees the same thing.'),
     'fx-grp': d => { const c = UI.fxClosed || (UI.fxClosed = {}); c[d.id] = !c[d.id]; renderMain(); },
