@@ -8846,41 +8846,62 @@ if (typeof module !== 'undefined') module.exports = CATS;
   }
 
   /* one minute of samples per chart, pre-filled so a fresh page is not blank, then one sample per traffic tick */
-  const FXH = { t: 0, cpu: [[], [], [], []], mem: [], sess: [] };
+  const FXH = { t: 0, cpu: [[], [], [], []], mem: [], sess: [], cli: [[], [], []] };
   function fxSample() {
     const now = Date.now(); if (FXH.t && now - FXH.t < 1300) return; FXH.t = now;
     const cpu = TELE.started() ? TELE.cpu() : 3, mem = TELE.started() ? TELE.mem() : 41, ss = S.sessions.length;
     const jit = (b, a) => Math.max(0, b + (Math.random() - .5) * a);
-    if (!FXH.mem.length) for (let i = 0; i < 39; i++) { FXH.cpu.forEach((c, k) => c.push(jit(cpu + k * .6, 4))); FXH.mem.push(jit(mem, .6)); FXH.sess.push(ss); }
+    const wc = fxWifi().clients, bc = ['2.4 GHz', '5 GHz', '6 GHz'].map(b => wc.filter(c => c.band === b).length);
+    if (!FXH.mem.length) for (let i = 0; i < 39; i++) { FXH.cpu.forEach((c, k) => c.push(jit(cpu + k * .6, 4))); FXH.mem.push(jit(mem, .6)); FXH.sess.push(ss); FXH.cli.forEach((c, k) => c.push(bc[k])); }
+    FXH.cli.forEach((c, k) => { c.push(bc[k]); if (c.length > 40) c.shift(); });
     FXH.cpu.forEach((c, k) => { c.push(jit(cpu + k * .6, 4 + cpu * .2)); if (c.length > 40) c.shift(); });
     FXH.mem.push(jit(mem, .5)); FXH.sess.push(ss); if (FXH.mem.length > 40) { FXH.mem.shift(); FXH.sess.shift(); }
   }
 
   /* ---------- simulated wireless estate + wired DHCP clients (seeded from the serial: stable between visits) ---------- */
+  /* The wireless estate. The roster (who exists) is seeded from the serial so it is stable; everything that moves is
+     read from the lab on every render:
+     - the FortiAPs hang off the LAN interface (port2): if it is down or has no address they go offline with their clients
+     - most of the live traffic generator's office users (10.10.10.21-41) are laptops on SSID Talvex-Corp, so a client's
+       Tx/Rx, its AP's channel load and FortiView Sessions all come from the same S.sessions
+     - phones and tablets on .100+ are idle unless the lab sends traffic from them
+     Only the RF world stays simulated: signal levels, neighbouring rogue APs and interfering SSIDs. */
   let FXW_C = null;
-  function fxWifi() {
+  function fxRoster() {
     const seed = fxHash((S.system && S.system.serial) || 'tlx');
     if (FXW_C && FXW_C.seed === seed) return FXW_C;
     const r = fxRng(seed ^ 0x5a17), pick = a => a[Math.floor(r() * a.length)], now = Date.now();
-    const APS = [['TLX-AP-ENG-2F', 36, 6, 11], ['TLX-AP-LOBBY', 149, 1, 7], ['TLX-AP-SHOP', 44, 11, 7], ['TLX-AP-CONF-A', 157, 6, 6], ['TLX-AP-WHSE', 100, 1, 5]];
-    const aps = APS.map(([name, ch5, ch24, n], i) => ({ name, ch5, ch24, n, serial: 'FP231FTF23' + String(100000 + Math.floor(r() * 899999)), ip: '10.10.10.' + (240 + i), mac: fxMac(r), util5: 8 + Math.floor(r() * 30), util24: 14 + Math.floor(r() * 35), os: 'FortiAP OS' }));
-    const KIND = [['Windows', 'LAP-T14-', 'MSFT 5.0'], ['Windows', 'WS-ENG-', 'MSFT 5.0'], ['iOS', 'iPhone', ''], ['iOS', 'iPad-', ''], ['Android', 'Galaxy-', 'android-dhcp-14'], ['Android', 'Pixel-', 'android-dhcp-15'], ['macOS', 'MacBook-', ''], ['Unknown', 'SCAN-WH-', 'udhcp 1.36.1'], ['Unknown', '', 'udhcp 1.36.1']];
-    const clients = []; let ipn = 100;
-    aps.forEach(ap => { for (let k = 0; k < ap.n; k++) {
-      const [os, pre, vci] = pick(KIND), mac = fxMac(r);
-      const host = pre === 'iPhone' ? (r() < .5 ? 'iPhone' : `iPhone-${pick(['Dana', 'Lee', 'Sam', 'Kai', 'Rio', 'Ash'])}`) : pre ? pre + (pre.endsWith('-') ? String(Math.floor(r() * 90) + 10).padStart(2, '0') + pick(['A', 'B', 'C', '']) : '') : mac;
-      const band5 = r() < .64, sig = -45 - Math.floor(r() * (band5 ? 38 : 30));
-      clients.push({ ap: ap.name, host, os, vci, mac, ip: '10.10.10.' + (ipn++), ssid: 'Talvex-Corp', band: band5 ? '5 GHz' : '2.4 GHz', tech: band5 ? (r() < .55 ? '802.11ax' : '802.11ac') : '802.11n', ch: band5 ? ap.ch5 : ap.ch24, sig, noise: -95, bw: Math.floor(80 + r() * (r() < .2 ? 520000 : 9000)), assoc: now - Math.floor(r() * 30 * 86400000) % (r() < .6 ? 86400000 : 30 * 86400000), user: os === 'Windows' && r() < .5 ? pick(['dana.k', 'lee.m', 'sam.r', 'kai.t', 'rio.p']) : '' });
-    } });
-    /* wired desks fill 10.10.10.20-45 (the addresses the live traffic generator uses), so FortiView Sessions can name them */
-    const DEPT = ['ACCT', 'OPS', 'SHOP', 'ENG', 'HR', 'SALES', 'FRONT', 'QA'];
-    const wired = [];
-    for (let n = 20; n <= 45; n++) { const ip = '10.10.10.' + n; if (SIM.HOSTS[ip]) continue; const mac = r() < .12; wired.push({ host: mac ? `MacBook-${pick(DEPT)}${n}` : `WS-${pick(DEPT)}-${String(n).padStart(2, '0')}`, os: mac ? 'macOS' : 'Windows', vci: mac ? '' : 'MSFT 5.0', mac: fxMac(r), ip, online: true }); }
-    [['Unknown', 'PRN-OFFICE-01', 'PCL-Printer'], ['Unknown', 'VOIP-PH-01', 'sip-phone'], ['Unknown', 'VOIP-PH-02', 'sip-phone'], ['Unknown', 'CAM-DOCK-01', 'udhcp 1.36.1'], ['Unknown', 'CAM-DOCK-02', 'udhcp 1.36.1']].forEach(([os, host, vci], i) => wired.push({ host, os, vci, mac: fxMac(r), ip: '10.10.10.' + (170 + i), online: r() > .15 }));
-    const hist = [0, 1, 2].map(b => { const out = []; let w = 0; for (let i = 0; i < 40; i++) { w = w * .8 + (r() - .5) * .5; out.push(w); } return out; });
-    const rogue = { total: 0, good: 0, fair: 0 }; rogue.fair = 20 + Math.floor(r() * 30); rogue.good = 900 + Math.floor(r() * 1400); rogue.total = rogue.good + rogue.fair;
-    const fail = [{ ts: now - Math.floor(r() * 3600000), ssid: 'Talvex-Corp', host: 'Galaxy-' + Math.floor(r() * 90 + 10), mac: fxMac(r) }];
-    return (FXW_C = { seed, aps, clients, wired, hist, rogue, fail });
+    const APS = [['TLX-AP-ENG-2F', 36, 6], ['TLX-AP-LOBBY', 149, 1], ['TLX-AP-SHOP', 44, 11], ['TLX-AP-CONF-A', 157, 6], ['TLX-AP-WHSE', 100, 1]];
+    const aps = APS.map(([name, ch5, ch24], i) => ({ name, ch5, ch24, serial: 'FP231FTF23' + String(100000 + Math.floor(r() * 899999)), ip: '10.10.10.' + (240 + i), mac: fxMac(r), noise5: 3 + Math.floor(r() * 9), noise24: 8 + Math.floor(r() * 14), os: 'FortiAP OS' }));
+    const DEPT = ['ACCT', 'OPS', 'SHOP', 'ENG', 'HR', 'SALES', 'FRONT', 'QA'], USERS = ['dana.k', 'lee.m', 'sam.r', 'kai.t', 'rio.p', 'ash.w'];
+    const clients = [], wired = []; let k = 0;
+    const radio = (ap, band5) => ({ band: band5 ? '5 GHz' : '2.4 GHz', tech: band5 ? (r() < .55 ? '802.11ax' : '802.11ac') : '802.11n', ch: band5 ? ap.ch5 : ap.ch24, sig: -45 - Math.floor(r() * (band5 ? 38 : 30)), noise: -95 });
+    /* office users from the live traffic generator: about 60% are on WiFi laptops, the rest at wired desks */
+    for (let n = 20; n <= 45; n++) { const ip = '10.10.10.' + n; if (SIM.HOSTS[ip]) continue;
+      const mac = r() < .15, wifi = n <= 41 && r() < .6, host = mac ? `MacBook-${pick(DEPT)}${n}` : wifi ? `LAP-${pick(DEPT)}-${String(n).padStart(2, '0')}` : `WS-${pick(DEPT)}-${String(n).padStart(2, '0')}`;
+      const base = { host, os: mac ? 'macOS' : 'Windows', vci: mac ? '' : 'MSFT 5.0', mac: fxMac(r), ip, user: r() < .7 ? pick(USERS) : '' };
+      if (wifi) { const ap = aps[k++ % aps.length]; clients.push({ ...base, ap: ap.name, ssid: 'Talvex-Corp', ...radio(ap, r() < .75), assoc: now - Math.floor(r() * 9 * 3600000) }); }
+      else wired.push({ ...base, online: true }); }
+    /* phones, tablets and scanners: associated but idle unless lab traffic comes from them */
+    const MOB = [['iOS', 'iPhone'], ['iOS', 'iPad-'], ['Android', 'Galaxy-'], ['Android', 'Pixel-'], ['Unknown', 'SCAN-WH-']];
+    for (let n = 100; n < 116; n++) { const [os, pre] = pick(MOB), ap = aps[Math.floor(r() * aps.length)];
+      clients.push({ host: pre === 'iPhone' ? (r() < .5 ? 'iPhone' : `iPhone-${pick(['Dana', 'Lee', 'Sam', 'Kai', 'Rio'])}`) : pre + (Math.floor(r() * 90) + 10), os, vci: os === 'Android' ? 'android-dhcp-14' : os === 'Unknown' ? 'udhcp 1.36.1' : '', mac: fxMac(r), ip: '10.10.10.' + n, user: '', ap: ap.name, ssid: 'Talvex-Corp', ...radio(ap, r() < .6), assoc: now - Math.floor(r() * 3 * 86400000) }); }
+    [['Unknown', 'PRN-OFFICE-01', 'PCL-Printer'], ['Unknown', 'VOIP-PH-01', 'sip-phone'], ['Unknown', 'VOIP-PH-02', 'sip-phone'], ['Unknown', 'CAM-DOCK-01', 'udhcp 1.36.1'], ['Unknown', 'CAM-DOCK-02', 'udhcp 1.36.1']].forEach(([os, host, vci], i) => wired.push({ host, os, vci, mac: fxMac(r), ip: '10.10.10.' + (170 + i), online: i !== 4, user: '' }));
+    const rogue = { fair: 20 + Math.floor(r() * 30), good: 900 + Math.floor(r() * 1400) }; rogue.total = rogue.good + rogue.fair;
+    return (FXW_C = { seed, aps, clients, wired, rogue });
+  }
+  /* bits per second each source IP is pushing right now, from the live sessions (the same rows FortiView Sessions shows) */
+  function fxRates() { const now = Date.now(), m = {}; for (const x of S.sessions) { const life = Math.max(1, ((x.expires || now) - x.ts) / 1000); m[x.srcip] = (m[x.srcip] || 0) + (x.bytes || 0) * 8 / life; } return m; }
+  function fxLan() { const i = SIM.iface(S, 'port2') || S.interfaces.find(x => x.role === 'lan'); return i && i.status === 'up' && i.ip && i.ip !== '0.0.0.0' && SIM.inNet('10.10.10.240', SIM.n2ip(SIM.netOf(i.ip, i.bits)), i.bits) ? i : null; }
+  function fxWifi() {
+    const R = fxRoster(), lan = fxLan(), rate = fxRates();
+    const aps = R.aps.map(a => ({ ...a, up: !!lan }));
+    const clients = lan ? R.clients.map(c => ({ ...c, bw: Math.round(rate[c.ip] || 0) })) : [];
+    aps.forEach(a => { const load = b => clients.filter(c => c.ap === a.name && c.band === b).reduce((t, c) => t + c.bw, 0);
+      a.util5 = a.up ? Math.min(100, Math.round(a.noise5 + load('5 GHz') / 4e6)) : 0; a.util24 = a.up ? Math.min(100, Math.round(a.noise24 + load('2.4 GHz') / 1e6)) : 0; });
+    /* WiFi login failures are logged as system events; the lab has none unless a scenario writes one */
+    const fail = (S.logs.event || []).filter(e => /wifi|ssid|wpa/i.test(e.msg || '') && /fail/i.test(e.msg || '')).slice(0, 8).map(e => ({ ts: e.ts, ssid: 'Talvex-Corp', host: e.msg }));
+    return { aps, clients, wired: R.wired, rogue: R.rogue, fail, lan, roster: R };
   }
   /* small live movement: throughput and signal wander a little on each render */
   const fxLive = (base, amp) => Math.max(0, Math.round(base * (1 + (Math.random() - .5) * amp)));
@@ -8888,7 +8909,7 @@ if (typeof module !== 'undefined') module.exports = CATS;
   /* DHCP leases: wireless clients and wired extras on the LAN, the lab's own named hosts, and the FortiAPs, for every
      up LAN-side interface that has an address (port2 plus any VLAN the missions add) */
   function fxLeases() {
-    const W = fxWifi(), ifs = SIM.allIfaces(S).filter(i => i.status === 'up' && i.ip && i.ip !== '0.0.0.0' && i.role !== 'wan' && i.type !== 'tunnel');
+    const W = fxRoster(), ifs = SIM.allIfaces(S).filter(i => i.status === 'up' && i.ip && i.ip !== '0.0.0.0' && i.role !== 'wan' && i.type !== 'tunnel');
     const lan = ifs.find(i => i.name === 'port2') || ifs.find(i => i.role === 'lan'); const out = [];
     const inIf = ip => ifs.find(i => SIM.inNet(ip, SIM.n2ip(SIM.netOf(i.ip, i.bits)), i.bits));
     const exp = (k, h) => Date.now() + (6 * 86400000) + (fxHash(k) % 86400000) * (h || 1);
@@ -8897,8 +8918,8 @@ if (typeof module !== 'undefined') module.exports = CATS;
       out.push({ ip, iface: i.name, host: name.replace(/ \(.*\)$/, ''), vci: /Printer/i.test(name) ? 'PCL-Printer' : 'MSFT 5.0', mac: fxMac(fxRng(fxHash(ip))), reserved: /Printer/i.test(name), exp: exp(ip), os: /Printer/i.test(name) ? 'Unknown' : 'Windows', wired: true }); }
     if (lan && SIM.inNet('10.10.10.100', SIM.n2ip(SIM.netOf(lan.ip, lan.bits)), lan.bits)) {
       W.aps.forEach(a => out.push({ ip: a.ip, iface: lan.name, host: a.name, vci: 'FortiAP-231F', mac: a.mac, reserved: true, exp: exp(a.ip), os: 'FortiAP OS', ap: true }));
-      W.wired.forEach(w => out.push({ ip: w.ip, iface: lan.name, host: w.host, vci: w.vci, mac: w.mac, reserved: false, exp: exp(w.ip), os: w.os, wired: true, online: w.online }));
-      W.clients.forEach(c => out.push({ ip: c.ip, iface: lan.name, bridge: c.ssid, host: c.host, vci: c.vci, mac: c.mac, reserved: false, exp: exp(c.ip, 0.3), os: c.os }));
+      W.wired.forEach(w => out.push({ ip: w.ip, iface: lan.name, host: w.host, vci: w.vci, mac: w.mac, reserved: false, exp: exp(w.ip), os: w.os, wired: true, online: w.online, user: w.user }));
+      W.clients.forEach(c => out.push({ ip: c.ip, iface: lan.name, bridge: c.ssid, host: c.host, vci: c.vci, mac: c.mac, reserved: false, exp: exp(c.ip, 0.3), os: c.os, user: c.user }));
     }
     return out.sort((a, b) => SIM.ip2n(a.ip) - SIM.ip2n(b.ip));
   }
@@ -8920,8 +8941,8 @@ if (typeof module !== 'undefined') module.exports = CATS;
     const LT = [['Support', 'Registered (lab) · 24x7 support', 'ok', sv('<path d="M4.5 14v-2a7.5 7.5 0 0115 0v2"/><rect x="3.5" y="13" width="3.5" height="5.5" rx="1"/><rect x="17" y="13" width="3.5" height="5.5" rx="1"/><path d="M19 18.5c0 1.5-1.5 2.5-4 2.5h-2"/>')], ['Updates', `Firmware & General Updates: licensed · last check ${ago(12)}`, 'ok', sv('<path d="M12 15V4M7.5 8.5L12 4l4.5 4.5M4 14v5h16v-5"/>')], ['IPS', `IPS definitions licensed · updated ${ago(47)}`, 'ok', sv('<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>')], ['AntiVirus', `AntiVirus definitions licensed · updated ${ago(47)}`, 'ok', sv('<ellipse cx="12" cy="13.5" rx="4.5" ry="6"/><path d="M12 7.5V20M9 5l1.5 2.5M15 5l-1.5 2.5M7.5 11H4M7.5 15H4M16.5 11H20M16.5 15H20"/>')], ['Web Filter', 'Web Filtering licensed · rating servers reachable', 'ok', sv('<path d="M4 5h16l-6 7v6l-4 2v-8z"/>')], ['Rating', 'Outbreak prevention / rating: not licensed in this lab', 'warn', sv('<path d="M4 17a8 8 0 1116 0"/><path d="M12 17l4-6"/>')]];
     const LGO = { IPS: 'prof-ips', AntiVirus: 'prof-av', 'Web Filter': 'webfilter' };
     const lic = `<div class="fx-lic">${LT.map(([t, d, k, g]) => `<button type="button" class="fx-lt ${k}" data-act="nav" data-id="${LGO[t] || 'firmware'}" title="${esc(d)}. Click to open ${esc(pageTitle(LGO[t] || 'firmware')[1])}."><i aria-hidden="true">${g}</i>${esc(t)}</button>`).join('')}</div><div class="fx-tok"><span class="muted">FortiToken</span><span class="fx-tbar"><i style="width:0%"></i><b class="num">0%</b></span></div>`;
-    const cloud = `<dl class="fx-kv"><dt>Status</dt><dd>${FXI.ok}${fxLnk('logsettings', '<u>Activated</u>')}</dd><dt>Server Location</dt><dd>Global</dd><dt>Log Retention</dt><dd>${FXI.ok}${fxLnk('logsettings', '<u>Licensed</u>')}</dd><dt>Storage used</dt><dd class="num"><u>${(12.4 + (Date.now() - S.system.bootedAt) / 864e5 * .03).toFixed(2)} GiB</u></dd></dl>`;
-    const fab = `<div class="fx-fab"><div class="fx-fh">LAN Edge</div><div class="fx-fg">${fxLnk('interfaces', '<b class="fx-badge">1</b>FortiGate', 'Open Network > Interfaces')}${fxLnk('wifi', '<b class="fx-badge">0</b>FortiSwitch', 'Open WiFi & Switch Controller')}${fxLnk('fap-clients', `<b class="fx-badge">${W.aps.length}</b>FortiAP`, 'Open FortiAP Clients Monitor')}<span class="dim"><b class="fx-badge">0</b>FortiExtender</span></div><div class="fx-fh">Fabric Connectors</div><div class="fx-fg dim">${fxLnk('logsettings', 'Logging', 'Open Log Settings')}${fxLnk('fabric', 'FortiSandbox')}${fxLnk('fabric', 'Central Management')}${fxLnk('fabric', 'FortiClient EMS')}</div></div>`;
+    const cloud = `<dl class="fx-kv"><dt>Status</dt><dd>${FXI.ok}${fxLnk('logsettings', '<u>Activated</u>')}</dd><dt>Server Location</dt><dd>Global</dd><dt>Log Retention</dt><dd>${FXI.ok}${fxLnk('logsettings', '<u>Licensed</u>')}</dd><dt>Storage used</dt><dd class="num"><u>${(12.4 + ['traffic', 'local', 'event'].reduce((t, k) => t + ((S.logs[k] || []).length), 0) * 600 / 1073741824 + LIVE.flows() * 380 / 1073741824).toFixed(2)} GiB</u></dd></dl>`;
+    const fab = `<div class="fx-fab"><div class="fx-fh">LAN Edge</div><div class="fx-fg">${fxLnk('interfaces', '<b class="fx-badge">1</b>FortiGate', 'Open Network > Interfaces')}${fxLnk('wifi', '<b class="fx-badge">0</b>FortiSwitch', 'Open WiFi & Switch Controller')}${fxLnk('fap-clients', `<b class="fx-badge">${W.aps.filter(a => a.up).length}</b>FortiAP`, 'Open FortiAP Clients Monitor')}<span class="dim"><b class="fx-badge">0</b>FortiExtender</span></div><div class="fx-fh">Fabric Connectors</div><div class="fx-fg dim">${fxLnk('logsettings', 'Logging', 'Open Log Settings')}${fxLnk('fabric', 'FortiSandbox')}${fxLnk('fabric', 'Central Management')}${fxLnk('fabric', 'FortiClient EMS')}</div></div>`;
     const adm = `<div class="fx-adm"><span><b class="fx-badge">0</b>FortiExplorer</span>${fxLnk('admins', '<b class="fx-badge">1</b>HTTPS', 'Open System > Administrators')}<span><b class="fx-badge">${UI.termOpen ? 1 : 0}</b>CLI</span></div><div class="fx-adl">${S.admins.map((a, i) => `<span>${fxLnk('admins', `<u class="mono">${esc(a.name)}</u>`, 'Open System > Administrators')} <span class="muted">${esc(a.profile)}</span>${i === 0 ? ' <span class="fx-me">you</span>' : ''}</span>`).join('')}</div>`;
     const cores = FXH.cpu.map(c => c.slice(-1)[0] || 0), cpuNow = cores.reduce((a, b) => a + b, 0) / cores.length;
     const cpu = fxChart('fxcpu', FXH.cpu.map((v, k) => ({ v, c: [FXC.pink, FXC.orange, FXC.purple, FXC.sky][k] })), { max: 100, ticks: [0, 20, 40, 60, 80, 100], fmt: t => t + '%', label: 'CPU usage per core, last minute', h: 128 }) + `<p class="fx-cur">Current usage <b class="num">${Math.round(cpuNow)}%</b><span class="muted"> · 4 vCPU</span></p>`;
@@ -8951,20 +8972,21 @@ if (typeof module !== 'undefined') module.exports = CATS;
     const big = (segs, total, sub, title, how) => `<div class="fx-wd">${fxDonut(segs, fmtN(total), sub, fxSegAttr(title, how))}${fxLegend(title, segs, how)}</div>`;
     const byAp = W.aps.map((a, i) => ({ l: a.name, v: C.filter(c => c.ap === a.name).length, c: FXP[i % FXP.length] })).sort((a, b) => b.v - a.v);
     const sigs = [['Good ( >=-65dBm )', c => c.sig >= -65, FXC.green], ['Fair ( -75dBm - -66dBm )', c => c.sig < -65 && c.sig >= -75, FXC.yellow], ['Poor ( <=-76dBm )', c => c.sig < -75, FXC.red]].map(([l, f, c]) => ({ l, v: C.filter(f).length, c }));
-    const radios = W.aps.length * 2, util = [['Low ( <=60% )', FXC.green], ['Medium ( 61-80% )', FXC.yellow], ['High ( >80% )', FXC.red]].map(([l, c], k) => ({ l, c, v: k ? 0 : radios }));
-    const bands = ['2.4 GHz', '5 GHz', '6 GHz'], hist = W.hist.map((v, b) => { const now = C.filter(c => c.band === bands[b]).length; return v.map((x, i) => Math.max(0, now * (1 + x * (1 - i / (v.length - 1))))); });
+    const up = W.aps.filter(a => a.up), radios = up.length * 2, ut = up.flatMap(a => [a.util5, a.util24]);
+    const util = [['Low ( <=60% )', u => u <= 60, FXC.green], ['Medium ( 61-80% )', u => u > 60 && u <= 80, FXC.yellow], ['High ( >80% )', u => u > 80, FXC.red]].map(([l, f, c]) => ({ l, c, v: ut.filter(f).length }));
+    fxSample(); const bands = ['2.4 GHz', '5 GHz', '6 GHz'], hist = FXH.cli;
     const stacked = [hist[0], hist[0].map((x, i) => x + hist[1][i]), hist[0].map((x, i) => x + hist[1][i] + hist[2][i])];
-    const intf = [{ l: 'High ( >10 )', v: 0, c: FXC.red }, { l: 'Medium ( 2 - 10 )', v: 8, c: FXC.yellow }, { l: 'Low ( <=1 )', v: 2, c: FXC.green }];
-    const fails = W.fail.map(f => `<tr><td class="fx-ck"><span class="fx-cb" aria-hidden="true"></span></td><td class="num">${fmtTs(f.ts)}</td><td>${FXI.lock}<u>${esc(f.ssid)}</u></td><td class="mono">${esc(f.host)} / ${esc(f.mac)}</td></tr>`).join('');
-    return `<div class="fx fx-dash"><div class="fx-ph"><button class="fx-add" type="button" data-act="fx-addw" title="Widgets are fixed in this lab">${I.plus} Add widget</button><span class="grow"></span><span class="fx-lab muted">Wireless is simulated: SSID Talvex-Corp is bridged to port2, so its clients take LAN addresses</span></div>
+    const intf = [{ l: 'High ( >10 )', v: 0, c: FXC.red }, { l: 'Medium ( 2 - 10 )', v: up.length ? 8 : 0, c: FXC.yellow }, { l: 'Low ( <=1 )', v: up.length ? 2 : 0, c: FXC.green }];
+    const fails = W.fail.map(f => `<tr><td class="fx-ck"><span class="fx-cb" aria-hidden="true"></span></td><td class="num">${fmtTs(f.ts)}</td><td>${FXI.lock}<u>${esc(f.ssid)}</u></td><td>${esc(f.host)}</td></tr>`).join('') || '<tr><td colspan="4" class="fx-empty">No WiFi login failures logged.</td></tr>';
+    return `<div class="fx fx-dash"><div class="fx-ph"><button class="fx-add" type="button" data-act="fx-addw" title="Widgets are fixed in this lab">${I.plus} Add widget</button><span class="grow"></span><span class="fx-lab muted">${W.lan ? 'SSID Talvex-Corp is bridged to port2: client traffic here is the same lab traffic FortiView Sessions shows' : 'port2 is down or has no address, so every FortiAP has lost its controller'}</span></div>
       <div class="fx-g3">
-        ${fxWidget('FortiAP Status', big([{ l: 'Online', v: W.aps.length, c: FXC.green }], W.aps.length, 'FortiAPs', 'Connection', { go: 'wifi' }), '', '', 'wifi')}
+        ${fxWidget('FortiAP Status', big([{ l: 'Online', v: up.length, c: FXC.green }, { l: 'Offline', v: W.aps.length - up.length, c: FXC.red }], W.aps.length, 'FortiAPs', 'Connection', { go: 'wifi' }), '', '', 'wifi')}
         ${fxWidget(`Channel Utilization <span class="fx-i" title="Radios grouped by how busy their channel is">${gi('info')}</span>`, big(util, radios, 'Radios', 'Channel Utilization', { go: 'wifi' }), '', '', 'wifi')}
         ${fxWidget('Clients By FortiAP', big(byAp, tot, 'Clients', 'FortiAP', { go: 'fap-clients', t: 'FortiAP' }), '', '', 'fap-clients')}
         ${fxWidget('Signal Strength', big(sigs, tot, 'Clients', 'Signal Strength', { go: 'fap-clients', t: 'Signal Strength' }), '', '', 'fap-clients')}
-        ${fxWidget('Rogue APs', big([{ l: 'Good ( 0 )', v: W.rogue.good, c: FXC.indigo }, { l: 'Fair ( 1 - 10 )', v: W.rogue.fair, c: FXC.yellow }], W.rogue.total, 'Rogue APs', 'Interfering FortiAPs', { go: 'wifi' }), '', '', 'wifi')}
-        ${fxWidget('Historical Clients', fxChart('fxhc', [{ v: stacked[2], c: FXC.purple, fill: true, op: .55 }, { v: stacked[1], c: FXC.orange, fill: true, op: .6 }, { v: stacked[0], c: FXC.pink, fill: true, op: .65 }], { min: 30, x: ['45 minutes ago', '30 minutes ago', '15 minutes ago', 'Now'], label: 'Clients per band, last hour', h: 160 }) + `<p class="fx-cur">${bands.map((b, k) => `<span class="fx-k"><i style="background:${[FXC.pink, FXC.orange, FXC.purple][k]}"></i>${b} Band</span>`).join('')}</p>`, '', `<span class="fx-dd">1 hour${gi('down')}</span>`, 'fap-clients')}
-        ${fxWidget(`Interfering SSIDs <span class="fx-i" title="Neighbouring networks heard on the same channels">${gi('info')}</span>`, big(intf, 10, 'AP Radios', 'Interfering SSIDs', { go: 'wifi' }), '', '', 'wifi')}
+        ${fxWidget('Rogue APs', big(up.length ? [{ l: 'Good ( 0 )', v: W.rogue.good, c: FXC.indigo }, { l: 'Fair ( 1 - 10 )', v: W.rogue.fair, c: FXC.yellow }] : [], up.length ? W.rogue.total : 0, 'Rogue APs', 'Interfering FortiAPs', { go: 'wifi' }), '', '', 'wifi')}
+        ${fxWidget('Historical Clients', fxChart('fxhc', [{ v: stacked[2], c: FXC.purple, fill: true, op: .55 }, { v: stacked[1], c: FXC.orange, fill: true, op: .6 }, { v: stacked[0], c: FXC.pink, fill: true, op: .65 }], { min: 30, label: 'Clients per band, last minute', h: 160 }) + `<p class="fx-cur">${bands.map((b, k) => `<span class="fx-k"><i style="background:${[FXC.pink, FXC.orange, FXC.purple][k]}"></i>${b} Band</span>`).join('')}</p>`, '', `<span class="fx-dd">1 minute${gi('down')}</span>`, 'fap-clients')}
+        ${fxWidget(`Interfering SSIDs <span class="fx-i" title="Neighbouring networks heard on the same channels">${gi('info')}</span>`, big(intf, radios, 'AP Radios', 'Interfering SSIDs', { go: 'wifi' }), '', '', 'wifi')}
         ${fxWidget('Login Failures', `<div class="fx-tw-wrap"><table class="fx-grid"><thead><tr><th class="fx-ck"><span class="fx-cb" aria-hidden="true"></span></th><th>Time</th><th>SSID</th><th>Host Name/MAC</th></tr></thead><tbody>${fails}</tbody></table><div class="fx-foot"><span class="num">${W.fail.length}</span></div></div>`, '', '', 'log-event')}
       </div></div>`;
   };
@@ -8998,8 +9020,11 @@ if (typeof module !== 'undefined') module.exports = CATS;
     const L = fxLeases(), hosts = [];
     const named = new Set(L.map(l => l.ip));
     for (const [ip, name] of Object.entries(SIM.HOSTS)) if (!named.has(ip) && SIM.routeLookup(S, ip) && SIM.routeLookup(S, ip).type === 'C') hosts.push({ ip, host: name.replace(/ \(.*\)$/, ''), os: /WEB|FS0/.test(name) ? 'Windows' : 'Linux', iface: SIM.routeLookup(S, ip).device, mac: fxMac(fxRng(fxHash(ip))) });
-    const A = L.map(l => ({ ip: l.ip, host: l.host, os: l.os, iface: l.iface, mac: l.mac, online: l.online !== false, user: '' })).concat(hosts.map(h => ({ ...h, online: true, user: '' })));
-    const W = fxWifi(); W.clients.forEach(c => { const a = A.find(x => x.ip === c.ip); if (a) a.user = c.user; });
+    const rate = fxRates();
+    const A = L.map(l => ({ ip: l.ip, host: l.host, os: l.os, iface: l.iface, mac: l.mac, online: l.online !== false, user: l.user || '' })).concat(hosts.map(h => ({ ...h, online: true, user: '' })));
+    /* the LAN is down: its devices stay in the inventory, marked offline, like FortiOS does until they age out */
+    if (!fxLan()) { const R = fxRoster(); R.aps.concat(R.wired, R.clients).forEach(d => { if (!A.some(a => a.ip === d.ip)) A.push({ ip: d.ip, host: d.host || d.name, os: d.os, iface: 'port2', mac: d.mac, online: false, user: d.user || '' }); }); }
+    A.forEach(a => { a.bps = rate[a.ip] || 0; });
     const cnt = (f, keys, colors) => keys.map((k, i) => ({ l: k, v: A.filter(a => f(a) === k).length, c: colors ? colors[i] : FXP[i % FXP.length], f: a => f(a) === k }));
     const oss = [...new Set(A.map(a => a.os))].sort((a, b) => A.filter(x => x.os === b).length - A.filter(x => x.os === a).length);
     const ifs = [...new Set(A.map(a => a.iface))];
@@ -9010,6 +9035,7 @@ if (typeof module !== 'undefined') module.exports = CATS;
       { h: 'MAC Address', f: a => `<span class="mono">${esc(a.mac)}</span>`, s: a => a.mac },
       { h: 'Interface', f: a => fxIf(a.iface), s: a => a.iface },
       { h: 'User', f: a => esc(a.user), s: a => a.user },
+      { h: 'Traffic', f: a => a.bps ? `<span class="num">${fmtRate(a.bps)}</span>` : '<span class="muted">idle</span>', s: a => a.bps, cls: 'r' },
       { h: 'Vulnerabilities', f: () => '<span class="num">0</span>', cls: 'r' },
       { h: 'Status', f: a => a.online ? `<span class="fx-st">${FXI.up}Online</span>` : `<span class="fx-st muted">${FXI.down}Offline</span>`, s: a => a.online ? 0 : 1 }];
     return fxPage('Assets', fxStrip([fxDonutCard('Software OS', cnt(a => a.os, oss), 'Devices'), fxDonutCard('Vulnerability Level', [{ l: 'None', v: A.length, c: FXC.green, f: () => true }], 'Devices'), fxDonutCard('Status', [{ l: 'Online', v: A.filter(a => a.online).length, c: FXC.green, f: a => a.online }, { l: 'Offline', v: A.filter(a => !a.online).length, c: FXC.grey, f: a => !a.online }], 'Devices'), fxDonutCard('Interface', cnt(a => a.iface, ifs, [FXC.yellow, FXC.indigo, FXC.pink, FXC.sky]).map(x => ({ ...x, l: ifLabel(x.l) })), 'Devices')]) +
@@ -9062,7 +9088,7 @@ if (typeof module !== 'undefined') module.exports = CATS;
   P['sdwan-mon'] = () => {
     const Wn = S.sdwan, on = Wn.status === 'enable';
     const ms = (on ? Wn.members : []).map(m => { const i = SIM.iface(S, m.iface), up = !!i && i.status === 'up' && i.ip && i.ip !== '0.0.0.0' && ipOk(m.gateway), h = fxHash(m.iface), c = TELE.iface(m.iface), rate = c ? c.rate : 0;
-      return { m, up, lat: up ? fxLive(6 + h % 30, .25) : null, jit: up ? +(0.4 + (h % 30) / 10 * Math.random()).toFixed(1) : null, loss: up ? 0 : 100, ses: S.sessions.filter(x => x.dstintf === m.iface || x.srcintf === m.iface).length, upl: rate * .24, dl: rate * .76 }; });
+      return { m, up, lat: up ? fxLive(6 + h % 30 + rate / 2e5, .15) : null, jit: up ? +(0.4 + (h % 30) / 20 + rate / 1e6 + Math.random() * .4).toFixed(1) : null, loss: up ? 0 : 100, ses: S.sessions.filter(x => x.dstintf === m.iface || x.srcintf === m.iface).length, upl: rate * .24, dl: rate * .76 }; });
     const g = (l1, l2, f) => [{ l: l1, v: ms.filter(f).length, c: FXC.green, f }, { l: l2, v: ms.filter(x => !f(x)).length, c: FXC.red, f: x => !f(x) }];
     const mx = k => Math.max(1, ...ms.map(x => x[k]));
     const cols = [
@@ -9116,7 +9142,7 @@ if (typeof module !== 'undefined') module.exports = CATS;
       { h: 'Device', f: c => `<span class="fx-dev">${fxOsIcon(c.os)}<u>${esc(c.host)}</u></span>`, s: c => c.host.toLowerCase() },
       { h: 'SSID', f: c => esc(c.ssid), s: c => c.ssid },
       { h: 'Channel', f: c => `<span class="num">${c.ch}</span>`, s: c => c.ch, cls: 'r' },
-      { h: 'Bandwidth Tx/Rx', f: c => { const b = fxLive(c.bw, .5); return `<span class="num">${fmtRate(b)}</span>`; }, s: c => c.bw, cls: 'r' },
+      { h: 'Bandwidth Tx/Rx', f: c => c.bw ? `<span class="num">${fmtRate(c.bw)}</span>` : '<span class="muted">idle</span>', s: c => c.bw, cls: 'r' },
       { h: 'Signal Strength/Noise', f: c => `<span class="num">${c.sig - c.noise} dB</span>`, s: c => c.sig - c.noise, cls: 'r' },
       { h: 'Signal Strength', f: c => fxSig(c.sig + (Math.random() < .3 ? (Math.random() < .5 ? -1 : 1) : 0)), s: c => c.sig },
       { h: 'Association Time', f: c => `<span class="num">${fmtTs(c.assoc)}</span>`, s: c => c.assoc }];
@@ -9124,7 +9150,7 @@ if (typeof module !== 'undefined') module.exports = CATS;
     return fxPage('Clients By FortiAP', fxStrip([fxDonutCard('FortiAP', W.aps.map((a, i) => ({ l: a.name, v: C.filter(c => c.ap === a.name).length, c: FXP[i % FXP.length], f: c => c.ap === a.name })), 'Total'), fxDonutCard('Technology', tech, 'Total'), fxDonutCard('Band', band, 'Total')]) +
       `<div class="fx-tb">${fxSearch()}</div>
       ${fxTable(cols, groups, { check: c => c.mac, key: c => 'c' + c.mac, text: c => `${c.ip} ${c.mac} ${c.user} ${c.host} ${c.ssid} ${c.ap} ${c.ch}` })}
-      ${fxNote('Signal: -65 dBm or better is good, -66 to -75 is fair, -76 and below is poor. Signal/Noise is the gap above the -95 dBm noise floor. Wireless is simulated in this lab.')}`);
+      ${fxNote(`${W.lan ? '' : '<b>No clients: port2 is down, so the FortiAPs are offline.</b> '}Tx/Rx is the live traffic of each client's sessions (FortiView Sessions). Signal: -65 dBm or better is good, -66 to -75 is fair, -76 and below is poor; Signal/Noise is the gap above the -95 dBm noise floor. Radio conditions are simulated.`)}`);
   };
 
   /* ---------- VPN > IPsec Tunnels, grouped like the FortiOS 7.6 VPN Tunnels list ---------- */
